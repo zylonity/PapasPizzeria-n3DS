@@ -25,7 +25,7 @@ PapasError Papas::SceneManager::render_top() {
 
 	if (currentScene != nullptr) {
 		ret = currentScene->render_top();
-		//ASSERT(ret == PAPAS_OK);
+		ASSERT(ret == PAPAS_OK, "");
 	}
 
 	return PAPAS_OK;
@@ -36,7 +36,7 @@ PapasError Papas::SceneManager::render_bottom() {
 
 	if (currentScene != nullptr) {
 		ret = currentScene->render_bottom();
-		//ASSERT(ret == PAPAS_OK);
+		ASSERT(ret == PAPAS_OK, "");
 	}
 
 	return PAPAS_OK;
