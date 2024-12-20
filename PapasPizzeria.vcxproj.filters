@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="source\main.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Papas_Framework.cpp">
+      <Filter>Source\Papas</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Papas_Renderer.cpp">
+      <Filter>Source\Papas</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Papas_Util.cpp">
+      <Filter>Source\Papas</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="source\Papas_Constants.h">
+      <Filter>Headers\Papas</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Papas_Framework.h">
+      <Filter>Headers\Papas</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Papas_Renderer.h">
+      <Filter>Headers\Papas</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Papas_Utils.h">
+      <Filter>Headers\Papas</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Makefile" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{7536c172-54d9-44fe-bc82-eff9cf65ef66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Papas">
+      <UniqueIdentifier>{290bd3b2-b820-461a-87f1-b5fcf57d06b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{d5ede956-c01c-4e96-a5e9-8080269171ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Papas">
+      <UniqueIdentifier>{eeb88f1d-e405-4c6e-9c6d-70e80f26efbd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
