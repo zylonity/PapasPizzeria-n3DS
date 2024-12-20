@@ -1,7 +1,5 @@
 #pragma once
 #include "Papas_Constants.h"
-#include <3ds.h>
-#include <citro2d.h>
 
 namespace Papas {
 

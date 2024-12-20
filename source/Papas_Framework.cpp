@@ -16,7 +16,7 @@ PapasError Papas::Framework::init() {
 	// Initialize our Renderer
 	m_pRenderer = new Papas::Renderer;
 	assert(m_pRenderer != nullptr);							// Always checking with any new if we have successfully allocated memory for it
-	ret = m_pRenderer->init();
+	ret = m_pRenderer->init(m_pSceneManager);
 	assert(ret == PAPAS_OK);									// Always checking if we have a valid return code
 
 

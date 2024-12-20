@@ -1,6 +1,7 @@
 #pragma once
 #include "Papas_SceneManager.h"
 
+
 PapasError Papas::SceneManager::init() {
 	PapasError ret;
 
@@ -58,27 +59,9 @@ PapasError Papas::SceneManager::changeScene(Papas::Scene* scene) {
 PapasError Papas::SceneManager::terminate() {
 	PapasError ret;
 
-
-	return PAPAS_OK;
-}
-
-PapasError Papas::Scene::init() {
-	PapasError ret;
-
-
-	return PAPAS_OK;
-}
-
-PapasError Papas::Scene::update() {
-	PapasError ret;
-
-
-	return PAPAS_OK;
-}
-
-PapasError Papas::Scene::terminate() {
-	PapasError ret;
-
+	currentScene->terminate();
+	delete currentScene;
+	currentScene = nullptr;
 
 	return PAPAS_OK;
 }

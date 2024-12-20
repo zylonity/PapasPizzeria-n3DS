@@ -130,6 +130,7 @@
     <ClCompile Include="source\Papas_Framework.cpp" />
     <ClCompile Include="source\Papas_Renderer.cpp" />
     <ClCompile Include="source\Papas_SceneManager.cpp" />
+    <ClCompile Include="source\Papas_Scenes.cpp" />
     <ClCompile Include="source\Papas_Util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -140,6 +141,7 @@
     <ClInclude Include="source\Papas_Framework.h" />
     <ClInclude Include="source\Papas_Renderer.h" />
     <ClInclude Include="source\Papas_SceneManager.h" />
+    <ClInclude Include="source\Papas_Scenes.h" />
     <ClInclude Include="source\Papas_Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
