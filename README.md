@@ -1,5 +1,4 @@
-This is a demo for Citro 2D
+Trying to port over Papa's pizzeria for the 3DS
 
-To build install Devkitpro and rename MakefileTemplate to Makefile and use make in cmd. 
-
-The immage is from here: https://commons.wikimedia.org/wiki/File:Bird_22.png
+I'm using Panda3DS emulator for basic "checking"
+Only have skeleton code so far, going to run it on "Papas" engine
