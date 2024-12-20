@@ -13,6 +13,9 @@
     <ClCompile Include="source\Papas_Util.cpp">
       <Filter>Source\Papas</Filter>
     </ClCompile>
+    <ClCompile Include="Papas_SceneManager.cpp">
+      <Filter>Source\Papas</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\Papas_Constants.h">
@@ -25,6 +28,9 @@
       <Filter>Headers\Papas</Filter>
     </ClInclude>
     <ClInclude Include="source\Papas_Utils.h">
+      <Filter>Headers\Papas</Filter>
+    </ClInclude>
+    <ClInclude Include="Papas_SceneManager.h">
       <Filter>Headers\Papas</Filter>
     </ClInclude>
   </ItemGroup>

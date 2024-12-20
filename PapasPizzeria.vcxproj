@@ -126,6 +126,7 @@
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Papas_SceneManager.cpp" />
     <ClCompile Include="source\main.cpp" />
     <ClCompile Include="source\Papas_Framework.cpp" />
     <ClCompile Include="source\Papas_Renderer.cpp" />
@@ -135,6 +136,7 @@
     <None Include="Makefile" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Papas_SceneManager.h" />
     <ClInclude Include="source\Papas_Constants.h" />
     <ClInclude Include="source\Papas_Framework.h" />
     <ClInclude Include="source\Papas_Renderer.h" />
