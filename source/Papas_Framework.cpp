@@ -27,9 +27,6 @@ PapasError Papas::Framework::init() {
 PapasError Papas::Framework::update() {
 	PapasError ret;
 
-	ret = m_pSceneManager->update();
-	assert(ret == PAPAS_OK);
-
 	ret = m_pRenderer->update(m_pSceneManager);
 	assert(ret == PAPAS_OK);
 

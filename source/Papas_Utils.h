@@ -7,11 +7,7 @@ namespace Papas {
 
 	class Button {
 	public:
-		Button();
-
-		void Update();
-		void Render();
-		void Terminate();
+		
 
 	};
 

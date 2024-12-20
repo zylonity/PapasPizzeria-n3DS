@@ -1,7 +1,6 @@
 #pragma once
 #include "Papas_SceneManager.h"
 
-
 PapasError Papas::SceneManager::init() {
 	PapasError ret;
 
@@ -14,7 +13,8 @@ PapasError Papas::SceneManager::update() {
 	PapasError ret;
 
 	if (currentScene != nullptr) {
-		currentScene->update();
+		ret = currentScene->update();
+		ASSERT(ret == PAPAS_OK, "Updating scene failed");
 	}
 
 	return PAPAS_OK;
@@ -24,7 +24,8 @@ PapasError Papas::SceneManager::render_top() {
 	PapasError ret;
 
 	if (currentScene != nullptr) {
-		currentScene->render_top();
+		ret = currentScene->render_top();
+		//ASSERT(ret == PAPAS_OK);
 	}
 
 	return PAPAS_OK;
@@ -34,7 +35,8 @@ PapasError Papas::SceneManager::render_bottom() {
 	PapasError ret;
 
 	if (currentScene != nullptr) {
-		currentScene->render_bottom();
+		ret = currentScene->render_bottom();
+		//ASSERT(ret == PAPAS_OK);
 	}
 
 	return PAPAS_OK;

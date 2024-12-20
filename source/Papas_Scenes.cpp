@@ -1,7 +1,7 @@
 #pragma once
 #include "Papas_Scenes.h"
 
-void Papas::MainMenu::init() {
+PapasError Papas::MainMenu::init() {
 
 	// Load the backgrounds
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
@@ -18,20 +18,23 @@ void Papas::MainMenu::init() {
 	help = C2D_SpriteSheetGetImage(sheet_buttons, 1);
 	credits = C2D_SpriteSheetGetImage(sheet_buttons, 2);
 
+	return PAPAS_OK;
 }
 
-void Papas::MainMenu::update() {
+PapasError Papas::MainMenu::update() {
 
 	hidScanInput();
 
 	// Respond to user input
-	//u32 kDown = hidKeysDown();
-	//if (kDown & KEY_START)
-	//	return PAPAS_NOT_OK; // break in order to return to hbmenu
+	u32 kDown = hidKeysDown();
+	if (kDown & KEY_START)
+		return PAPAS_NOT_OK; // break in order to return to hbmenu
+
+	return PAPAS_OK;
 
 }
 
-void Papas::MainMenu::render_top() {
+PapasError Papas::MainMenu::render_top() {
 
 	// Draw the top background
 	C2D_DrawImageAt(top_bg, 0, 0, 0, NULL, 1, 1);
@@ -42,9 +45,10 @@ void Papas::MainMenu::render_top() {
 	float ymiddle = (SCREEN_HEIGHT_TOP / 2) - ((logo.subtex->height * scaling) / 2);
 	C2D_DrawImageAt(logo, xmiddle, ymiddle, 0, NULL, scaling, scaling);
 
+	return PAPAS_OK;
 }
 
-void Papas::MainMenu::render_bottom() {
+PapasError Papas::MainMenu::render_bottom() {
 
 	float middle = (SCREEN_WIDTH_BOTTOM / 2) - (start.subtex->width / 2);
 	float buttonheight = start.subtex->height;
@@ -59,10 +63,12 @@ void Papas::MainMenu::render_bottom() {
 	C2D_DrawImageAt(help, middle, box2_y, 1, NULL, 1, 1);
 	C2D_DrawImageAt(credits, middle, box3_y, 1, NULL, 1, 1);
 
+
+	return PAPAS_OK;
 }
 
-void Papas::MainMenu::terminate() {
+PapasError Papas::MainMenu::terminate() {
 
 	
-
+	return PAPAS_OK;
 }

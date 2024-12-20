@@ -8,11 +8,11 @@ namespace Papas {
 
 	class MainMenu : public Scene {
 	public:
-		void init() override;
-		void update() override;
-		void render_top() override;
-		void render_bottom() override;
-		void terminate() override;
+		PapasError init() override;
+		PapasError update() override;
+		PapasError render_top() override;
+		PapasError render_bottom() override;
+		PapasError terminate() override;
 	private:
 
 		//backgrounds

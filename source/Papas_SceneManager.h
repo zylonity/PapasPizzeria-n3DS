@@ -7,11 +7,11 @@ namespace Papas {
 	public:
 		virtual ~Scene() = default;
 
-		virtual void init() = 0;           // Initialize resources for the scene
-		virtual void update() = 0;         // Handle input and game logic
-		virtual void render_top() = 0;         // Draw the scene
-		virtual void render_bottom() = 0;         // Draw the scene
-		virtual void terminate() = 0;      // Free resources
+		virtual PapasError init() = 0;           // Initialize resources for the scene
+		virtual PapasError update() = 0;         // Handle input and game logic
+		virtual PapasError render_top() = 0;         // Draw the scene
+		virtual PapasError render_bottom() = 0;         // Draw the scene
+		virtual PapasError terminate() = 0;      // Free resources
 	};
 
 	class SceneManager

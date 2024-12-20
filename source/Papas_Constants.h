@@ -1,5 +1,18 @@
 #pragma once
 typedef int PapasError;
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <cstring>
+
+#define ASSERT(condition, message)                                           \
+    do {                                                                     \
+        if (!(condition)) {                                                  \
+            printf("Assertion failed: %s\nFile: %s\nLine: %d\n",             \
+                   message, __FILE__, __LINE__);                             \
+        }                                                                    \
+    } while (0)
+
 #define PAPAS_OK 0
 #define PAPAS_NOT_OK 1
 
