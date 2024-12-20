@@ -10,7 +10,7 @@ namespace Papas {
 	//===============================================================================
 	// Forward Declarations
 	class Renderer;
-	//class SceneManager;
+	class SceneManager;
 	//===============================================================================
 
 
@@ -22,7 +22,7 @@ namespace Papas {
 		PapasError terminate();
 	private:
 		Papas::Renderer* m_pRenderer = nullptr;
-		//Papas::SceneManager* m_pSceneManager = nullptr;
+		Papas::SceneManager* m_pSceneManager = nullptr;
 	};
 
 }

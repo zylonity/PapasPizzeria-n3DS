@@ -1,5 +1,6 @@
 #pragma once
 #include "Papas_Constants.h"
+#include "Papas_SceneManager.h"
 #include <3ds.h>
 #include <citro2d.h>
 
@@ -9,8 +10,8 @@ namespace Papas {
 	{
 	public:
 		PapasError init();
-		PapasError update();
-		PapasError render();
+		PapasError update(Papas::SceneManager* sceneManager);
+		PapasError render(Papas::SceneManager* sceneManager);
 		PapasError terminate();
 	private:
 		

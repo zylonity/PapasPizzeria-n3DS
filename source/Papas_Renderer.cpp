@@ -37,7 +37,7 @@ PapasError Papas::Renderer::init() {
 	return PAPAS_OK;
 }
 
-PapasError Papas::Renderer::update() {
+PapasError Papas::Renderer::update(Papas::SceneManager* sceneManager) {
 	PapasError ret;
 
 	hidScanInput();
@@ -48,13 +48,13 @@ PapasError Papas::Renderer::update() {
 		return PAPAS_NOT_OK; // break in order to return to hbmenu
 
 
-	ret = render();
+	ret = render(sceneManager);
 	assert(ret == PAPAS_OK);
 
 	return PAPAS_OK;
 }
 
-PapasError Papas::Renderer::render() {
+PapasError Papas::Renderer::render(Papas::SceneManager* sceneManager) {
 	PapasError ret;
 
 	// Render the scene
@@ -72,6 +72,8 @@ PapasError Papas::Renderer::render() {
 	C2D_DrawImageAt(logo, xmiddle, ymiddle, 0, NULL, scaling, scaling);
 
 	//assert(false);
+	sceneManager->render_top();
+
 
 	C3D_FrameEnd(0);
 
@@ -92,6 +94,8 @@ PapasError Papas::Renderer::render() {
 	C2D_DrawImageAt(start, middle, box1_y, 1, NULL, 1, 1);
 	C2D_DrawImageAt(help, middle, box2_y, 1, NULL, 1, 1);
 	C2D_DrawImageAt(credits, middle, box3_y, 1, NULL, 1, 1);
+
+	sceneManager->render_bottom();
 
 	C3D_FrameEnd(0);
 
