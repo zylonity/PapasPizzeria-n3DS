@@ -4,12 +4,17 @@ typedef int PapasError;
 #include <stdio.h>
 #include <stdlib.h>
 #include <cstring>
+#include <3ds.h>
 
 #define ASSERT(condition, message)                                           \
     do {                                                                     \
         if (!(condition)) {                                                  \
             printf("Assertion failed: %s\nFile: %s\nLine: %d\n",             \
                    message, __FILE__, __LINE__);                             \
+            svcOutputDebugString(message, strlen(message));                         \
+            printf("Exiting in 10 seconds...\n");                           \
+            svcSleepThread(10 * 1000 * 1000 * 1000ULL); /* Sleep for 10 seconds */ \
+            exit(1);                                                        \
         }                                                                    \
     } while (0)
 
