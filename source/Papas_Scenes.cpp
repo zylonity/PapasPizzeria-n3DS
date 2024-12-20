@@ -1,4 +1,3 @@
-#pragma once
 #include "Papas_Scenes.h"
 
 PapasError Papas::MainMenu::init() {
@@ -12,11 +11,29 @@ PapasError Papas::MainMenu::init() {
 	sheet_icons = C2D_SpriteSheetLoad("romfs:/gfx/icons.t3x");
 	logo = C2D_SpriteSheetGetImage(sheet_icons, 0);
 
+	//Positions for the buttons
+	float buttonheight = b_start.getRect().height;
+	float padding = 10;
+
+	Papas::v2 startPos;
+	startPos.x = (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2);
+	startPos.y = 50;
+
+	/*Papas::v2 helpPos;
+	helpPos.x = (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2);
+	helpPos.y = startPos.y + buttonheight + padding;
+
+	Papas::v2 contactPos;
+	contactPos.x = (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2);
+	contactPos.y = helpPos.y + buttonheight + padding;*/
+	
+	
 	//Load the buttons
 	sheet_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
-	start = C2D_SpriteSheetGetImage(sheet_buttons, 0);
-	help = C2D_SpriteSheetGetImage(sheet_buttons, 1);
-	credits = C2D_SpriteSheetGetImage(sheet_buttons, 2);
+	b_start.createButton(sheet_buttons, 0, 1, startPos);
+	//b_help.createButton(sheet_buttons, 2, 3, helpPos);
+	//b_credits.createButton(sheet_buttons, 4, 5, contactPos);
+
 
 	return PAPAS_OK;
 }
@@ -24,6 +41,7 @@ PapasError Papas::MainMenu::init() {
 PapasError Papas::MainMenu::update() {
 
 	hidScanInput();
+	hidTouchRead(&touch);
 
 	// Respond to user input
 	u32 kDown = hidKeysDown();
@@ -50,25 +68,23 @@ PapasError Papas::MainMenu::render_top() {
 
 PapasError Papas::MainMenu::render_bottom() {
 
-	float middle = (SCREEN_WIDTH_BOTTOM / 2) - (start.subtex->width / 2);
-	float buttonheight = start.subtex->height;
-	float padding = 10;
-	float box1_y = 50;
-	float box2_y = box1_y + buttonheight + padding;
-	float box3_y = box2_y + buttonheight + padding;
-
 	// Draw the background
 	C2D_DrawImageAt(bottom_bg, 0, 0, 0, NULL, 1, 1);
-	C2D_DrawImageAt(start, middle, box1_y, 1, NULL, 1, 1);
-	C2D_DrawImageAt(help, middle, box2_y, 1, NULL, 1, 1);
-	C2D_DrawImageAt(credits, middle, box3_y, 1, NULL, 1, 1);
+
+	//Draw buttons
+	b_start.showButton(touch);
+	//b_help.showButton(touch);
+	//b_credits.showButton(touch);
+
+	//C2D_DrawImageAt(start, middle, box1_y, 1, NULL, 1, 1);
+	//C2D_DrawImageAt(help, middle, box2_y, 1, NULL, 1, 1);
+	//C2D_DrawImageAt(credits, middle, box3_y, 1, NULL, 1, 1);
 
 
 	return PAPAS_OK;
 }
 
 PapasError Papas::MainMenu::terminate() {
-
 	
 	return PAPAS_OK;
 }

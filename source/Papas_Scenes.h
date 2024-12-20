@@ -1,6 +1,7 @@
 #pragma once
 #include "Papas_Constants.h"
 #include "Papas_SceneManager.h"
+#include "Papas_Utils.h"
 #include <3ds.h>
 #include <citro2d.h>
 
@@ -24,11 +25,13 @@ namespace Papas {
 		C2D_SpriteSheet sheet_icons;
 		C2D_Image logo;
 
+		touchPosition touch;
+
 		//buttons
 		C2D_SpriteSheet sheet_buttons;
-		C2D_Image start;
-		C2D_Image help;
-		C2D_Image credits;
+		Papas::Button b_start;
+		Papas::Button b_help;
+		Papas::Button b_credits;
 
 	};
 
