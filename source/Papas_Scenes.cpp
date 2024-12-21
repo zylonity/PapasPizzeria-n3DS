@@ -74,6 +74,7 @@ PapasError Papas::MainMenu::update() {
 
 	}
 
+	//Detect when A's pressed to pass it through to the on screen button
 	if (kDown & KEY_A) {
 		aPressed = true;
 	}
@@ -106,23 +107,12 @@ PapasError Papas::MainMenu::render_bottom() {
 
 	for (size_t i = 0; i < v_buttons.size(); i++)
 	{
-		
+		//Detect when button is pressed either through keys or touchscreen	
 		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed)) {
 
 			v_buttons[i].setPosition(v2(0));
 		}
 	}
-
-	////Draw buttons
-	//if (b_start.showButton(touch)) {
-	//	b_start.setPosition(v2(0));
-	//}
-	//b_help.showButton(touch);
-	//b_credits.showButton(touch);
-
-	//C2D_DrawImageAt(start, middle, box1_y, 1, NULL, 1, 1);
-	//C2D_DrawImageAt(help, middle, box2_y, 1, NULL, 1, 1);
-	//C2D_DrawImageAt(credits, middle, box3_y, 1, NULL, 1, 1);
 
 
 	return PAPAS_OK;
