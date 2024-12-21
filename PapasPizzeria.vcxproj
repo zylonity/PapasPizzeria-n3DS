@@ -101,9 +101,10 @@
     <NMakeBuildCommandLine>make</NMakeBuildCommandLine>
     <NMakeCleanCommandLine>make clean</NMakeCleanCommandLine>
     <NMakePreprocessorDefinitions>_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
-    <IncludePath>C:\devkitPro\portlibs\include;C:\devkitPro\devkitARM\include;C:\devkitPro\libctru\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\devkitPro\portlibs\3ds\include;C:\devkitPro\devkitARM\include;C:\devkitPro\libctru\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <ExternalIncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
     <AllProjectIncludesArePublic>false</AllProjectIncludesArePublic>
+    <NMakeIncludeSearchPath>C:\devkitPro\portlibs\3ds\include;C:\devkitPro\devkitARM\include;C:\devkitPro\libctru\include;</NMakeIncludeSearchPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='To3DS|x64'">
     <NMakeBuildCommandLine>make</NMakeBuildCommandLine>
