@@ -36,7 +36,7 @@ PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	//Init the first scene
 	sceneManager->changeScene(new Papas::MainMenu());
 
-	gspWaitForVBlank();
+
 	return PAPAS_OK;
 }
 
@@ -81,7 +81,7 @@ PapasError Papas::Renderer::render(Papas::SceneManager* sceneManager) {
 #endif
 	
 
-
+	gspWaitForVBlank();
 	return PAPAS_OK;
 }
 
