@@ -1,6 +1,6 @@
 #include "Papas_Scenes.h"
-
-PapasError Papas::MainMenu::init() {
+#include "Papas_SceneManager.h"
+PapasError Papas::MainMenu::init(Papas::SceneManager* sceneManager) {
 
 	// Load the backgrounds
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
@@ -36,6 +36,8 @@ PapasError Papas::MainMenu::init() {
 
 	buttonIndex = 0;
 	aPressed = false;
+
+	p_sceneManager = sceneManager;
 
 	return PAPAS_OK;
 }
@@ -110,7 +112,8 @@ PapasError Papas::MainMenu::render_bottom() {
 		//Detect when button is pressed either through keys or touchscreen	
 		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed)) {
 
-			v_buttons[i].setPosition(v2(0));
+			IntroVideo* ivid = new IntroVideo();
+			p_sceneManager->changeScene(ivid);
 		}
 	}
 
@@ -120,5 +123,76 @@ PapasError Papas::MainMenu::render_bottom() {
 
 PapasError Papas::MainMenu::terminate() {
 	
+	// Ensure all Citro2D resources are properly freed
+	if (sheet_bg) {
+		C2D_SpriteSheetFree(sheet_bg);
+		sheet_bg = nullptr;
+	}
+	if (sheet_icons) {
+		C2D_SpriteSheetFree(sheet_icons);
+		sheet_icons = nullptr;
+	}
+	if (sheet_buttons) {
+		C2D_SpriteSheetFree(sheet_buttons);
+		sheet_buttons = nullptr;
+	}
+
+	return PAPAS_OK;
+}
+
+
+PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager) {
+
+	// Load the backgrounds
+	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
+	top_bg = C2D_SpriteSheetGetImage(sheet_bg, 1);
+	bottom_bg = C2D_SpriteSheetGetImage(sheet_bg, 0);
+
+	//Load the icons
+	sheet_icons = C2D_SpriteSheetLoad("romfs:/gfx/icons.t3x");
+	logo = C2D_SpriteSheetGetImage(sheet_icons, 0);
+
+	p_sceneManager = sceneManager;
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::IntroVideo::update() {
+
+	hidScanInput();
+	hidTouchRead(&touch);
+
+	// Respond to user input
+	u32 kDown = hidKeysDown();
+	if (kDown & KEY_START)
+		return PAPAS_NOT_OK; // break in order to return to hbmenu
+
+
+	return PAPAS_OK;
+
+}
+
+PapasError Papas::IntroVideo::render_top() {
+
+	// Draw the top background
+	C2D_DrawImageAt(top_bg, 0, 0, 0, NULL, 1, 1);
+
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::IntroVideo::render_bottom() {
+
+	// Draw the background
+	C2D_DrawImageAt(bottom_bg, 0, 0, 0, NULL, 1, 1);
+
+
+
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::IntroVideo::terminate() {
+
 	return PAPAS_OK;
 }

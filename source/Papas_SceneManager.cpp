@@ -45,15 +45,19 @@ PapasError Papas::SceneManager::render_bottom() {
 PapasError Papas::SceneManager::changeScene(Papas::Scene* scene) {
 	PapasError ret;
 
+	//Gotta initiate the scene first or 3ds will shit itself
+	if (scene) {
+		scene->init(this);
+	}
+
 	if (currentScene) {
 		currentScene->terminate();
 		delete currentScene;
+		currentScene = nullptr; // Ensure no dangling pointer
 	}
 	currentScene = scene;
 
-	if (currentScene) {
-		currentScene->init();
-	}
+	
 
 	return PAPAS_OK;
 }
