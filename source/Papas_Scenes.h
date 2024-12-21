@@ -29,7 +29,8 @@ namespace Papas {
 		touchPosition touch;
 
 		//buttons
-		int buttonCount = 3;
+		int buttonIndex;
+		bool aPressed = false;
 		C2D_SpriteSheet sheet_buttons;
 		std::vector<Papas::Button> v_buttons;
 

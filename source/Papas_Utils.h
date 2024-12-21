@@ -32,7 +32,7 @@ namespace Papas {
 		Button() {};
 		Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position = v2(0));
 		void createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position = v2(0));
-		bool showButton(touchPosition& touch, bool selected = false); //Returns true whilst pressed
+		bool showButton(touchPosition& touch, bool selected = false, bool* aPressed = nullptr); //Returns true whilst pressed
 		void setPosition(v2 postoSet);
 
 		const rect getRect() const { return hitBox; };

@@ -11,7 +11,7 @@ Papas::Button::Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected,
 void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
 
 	// Load the sprites
-	img_Unpressed = C2D_SpriteSheetGetImage(spriteSheet, unpressed);
+	img_Unpressed = C2D_SpriteSheetGetImage(spriteSheet, selected);
 	img_Selected = C2D_SpriteSheetGetImage(spriteSheet, unpressed);
 	img_Pressed = C2D_SpriteSheetGetImage(spriteSheet, pressed);
 
@@ -22,7 +22,7 @@ void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, in
 	hitBox.width = img_Pressed.subtex->width;
 }
 
-bool Papas::Button::showButton(touchPosition& touch, bool selected) {
+bool Papas::Button::showButton(touchPosition& touch, bool selected, bool* aPressed) {
 
 	hitBox.left = pos.x;
 	hitBox.top = pos.y;
@@ -36,9 +36,22 @@ bool Papas::Button::showButton(touchPosition& touch, bool selected) {
 		return true;
 	}
 	else {
-		C2D_DrawImageAt(img_Unpressed, pos.x, pos.y, 1, NULL, 1, 1);
+
+		if (selected && *aPressed == true) {
+			*aPressed = false;
+			C2D_DrawImageAt(img_Pressed, pos.x, pos.y, 1, NULL, 1, 1);
+			return true;
+		}
+
+		if(selected)
+			C2D_DrawImageAt(img_Selected, pos.x, pos.y, 1, NULL, 1, 1);
+		else
+			C2D_DrawImageAt(img_Unpressed, pos.x, pos.y, 1, NULL, 1, 1);
+
 		return false;
 	}
+
+	
 
 }
 

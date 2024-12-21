@@ -10,17 +10,6 @@ PapasError Papas::MainMenu::init() {
 	//Load the icons
 	sheet_icons = C2D_SpriteSheetLoad("romfs:/gfx/icons.t3x");
 	logo = C2D_SpriteSheetGetImage(sheet_icons, 0);
-
-	//Positions for the buttons
-	
-
-	/*Papas::v2 helpPos;
-	helpPos.x = (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2);
-	helpPos.y = startPos.y + buttonheight + padding;
-
-	Papas::v2 contactPos;
-	contactPos.x = (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2);
-	contactPos.y = helpPos.y + buttonheight + padding;*/
 	
 	
 	//Load the buttons
@@ -45,7 +34,8 @@ PapasError Papas::MainMenu::init() {
 	b_credits.setPosition(creditsPos);
 	v_buttons.push_back(b_credits);
 
-
+	buttonIndex = 0;
+	aPressed = false;
 
 	return PAPAS_OK;
 }
@@ -60,7 +50,33 @@ PapasError Papas::MainMenu::update() {
 	if (kDown & KEY_START)
 		return PAPAS_NOT_OK; // break in order to return to hbmenu
 
-	//if (kDown & KEY_DOWN)
+
+	//Browse through menu with DPAD
+	if (kDown & KEY_DDOWN) {
+		if (buttonIndex < v_buttons.size()) {
+			buttonIndex++;
+		}
+
+		if (buttonIndex == v_buttons.size()) {
+			buttonIndex = 0;
+		}
+		
+	}
+
+	if (kDown & KEY_DUP) {
+		if (buttonIndex >= 0) {
+			buttonIndex--;
+		}
+
+		if (buttonIndex < 0) {
+			buttonIndex = v_buttons.size() - 1;
+		}
+
+	}
+
+	if (kDown & KEY_A) {
+		aPressed = true;
+	}
 
 	return PAPAS_OK;
 
@@ -90,7 +106,11 @@ PapasError Papas::MainMenu::render_bottom() {
 
 	for (size_t i = 0; i < v_buttons.size(); i++)
 	{
-		v_buttons[i].showButton(touch);
+		
+		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed)) {
+
+			v_buttons[i].setPosition(v2(0));
+		}
 	}
 
 	////Draw buttons
