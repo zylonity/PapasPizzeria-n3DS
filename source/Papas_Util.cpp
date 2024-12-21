@@ -3,15 +3,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-PapasError Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int pressed, v2 position) {
+void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int pressed, v2 position) {
 
 	// Load the sprites
 	img_Unpressed = C2D_SpriteSheetGetImage(spriteSheet, unpressed);
 	img_Pressed = C2D_SpriteSheetGetImage(spriteSheet, pressed);
 
 	pos = position;
-
-	return PAPAS_OK;
+	hitBox.left = pos.x;
+	hitBox.top = pos.y;
+	hitBox.height = img_Pressed.subtex->height;
+	hitBox.width = img_Pressed.subtex->width;
 }
 
 bool Papas::Button::showButton(touchPosition& touch) {
@@ -31,5 +33,15 @@ bool Papas::Button::showButton(touchPosition& touch) {
 		C2D_DrawImageAt(img_Unpressed, pos.x, pos.y, 1, NULL, 1, 1);
 		return false;
 	}
+
+}
+
+void Papas::Button::setPosition(v2 showPos) {
+
+	pos = showPos;
+	hitBox.left = pos.x;
+	hitBox.top = pos.y;
+	hitBox.height = img_Pressed.subtex->height;
+	hitBox.width = img_Pressed.subtex->width;
 
 }

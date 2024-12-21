@@ -12,12 +12,7 @@ PapasError Papas::MainMenu::init() {
 	logo = C2D_SpriteSheetGetImage(sheet_icons, 0);
 
 	//Positions for the buttons
-	float buttonheight = b_start.getRect().height;
-	float padding = 10;
-
-	Papas::v2 startPos;
-	startPos.x = (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2);
-	startPos.y = 50;
+	
 
 	/*Papas::v2 helpPos;
 	helpPos.x = (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2);
@@ -30,9 +25,22 @@ PapasError Papas::MainMenu::init() {
 	
 	//Load the buttons
 	sheet_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
-	b_start.createButton(sheet_buttons, 0, 1, startPos);
-	//b_help.createButton(sheet_buttons, 2, 3, helpPos);
-	//b_credits.createButton(sheet_buttons, 4, 5, contactPos);
+
+	//Start button
+	b_start.createButton(sheet_buttons, 0, 1);
+	Papas::v2 startPos = { (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), 50.0f };
+	b_start.setPosition(startPos);
+
+	float buttonheight = b_start.getRect().height;
+	float padding = 10;
+
+	b_help.createButton(sheet_buttons, 2, 3);
+	Papas::v2 helpPos = { (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), startPos.y + buttonheight + padding };
+	b_help.setPosition(helpPos);
+
+	b_credits.createButton(sheet_buttons, 4, 5);
+	Papas::v2 creditsPos = { (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), helpPos.y + buttonheight + padding };
+	b_credits.setPosition(creditsPos);
 
 
 	return PAPAS_OK;
@@ -71,10 +79,15 @@ PapasError Papas::MainMenu::render_bottom() {
 	// Draw the background
 	C2D_DrawImageAt(bottom_bg, 0, 0, 0, NULL, 1, 1);
 
+
+
+
+
+
 	//Draw buttons
 	b_start.showButton(touch);
-	//b_help.showButton(touch);
-	//b_credits.showButton(touch);
+	b_help.showButton(touch);
+	b_credits.showButton(touch);
 
 	//C2D_DrawImageAt(start, middle, box1_y, 1, NULL, 1, 1);
 	//C2D_DrawImageAt(help, middle, box2_y, 1, NULL, 1, 1);

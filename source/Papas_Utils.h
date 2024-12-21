@@ -9,7 +9,15 @@ namespace Papas {
 	struct v2 {
 		float x;
 		float y;
-		v2(float num = 0) { x = num, y = num; };
+
+		// Constructor for single value
+		v2(float value) : x(value), y(value) {}
+
+		// Constructor for two values
+		v2(float _x, float _y) : x(_x), y(_y) {}
+
+		// Default constructor
+		v2() : x(0.0f), y(0.0f) {}
 	};
 
 	struct rect {
@@ -21,8 +29,10 @@ namespace Papas {
 
 	class Button {
 	public:
-		PapasError createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int pressed, v2 position = v2(0));
+		Button() {};
+		void createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int pressed, v2 position = v2(0));
 		bool showButton(touchPosition& touch); //Returns true whilst pressed
+		void setPosition(v2 postoSet);
 
 		const rect getRect() const { return hitBox; };
 
