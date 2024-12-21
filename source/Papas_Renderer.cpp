@@ -1,7 +1,6 @@
 #include "Papas_Renderer.h"
 
 #include "Papas_Scenes.h"
-
 PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	PapasError ret;
 

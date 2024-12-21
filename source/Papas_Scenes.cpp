@@ -2,7 +2,24 @@
 #include "Papas_SceneManager.h"
 #include <string>
 #include <chrono>
+#include <gif_lib.h>
+
 PapasError Papas::MainMenu::init(Papas::SceneManager* sceneManager) {
+
+	// Attempt to open a GIF file from RomFS (example)
+   // Make sure romfs is mounted or you have a real file at romfs:/test.gif
+	GifFileType* gif = DGifOpenFileName("romfs:/highres.gif", NULL);
+	if (!gif) {
+		std::string t = "Failed to open GIF: %s\n", GifErrorString(0);
+		svcOutputDebugString(t.c_str(), t.size());
+		//printf();
+	}
+	else {
+		//printf();
+		std::string t = "Opened GIF successfully!\n";
+		svcOutputDebugString(t.c_str(), t.size());
+		DGifCloseFile(gif, NULL);
+	}
 
 	// Load the backgrounds
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
