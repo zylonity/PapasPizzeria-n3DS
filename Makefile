@@ -65,6 +65,21 @@ LIBS	:= -lcitro2d -lcitro3d -lctru -lm
 #---------------------------------------------------------------------------------
 LIBDIRS	:= $(CTRULIB)
 
+#---------------------------------------------------------------------------------
+# ADDED: If you installed GIFLIB to $(DEVKITPRO)/portlibs/3ds via "make install",
+#        you can add its path here. This is typical for portlibs:
+#---------------------------------------------------------------------------------
+LIBDIRS += $(DEVKITPRO)/portlibs/3ds
+
+#---------------------------------------------------------------------------------
+# Then, in order to link libgif and libutil, append them to LIBS:
+#---------------------------------------------------------------------------------
+LIBS += -lgif -lutil
+
+#---------------------------------------------------------------------------------
+# Also add the include directory so the compiler finds gif_lib.h etc.:
+#---------------------------------------------------------------------------------
+INCLUDES += $(DEVKITPRO)/portlibs/3ds/include
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional

@@ -5,6 +5,7 @@
 #include <3ds.h>
 #include <citro2d.h>
 #include <vector>
+#include <chrono>
 
 namespace Papas {
 
@@ -46,9 +47,8 @@ namespace Papas {
 	private:
 		Papas::SceneManager* p_sceneManager;
 		//backgrounds
-		//C2D_Image* p_frame;
-		std::vector<C2D_SpriteSheet> video_parts;
-		std::vector<C2D_Image> video_frames;
+
+		C2D_SpriteSheet p_cSheet;
 
 	};
 
