@@ -27,20 +27,24 @@ PapasError Papas::MainMenu::init() {
 	sheet_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
 
 	//Start button
-	b_start.createButton(sheet_buttons, 0, 1);
+	Papas::Button b_start(sheet_buttons, 0, 1, 2);
 	Papas::v2 startPos = { (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), 50.0f };
 	b_start.setPosition(startPos);
+	v_buttons.push_back(b_start);
 
 	float buttonheight = b_start.getRect().height;
 	float padding = 10;
 
-	b_help.createButton(sheet_buttons, 2, 3);
+	Papas::Button b_help(sheet_buttons, 3, 4, 5);
 	Papas::v2 helpPos = { (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), startPos.y + buttonheight + padding };
 	b_help.setPosition(helpPos);
+	v_buttons.push_back(b_help);
 
-	b_credits.createButton(sheet_buttons, 4, 5);
+	Papas::Button b_credits(sheet_buttons, 6, 7, 8);
 	Papas::v2 creditsPos = { (SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), helpPos.y + buttonheight + padding };
 	b_credits.setPosition(creditsPos);
+	v_buttons.push_back(b_credits);
+
 
 
 	return PAPAS_OK;
@@ -55,6 +59,8 @@ PapasError Papas::MainMenu::update() {
 	u32 kDown = hidKeysDown();
 	if (kDown & KEY_START)
 		return PAPAS_NOT_OK; // break in order to return to hbmenu
+
+	//if (kDown & KEY_DOWN)
 
 	return PAPAS_OK;
 
@@ -82,12 +88,17 @@ PapasError Papas::MainMenu::render_bottom() {
 
 
 
+	for (size_t i = 0; i < v_buttons.size(); i++)
+	{
+		v_buttons[i].showButton(touch);
+	}
 
-
-	//Draw buttons
-	b_start.showButton(touch);
-	b_help.showButton(touch);
-	b_credits.showButton(touch);
+	////Draw buttons
+	//if (b_start.showButton(touch)) {
+	//	b_start.setPosition(v2(0));
+	//}
+	//b_help.showButton(touch);
+	//b_credits.showButton(touch);
 
 	//C2D_DrawImageAt(start, middle, box1_y, 1, NULL, 1, 1);
 	//C2D_DrawImageAt(help, middle, box2_y, 1, NULL, 1, 1);

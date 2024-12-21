@@ -3,10 +3,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int pressed, v2 position) {
+Papas::Button::Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
+
+	createButton(spriteSheet, unpressed, selected, pressed, position);
+}
+
+void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
 
 	// Load the sprites
 	img_Unpressed = C2D_SpriteSheetGetImage(spriteSheet, unpressed);
+	img_Selected = C2D_SpriteSheetGetImage(spriteSheet, unpressed);
 	img_Pressed = C2D_SpriteSheetGetImage(spriteSheet, pressed);
 
 	pos = position;
@@ -16,7 +22,7 @@ void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, in
 	hitBox.width = img_Pressed.subtex->width;
 }
 
-bool Papas::Button::showButton(touchPosition& touch) {
+bool Papas::Button::showButton(touchPosition& touch, bool selected) {
 
 	hitBox.left = pos.x;
 	hitBox.top = pos.y;

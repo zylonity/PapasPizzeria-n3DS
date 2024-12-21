@@ -4,6 +4,7 @@
 #include "Papas_Utils.h"
 #include <3ds.h>
 #include <citro2d.h>
+#include <vector>
 
 namespace Papas {
 
@@ -28,10 +29,9 @@ namespace Papas {
 		touchPosition touch;
 
 		//buttons
+		int buttonCount = 3;
 		C2D_SpriteSheet sheet_buttons;
-		Papas::Button b_start;
-		Papas::Button b_help;
-		Papas::Button b_credits;
+		std::vector<Papas::Button> v_buttons;
 
 	};
 

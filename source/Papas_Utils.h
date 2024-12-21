@@ -30,8 +30,9 @@ namespace Papas {
 	class Button {
 	public:
 		Button() {};
-		void createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int pressed, v2 position = v2(0));
-		bool showButton(touchPosition& touch); //Returns true whilst pressed
+		Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position = v2(0));
+		void createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position = v2(0));
+		bool showButton(touchPosition& touch, bool selected = false); //Returns true whilst pressed
 		void setPosition(v2 postoSet);
 
 		const rect getRect() const { return hitBox; };
@@ -39,6 +40,7 @@ namespace Papas {
 	private:
 		
 		C2D_Image img_Pressed;
+		C2D_Image img_Selected;
 		C2D_Image img_Unpressed;
 
 		v2 pos;
