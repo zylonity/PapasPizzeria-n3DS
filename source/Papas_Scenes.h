@@ -46,21 +46,9 @@ namespace Papas {
 	private:
 		Papas::SceneManager* p_sceneManager;
 		//backgrounds
-		C2D_SpriteSheet sheet_bg;
-		C2D_Image top_bg;
-		C2D_Image bottom_bg;
-
-		//icons
-		C2D_SpriteSheet sheet_icons;
-		C2D_Image logo;
-
-		touchPosition touch;
-
-		//buttons
-		int buttonIndex;
-		bool aPressed = false;
-		C2D_SpriteSheet sheet_buttons;
-		std::vector<Papas::Button> v_buttons;
+		//C2D_Image* p_frame;
+		std::vector<C2D_SpriteSheet> video_parts;
+		std::vector<C2D_Image> video_frames;
 
 	};
 

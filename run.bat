@@ -1,3 +1,3 @@
 @echo off
-Alber.exe "Basic-Citro2d-Demo-main.3dsx"
+Alber.exe "PapasPizzeria.3dsx"
 pause
