@@ -167,17 +167,19 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
     int width  = g_intro->SWidth;
     int height = g_intro->SHeight;
 
-	img.tex = new C3D_Tex;
-	img.subtex = new Tex3DS_SubTexture({(u16)width, (u16)height, 0.0f, 1.0f, width / 512.0f, 1.0f - (height / 512.0f)});
+	sprite.tex = new C3D_Tex;
+	sprite.subtex = new Tex3DS_SubTexture({(u16)width, (u16)height, 0.0f, 1.0f, width / 256.0f, 1.0f - (height / 256.0f)});
 
-    subtexture.width  = width;
-    subtexture.height = height;
-    subtexture.left   = 0;
-    subtexture.top    = 0;
-    subtexture.right  = 0 + width;   // If your Citro2D setup expects 
-    subtexture.bottom = 0 + height;   // pixel coords, this is OK.
+	if (!C3D_TexInit(sprite.tex, 256, 256, GPU_RGBA8)) {
+			return PAPAS_NOT_OK;
+	}
 
-    for (size_t i = 0; i < g_intro->ImageCount; i++)
+	C3D_TexSetFilter(sprite.tex, GPU_LINEAR, GPU_LINEAR);
+	sprite.tex->border = 0xFFFFFFFF;
+	C3D_TexSetWrap(sprite.tex, GPU_CLAMP_TO_BORDER, GPU_CLAMP_TO_BORDER);
+
+
+	for (size_t i = 0; i < g_intro->ImageCount; i++)
     {
         SavedImage* image = &g_intro->SavedImages[i];
 
@@ -217,51 +219,26 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
             }
         }
 
+		for (u32 x = 0; x < width && x < 256; x++) {
+			for (u32 y = 0; y < height && y < 256; y++) {
+				const u32 dstPos = ((((y >> 3) * (256 >> 3) + (x >> 3)) << 6) +
+									((x & 1) | ((y & 1) << 1) | ((x & 2) << 1) | ((y & 2) << 2) |
+									((x & 4) << 2) | ((y & 4) << 3))) * 4;
 
-		int texWidth = 1 << (32 - __builtin_clz(width - 1));  // Next power of two
-		int texHeight = 1 << (32 - __builtin_clz(height - 1)); 
-
-		if (!C3D_TexInit(&tex, texWidth, texHeight, GPU_RGBA8)) {
-			free(rgbaBuffer);
-			DGifCloseFile(g_intro, NULL);
-			return PAPAS_NOT_OK;
-		}
-
-		// Clear texture data before copying
-		memset(tex.data, 0, texWidth * texHeight * 4);
-
-		// Copy RGBA data into texture
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				int srcOffset = (y * width + x) * 4;  // Source buffer index
-				int dstOffset = y * tex.width + x;   // Destination texture index
-
-				u8 r = rgbaBuffer[srcOffset + 0];
-				u8 g = rgbaBuffer[srcOffset + 1];
-				u8 b = rgbaBuffer[srcOffset + 2];
-				u8 a = rgbaBuffer[srcOffset + 3];
-
-				// printf("SrcOffset: %d, DstOffset: %d, R=%d, G=%d, B=%d, A=%d\n",
-				//        srcOffset, dstOffset, r, g, b, a);
-
-				((u32*)tex.data)[dstOffset] = (r << 24) | (g << 16) | (b << 8) | a;
+				const u32 srcPos = (y * width + x) * 4;
+				((uint8_t *)sprite.tex->data)[dstPos + 0] = rgbaBuffer[srcPos + 3];
+				((uint8_t *)sprite.tex->data)[dstPos + 1] = rgbaBuffer[srcPos + 2];
+				((uint8_t *)sprite.tex->data)[dstPos + 2] = rgbaBuffer[srcPos + 1];
+				((uint8_t *)sprite.tex->data)[dstPos + 3] = rgbaBuffer[srcPos + 0];
 			}
 		}
-
-		// Flush GPU cache
-		GSPGPU_FlushDataCache(tex.data, texWidth * texHeight * 4);
 
 		// Free RGBA buffer
 		free(rgbaBuffer);
 
-		
-
-		sprite = { &tex, &subtexture};
-        // Attach the i-th texture
 
     }
 
-    // 5) Close the GIF file
     DGifCloseFile(g_intro, NULL);
 
 
@@ -273,7 +250,7 @@ PapasError Papas::IntroVideo::render_top() {
 	//auto frame = C2D_SpriteSheetGetImage(p_cSheet, 0);
 	//sprite.subtex.
 	
-
+	C2D_DrawImageAt(sprite, 0, 0, 0);
 
 	
 
@@ -309,8 +286,8 @@ PapasError Papas::IntroVideo::render_bottom() {
 
 	//static auto sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
 	//auto a = C2D_SpriteSheetGetImage(sheet_bg, 0);
-	printf("W: %d, H: %d\nTop: %f, Left %f\nBottom, %f, Right %f \n", sprite.subtex->width, sprite.subtex->height, sprite.subtex->top, sprite.subtex->left, sprite.subtex->bottom, sprite.subtex->right);
-	C2D_DrawImageAt(sprite, 0, 0, 0);
+	//printf("W: %d, H: %d\nTop: %f, Left %f\nBottom, %f, Right %f \n", sprite.subtex->width, sprite.subtex->height, sprite.subtex->top, sprite.subtex->left, sprite.subtex->bottom, sprite.subtex->right);
+	//C2D_DrawImageAt(sprite, 0, 0, 0);
 	//C2D_DrawImage(sprite, );
 
 
