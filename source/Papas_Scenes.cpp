@@ -8,18 +8,18 @@ PapasError Papas::MainMenu::init(Papas::SceneManager* sceneManager) {
 
 	// Attempt to open a GIF file from RomFS (example)
    // Make sure romfs is mounted or you have a real file at romfs:/test.gif
-	GifFileType* gif = DGifOpenFileName("romfs:/highres.gif", NULL);
-	if (!gif) {
-		std::string t = "Failed to open GIF: %s\n", GifErrorString(0);
-		svcOutputDebugString(t.c_str(), t.size());
-		//printf();
-	}
-	else {
-		//printf();
-		std::string t = "Opened GIF successfully!\n";
-		svcOutputDebugString(t.c_str(), t.size());
-		DGifCloseFile(gif, NULL);
-	}
+	//GifFileType* gif = DGifOpenFileName("romfs:/highres.gif", NULL);
+	//if (!gif) {
+	//	std::string t = "Failed to open GIF: %s\n", GifErrorString(0);
+	//	svcOutputDebugString(t.c_str(), t.size());
+	//	//printf();
+	//}
+	//else {
+	//	//printf();
+	//	std::string t = "Opened GIF successfully!\n";
+	//	svcOutputDebugString(t.c_str(), t.size());
+	//	DGifCloseFile(gif, NULL);
+	//}
 
 	// Load the backgrounds
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
@@ -162,7 +162,7 @@ PapasError Papas::MainMenu::terminate() {
 
 PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager) {
 
-	p_cSheet = C2D_SpriteSheetLoad("romfs:/gfx/gif.t3x");
+	//p_cSheet = C2D_SpriteSheetLoad("romfs:/gfx/gif.t3x");
 
 	return PAPAS_OK;
 }
@@ -183,9 +183,9 @@ PapasError Papas::IntroVideo::update() {
 
 PapasError Papas::IntroVideo::render_top() {
 
-	auto frame = C2D_SpriteSheetGetImage(p_cSheet, 0);
+	//auto frame = C2D_SpriteSheetGetImage(p_cSheet, 0);
 
-	C2D_DrawImageAt(frame, 0, 0, 0, NULL, 1, 1);
+	//C2D_DrawImageAt(frame, 0, 0, 0, NULL, 1, 1);
 
 	return PAPAS_OK;
 }

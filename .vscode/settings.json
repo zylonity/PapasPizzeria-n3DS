@@ -1,0 +1,19 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc",
+            "binaryPath": "home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc\\home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc\\a.out",
+            "binaryArgs": []
+        },
+        {
+            "cwd": "home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc",
+            "binaryPath": "home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc\\home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc\\PapasPizzeria_vsc.elf",
+            "binaryArgs": []
+        },
+        {
+            "cwd": "home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc",
+            "binaryPath": "home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc\\home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc\\a.out",
+            "binaryArgs": []
+        }
+    ]
+}

@@ -1,0 +1,49 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "gdb",
+            "request": "attach",
+            "name": "Attach to gdbserver",
+            "executable": "${workspaceRoot}/PapasPizzeria_vsc.elf",
+            "target": "192.168.1.217:4003",
+            "remote": true,
+            "cwd": "${workspaceRoot}",
+            "gdbpath": "C:/devkitPro/devkitARM/bin/arm-none-eabi-gdb.exe",
+            "initCommands": [
+        "directory ${workspaceRoot}/source"
+        ]
+        },
+        {
+            "name": "(Windows) Launch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "C:/devkitPro/devkitARM/bin/arm-none-eabi-gdb.exe",
+            "args": ["PapasPizzeria_vsc.elf", "-ex", "target remote 192.168.1.217:4003"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+
+        {
+            "name": "Send to 3DS",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/3dslink.exe",
+            "args": ["-a", "192.168.1.217", "${workspaceFolder}/PapasPizzeria_vsc.3dsx"],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "integratedTerminal"
+        }
+
+
+       
+        
+
+    ]
+}
