@@ -150,7 +150,7 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
 	PapasError ret;
 
     // 1) Open the GIF
-    GifFileType* g_intro = DGifOpenFileName("romfs:/frame0.gif", NULL);
+    GifFileType* g_intro = DGifOpenFileName("romfs:/lowres.gif", NULL);
     if (!g_intro) {
         // Couldn’t open the file
         return PAPAS_NOT_OK;
@@ -167,20 +167,25 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
     int width  = g_intro->SWidth;
     int height = g_intro->SHeight;
 
-	sprite.tex = new C3D_Tex;
-	sprite.subtex = new Tex3DS_SubTexture({(u16)width, (u16)height, 0.0f, 1.0f, width / 256.0f, 1.0f - (height / 256.0f)});
-
-	if (!C3D_TexInit(sprite.tex, 256, 256, GPU_RGBA8)) {
-			return PAPAS_NOT_OK;
-	}
-
-	C3D_TexSetFilter(sprite.tex, GPU_LINEAR, GPU_LINEAR);
-	sprite.tex->border = 0xFFFFFFFF;
-	C3D_TexSetWrap(sprite.tex, GPU_CLAMP_TO_BORDER, GPU_CLAMP_TO_BORDER);
-
+	
 
 	for (size_t i = 0; i < g_intro->ImageCount; i++)
     {
+
+		C2D_Image sprite;
+
+		sprite.tex = new C3D_Tex;
+		sprite.subtex = new Tex3DS_SubTexture({(u16)width, (u16)height, 0.0f, 1.0f, width / 256.0f, 1.0f - (height / 256.0f)});
+
+		if (!C3D_TexInit(sprite.tex, 256, 256, GPU_RGBA8)) {
+				return PAPAS_NOT_OK;
+		}
+
+		C3D_TexSetFilter(sprite.tex, GPU_LINEAR, GPU_LINEAR);
+		sprite.tex->border = 0xFFFFFFFF;
+		C3D_TexSetWrap(sprite.tex, GPU_CLAMP_TO_BORDER, GPU_CLAMP_TO_BORDER);
+
+
         SavedImage* image = &g_intro->SavedImages[i];
 
         // 4a) Allocate the RGBA buffer
@@ -236,6 +241,8 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
 		// Free RGBA buffer
 		free(rgbaBuffer);
 
+		frames.push_back(sprite);
+
 
     }
 
@@ -250,7 +257,7 @@ PapasError Papas::IntroVideo::render_top() {
 	//auto frame = C2D_SpriteSheetGetImage(p_cSheet, 0);
 	//sprite.subtex.
 	
-	C2D_DrawImageAt(sprite, 0, 0, 0);
+	C2D_DrawImageAt(frames[0], 0, 0, 0);
 
 	
 
