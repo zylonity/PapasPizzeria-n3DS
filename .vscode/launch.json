@@ -4,6 +4,8 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
+        
         {
             "type": "gdb",
             "request": "attach",
@@ -14,6 +16,18 @@
             "cwd": "${workspaceRoot}",
             "gdbpath": "C:/devkitPro/devkitARM/bin/arm-none-eabi-gdb.exe",
             "preLaunchTask": "Send to 3DS"
+            
+        },
+        {
+            "type": "gdb",
+            "request": "attach",
+            "name": "Debug on Citra",
+            "executable": "${workspaceRoot}/PapasPizzeria_vsc.elf",
+            "target": "localhost:24689",
+            "remote": true,
+            "cwd": "${workspaceRoot}",
+            "gdbpath": "C:/devkitPro/devkitARM/bin/arm-none-eabi-gdb.exe",
+            "preLaunchTask": "Send to Citra"
             
         }
         

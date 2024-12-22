@@ -7,6 +7,13 @@
             "command": "${workspaceFolder}/3dslink.exe",
             "args": ["-a", "192.168.1.217", "${workspaceFolder}/PapasPizzeria_vsc.3dsx"],
             "problemMatcher": []
+        },
+        {
+            "label": "Send to Citra",
+            "type": "shell",
+            "command": "C:/Users/Khaleel/Downloads/head/citra-qt.exe",
+            "args": ["${workspaceFolder}/PapasPizzeria_vsc.3dsx"],
+            "problemMatcher": []
         }
     ]
 }
