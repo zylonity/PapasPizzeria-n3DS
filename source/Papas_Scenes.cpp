@@ -6,21 +6,6 @@
 
 PapasError Papas::MainMenu::init(Papas::SceneManager* sceneManager) {
 
-	// Attempt to open a GIF file from RomFS (example)
-   // Make sure romfs is mounted or you have a real file at romfs:/test.gif
-	//GifFileType* gif = DGifOpenFileName("romfs:/highres.gif", NULL);
-	//if (!gif) {
-	//	std::string t = "Failed to open GIF: %s\n", GifErrorString(0);
-	//	svcOutputDebugString(t.c_str(), t.size());
-	//	//printf();
-	//}
-	//else {
-	//	//printf();
-	//	std::string t = "Opened GIF successfully!\n";
-	//	svcOutputDebugString(t.c_str(), t.size());
-	//	DGifCloseFile(gif, NULL);
-	//}
-
 	// Load the backgrounds
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
 	top_bg = C2D_SpriteSheetGetImage(sheet_bg, 1);
@@ -160,9 +145,138 @@ PapasError Papas::MainMenu::terminate() {
 }
 
 
-PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager) {
+PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager) 
+{
+	PapasError ret;
 
-	//p_cSheet = C2D_SpriteSheetLoad("romfs:/gfx/gif.t3x");
+    // 1) Open the GIF
+    GifFileType* g_intro = DGifOpenFileName("romfs:/frame0.gif", NULL);
+    if (!g_intro) {
+        // Couldn’t open the file
+        return PAPAS_NOT_OK;
+    }
+
+    // 2) Slurp to populate all frames
+    if (DGifSlurp(g_intro) == GIF_ERROR) {
+        // Clean up if slurp fails
+        DGifCloseFile(g_intro, NULL);
+        return PAPAS_NOT_OK;
+    }
+
+    // 3) Dimensions and subtexture
+    int width  = g_intro->SWidth;
+    int height = g_intro->SHeight;
+
+
+	subtexture = new Tex3DS_SubTexture();
+    // subtexture is presumably a member of IntroVideo (e.g. Tex3DS_SubTexture subtexture;)
+    // If all frames are the same size, reusing one subtexture can be fine.
+    subtexture->width  = width;
+    subtexture->height = height;
+    subtexture->left   = 0;
+    subtexture->top    = 0;
+    subtexture->right  = subtexture->left + width;   // If your Citro2D setup expects 
+    subtexture->bottom = subtexture->top + height;   // pixel coords, this is OK.
+
+    // 4) Iterate over frames
+    //    Make sure 'textures' is large enough: if textures is e.g. std::array<C3D_Tex, 10> 
+    //    but you have 20 frames, you'll run out of bounds. If it's a std::vector<C3D_Tex>,
+    //    resize it to g_intro->ImageCount before this loop.
+    for (size_t i = 0; i < g_intro->ImageCount; i++)
+    {
+        SavedImage* image = &g_intro->SavedImages[i];
+
+        // 4a) Allocate the RGBA buffer
+        uint8_t* rgbaBuffer = (uint8_t*)malloc(width * height * 4);
+        if (!rgbaBuffer) {
+            // On error, clean up and return
+            DGifCloseFile(g_intro, NULL);
+            return PAPAS_NOT_OK;
+        }
+        memset(rgbaBuffer, 0, width * height * 4);
+
+        // 4b) Get the color map
+        ColorMapObject* colorMap = (image->ImageDesc.ColorMap
+                                    ? image->ImageDesc.ColorMap
+                                    : g_intro->SColorMap);
+        if (!colorMap) {
+            free(rgbaBuffer);
+            DGifCloseFile(g_intro, NULL);
+            return PAPAS_NOT_OK;
+        }
+
+        // 4c) Decode the raster bits into RGBA
+        GifByteType* raster = image->RasterBits;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int index = *raster++;
+                if (index < colorMap->ColorCount) {
+                    GifColorType color = colorMap->Colors[index];
+                    int offset = (y * width + x) * 4;
+                    rgbaBuffer[offset + 0] = color.Red;
+                    rgbaBuffer[offset + 1] = color.Green;
+                    rgbaBuffer[offset + 2] = color.Blue;
+                    rgbaBuffer[offset + 3] = 0xFF; // Opaque alpha
+                }
+            }
+        }
+
+        // 4d) Init your textures array for the i-th frame
+        //     Make sure 'textures' is big enough (e.g. a std::vector<C3D_Tex> of size ImageCount).
+		//ret = C3D_TexInit(tex, width, height, GPU_RGBA8);
+
+		u32 size = 32;
+		size *= (u32)width * height / 8;
+		u32 total_size = C3D_TexCalcTotalSize(size, 0);
+
+		tex->data = malloc(total_size);
+		tex->width = width;
+		tex->height = height;
+		tex->param = GPU_TEXTURE_MODE(GPU_TEX_2D);
+		tex->fmt = GPU_RGBA8;
+		tex->size = size;
+		tex->border = 0;
+		tex->lodBias = 0;
+		tex->maxLevel = 0;
+		tex->minLevel = 0;
+        //ASSERT(ret == PAPAS_OK, "Couldn't initiate textu");
+
+        // 4e) Copy RGBA data into GPU texture
+        memcpy(tex->data, rgbaBuffer, width * height * 4);
+        GSPGPU_FlushDataCache(tex->data, width * height * 4);
+
+        // 4f) Freed once copied
+        free(rgbaBuffer);
+
+        // 4g) Create a C2D_Image for this frame
+        //     Currently, you do dynamic allocation, then push the sprite by value -> memory leak.
+        //     Instead, create the sprite on the stack and push_back the struct:
+
+        // (A) On the stack:
+        
+        memset(&sprite, 0, sizeof(C2D_Image));
+
+        // Attach the i-th texture
+        sprite.tex    = tex;
+        sprite.subtex = subtexture;  // reusing the same subtexture if all frames match
+
+    }
+
+    // 5) Close the GIF file
+    DGifCloseFile(g_intro, NULL);
+
+    // 6) Set up any counters/timers
+   // counter = 0;
+  //  start   = std::chrono::steady_clock::now();
+
+    return PAPAS_OK;
+}
+
+PapasError Papas::IntroVideo::render_top() {
+
+	//auto frame = C2D_SpriteSheetGetImage(p_cSheet, 0);
+
+	C2D_DrawImageAt(sprite, 0, 0, 0, NULL, 1, 1);
 
 	return PAPAS_OK;
 }
@@ -179,15 +293,6 @@ PapasError Papas::IntroVideo::update() {
 
 	return PAPAS_OK;
 
-}
-
-PapasError Papas::IntroVideo::render_top() {
-
-	//auto frame = C2D_SpriteSheetGetImage(p_cSheet, 0);
-
-	//C2D_DrawImageAt(frame, 0, 0, 0, NULL, 1, 1);
-
-	return PAPAS_OK;
 }
 
 PapasError Papas::IntroVideo::render_bottom() {

@@ -15,5 +15,14 @@
             "binaryPath": "home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc\\home:\\Khaleel\\source\\repos\\PapasPizzeria_vsc\\a.out",
             "binaryArgs": []
         }
-    ]
+    ],
+    "files.associations": {
+        "array": "cpp",
+        "span": "cpp",
+        "vector": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp",
+        "string_view": "cpp",
+        "xiosbase": "cpp"
+    }
 }
