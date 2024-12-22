@@ -24,6 +24,8 @@
         "xutility": "cpp",
         "string_view": "cpp",
         "xiosbase": "cpp",
-        "new": "cpp"
+        "new": "cpp",
+        "cstring": "cpp",
+        "system_error": "cpp"
     }
 }

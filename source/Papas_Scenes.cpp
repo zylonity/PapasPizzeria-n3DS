@@ -149,8 +149,6 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
 {
 	PapasError ret;
 
-	
-
     // 1) Open the GIF
     GifFileType* g_intro = DGifOpenFileName("romfs:/frame0.gif", NULL);
     if (!g_intro) {
@@ -169,15 +167,9 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
     int width  = g_intro->SWidth;
     int height = g_intro->SHeight;
 
-	//C3D_Tex* tex = new C3D_Tex();
-	// if (!C3D_TexInit(tex, 160, 140, GPU_RGBA8)) {
-    //         DGifCloseFile(g_intro, NULL);
-    //         return PAPAS_NOT_OK;
-    //     }
+	img.tex = new C3D_Tex;
+	img.subtex = new Tex3DS_SubTexture({(u16)width, (u16)height, 0.0f, 1.0f, width / 512.0f, 1.0f - (height / 512.0f)});
 
-	//subtexture = new Tex3DS_SubTexture();
-    // subtexture is presumably a member of IntroVideo (e.g. Tex3DS_SubTexture subtexture;)
-    // If all frames are the same size, reusing one subtexture can be fine.
     subtexture.width  = width;
     subtexture.height = height;
     subtexture.left   = 0;
@@ -185,10 +177,6 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
     subtexture.right  = 0 + width;   // If your Citro2D setup expects 
     subtexture.bottom = 0 + height;   // pixel coords, this is OK.
 
-    // 4) Iterate over frames
-    //    Make sure 'textures' is large enough: if textures is e.g. std::array<C3D_Tex, 10> 
-    //    but you have 20 frames, you'll run out of bounds. If it's a std::vector<C3D_Tex>,
-    //    resize it to g_intro->ImageCount before this loop.
     for (size_t i = 0; i < g_intro->ImageCount; i++)
     {
         SavedImage* image = &g_intro->SavedImages[i];
@@ -229,28 +217,53 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
             }
         }
 
-		if (C3D_TexInit(&tex, 256, 256, GPU_RGBA8) == false) {
-            free(rgbaBuffer);
-            DGifCloseFile(g_intro, NULL);
-            return PAPAS_NOT_OK;
-        }
 
-        // 4e) Copy RGBA data into GPU texture
-        memcpy(tex.data, rgbaBuffer, width * height * 4);
-        GSPGPU_FlushDataCache(tex.data, width * height * 4);
+		int texWidth = 1 << (32 - __builtin_clz(width - 1));  // Next power of two
+		int texHeight = 1 << (32 - __builtin_clz(height - 1)); 
 
+		if (!C3D_TexInit(&tex, texWidth, texHeight, GPU_RGBA8)) {
+			free(rgbaBuffer);
+			DGifCloseFile(g_intro, NULL);
+			return PAPAS_NOT_OK;
+		}
+
+		// Clear texture data before copying
+		memset(tex.data, 0, texWidth * texHeight * 4);
+
+		// Copy RGBA data into texture
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int srcOffset = (y * width + x) * 4;  // Source buffer index
+				int dstOffset = y * tex.width + x;   // Destination texture index
+
+				u8 r = rgbaBuffer[srcOffset + 0];
+				u8 g = rgbaBuffer[srcOffset + 1];
+				u8 b = rgbaBuffer[srcOffset + 2];
+				u8 a = rgbaBuffer[srcOffset + 3];
+
+				// printf("SrcOffset: %d, DstOffset: %d, R=%d, G=%d, B=%d, A=%d\n",
+				//        srcOffset, dstOffset, r, g, b, a);
+
+				((u32*)tex.data)[dstOffset] = (r << 24) | (g << 16) | (b << 8) | a;
+			}
+		}
+
+		// Flush GPU cache
+		GSPGPU_FlushDataCache(tex.data, texWidth * texHeight * 4);
+
+		// Free RGBA buffer
+		free(rgbaBuffer);
+
+		
+
+		sprite = { &tex, &subtexture};
         // Attach the i-th texture
-        sprite.tex    = &tex;
-        sprite.subtex = &subtexture;  // reusing the same subtexture if all frames match
 
     }
 
     // 5) Close the GIF file
     DGifCloseFile(g_intro, NULL);
 
-    // 6) Set up any counters/timers
-   // counter = 0;
-  //  start   = std::chrono::steady_clock::now();
 
     return PAPAS_OK;
 }
@@ -258,8 +271,11 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
 PapasError Papas::IntroVideo::render_top() {
 
 	//auto frame = C2D_SpriteSheetGetImage(p_cSheet, 0);
+	//sprite.subtex.
+	
 
-	C2D_DrawImageAt(sprite, 0, 0, 0, NULL, 1, 1);
+
+	
 
 	return PAPAS_OK;
 }
@@ -281,9 +297,21 @@ PapasError Papas::IntroVideo::update() {
 
 PapasError Papas::IntroVideo::render_bottom() {
 
-	
+	// Debug Texture Data
+		// for (int i = 0; i < 10; i++) {
+		// 	printf("Texture Pixel %d: R=%d, G=%d, B=%d, A=%d\n",
+		// 		i,
+		// 		((u8*)sprite.tex->data)[i * 4 + 0],
+		// 		((u8*)sprite.tex->data)[i * 4 + 1],
+		// 		((u8*)sprite.tex->data)[i * 4 + 2],
+		// 		((u8*)sprite.tex->data)[i * 4 + 3]);
+		// }
 
-
+	//static auto sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
+	//auto a = C2D_SpriteSheetGetImage(sheet_bg, 0);
+	printf("W: %d, H: %d\nTop: %f, Left %f\nBottom, %f, Right %f \n", sprite.subtex->width, sprite.subtex->height, sprite.subtex->top, sprite.subtex->left, sprite.subtex->bottom, sprite.subtex->right);
+	C2D_DrawImageAt(sprite, 0, 0, 0);
+	//C2D_DrawImage(sprite, );
 
 
 	return PAPAS_OK;
