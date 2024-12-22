@@ -23,6 +23,7 @@
         "xstring": "cpp",
         "xutility": "cpp",
         "string_view": "cpp",
-        "xiosbase": "cpp"
+        "xiosbase": "cpp",
+        "new": "cpp"
     }
 }

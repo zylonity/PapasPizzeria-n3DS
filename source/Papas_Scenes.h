@@ -49,8 +49,8 @@ namespace Papas {
 		//backgrounds
 
 		//C2D_SpriteSheet p_cSheet;
-		C3D_Tex* tex;
-	    Tex3DS_SubTexture* subtexture;
+		C3D_Tex tex;
+	    Tex3DS_SubTexture subtexture;
 		C2D_Image sprite;
 
 	};

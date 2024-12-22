@@ -149,6 +149,8 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
 {
 	PapasError ret;
 
+	
+
     // 1) Open the GIF
     GifFileType* g_intro = DGifOpenFileName("romfs:/frame0.gif", NULL);
     if (!g_intro) {
@@ -167,16 +169,21 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
     int width  = g_intro->SWidth;
     int height = g_intro->SHeight;
 
+	//C3D_Tex* tex = new C3D_Tex();
+	// if (!C3D_TexInit(tex, 160, 140, GPU_RGBA8)) {
+    //         DGifCloseFile(g_intro, NULL);
+    //         return PAPAS_NOT_OK;
+    //     }
 
-	subtexture = new Tex3DS_SubTexture();
+	//subtexture = new Tex3DS_SubTexture();
     // subtexture is presumably a member of IntroVideo (e.g. Tex3DS_SubTexture subtexture;)
     // If all frames are the same size, reusing one subtexture can be fine.
-    subtexture->width  = width;
-    subtexture->height = height;
-    subtexture->left   = 0;
-    subtexture->top    = 0;
-    subtexture->right  = subtexture->left + width;   // If your Citro2D setup expects 
-    subtexture->bottom = subtexture->top + height;   // pixel coords, this is OK.
+    subtexture.width  = width;
+    subtexture.height = height;
+    subtexture.left   = 0;
+    subtexture.top    = 0;
+    subtexture.right  = 0 + width;   // If your Citro2D setup expects 
+    subtexture.bottom = 0 + height;   // pixel coords, this is OK.
 
     // 4) Iterate over frames
     //    Make sure 'textures' is large enough: if textures is e.g. std::array<C3D_Tex, 10> 
@@ -187,13 +194,14 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
         SavedImage* image = &g_intro->SavedImages[i];
 
         // 4a) Allocate the RGBA buffer
-        uint8_t* rgbaBuffer = (uint8_t*)malloc(width * height * 4);
+        u32* rgbaBuffer = (u32*)malloc(width * height * 4);
         if (!rgbaBuffer) {
             // On error, clean up and return
             DGifCloseFile(g_intro, NULL);
             return PAPAS_NOT_OK;
         }
         memset(rgbaBuffer, 0, width * height * 4);
+
 
         // 4b) Get the color map
         ColorMapObject* colorMap = (image->ImageDesc.ColorMap
@@ -221,44 +229,19 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
             }
         }
 
-        // 4d) Init your textures array for the i-th frame
-        //     Make sure 'textures' is big enough (e.g. a std::vector<C3D_Tex> of size ImageCount).
-		//ret = C3D_TexInit(tex, width, height, GPU_RGBA8);
-
-		u32 size = 32;
-		size *= (u32)width * height / 8;
-		u32 total_size = C3D_TexCalcTotalSize(size, 0);
-
-		tex->data = malloc(total_size);
-		tex->width = width;
-		tex->height = height;
-		tex->param = GPU_TEXTURE_MODE(GPU_TEX_2D);
-		tex->fmt = GPU_RGBA8;
-		tex->size = size;
-		tex->border = 0;
-		tex->lodBias = 0;
-		tex->maxLevel = 0;
-		tex->minLevel = 0;
-        //ASSERT(ret == PAPAS_OK, "Couldn't initiate textu");
+		if (C3D_TexInit(&tex, 256, 256, GPU_RGBA8) == false) {
+            free(rgbaBuffer);
+            DGifCloseFile(g_intro, NULL);
+            return PAPAS_NOT_OK;
+        }
 
         // 4e) Copy RGBA data into GPU texture
-        memcpy(tex->data, rgbaBuffer, width * height * 4);
-        GSPGPU_FlushDataCache(tex->data, width * height * 4);
-
-        // 4f) Freed once copied
-        free(rgbaBuffer);
-
-        // 4g) Create a C2D_Image for this frame
-        //     Currently, you do dynamic allocation, then push the sprite by value -> memory leak.
-        //     Instead, create the sprite on the stack and push_back the struct:
-
-        // (A) On the stack:
-        
-        memset(&sprite, 0, sizeof(C2D_Image));
+        memcpy(tex.data, rgbaBuffer, width * height * 4);
+        GSPGPU_FlushDataCache(tex.data, width * height * 4);
 
         // Attach the i-th texture
-        sprite.tex    = tex;
-        sprite.subtex = subtexture;  // reusing the same subtexture if all frames match
+        sprite.tex    = &tex;
+        sprite.subtex = &subtexture;  // reusing the same subtexture if all frames match
 
     }
 
@@ -294,6 +277,7 @@ PapasError Papas::IntroVideo::update() {
 	return PAPAS_OK;
 
 }
+
 
 PapasError Papas::IntroVideo::render_bottom() {
 
