@@ -46,19 +46,7 @@ namespace Papas {
 		PapasError terminate() override;
 	private:
 		Papas::SceneManager* p_sceneManager;
-		//backgrounds
 
-		//C2D_SpriteSheet p_cSheet;
-		//C3D_Tex tex;
-	    //Tex3DS_SubTexture subtexture;
-		int counter;
-		int currentFrame;
-		std::chrono::steady_clock::time_point start;
-		std::chrono::steady_clock::time_point end;
-		std::vector<C3D_Tex*> textures;
-		std::vector<void*> voids;
-		C3D_Tex *tempTex;
-		C2D_Image sprite;
 
 	};
 
