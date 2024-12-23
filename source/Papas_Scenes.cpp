@@ -3,6 +3,9 @@
 #include <string>
 #include <chrono>
 #include <gif_lib.h>
+#include <gif_lib_private.h>
+#include <limits.h>
+
 
 PapasError Papas::MainMenu::init(Papas::SceneManager* sceneManager) {
 
@@ -150,112 +153,282 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
 	PapasError ret;
 
     // 1) Open the GIF
-    GifFileType* g_intro = DGifOpenFileName("romfs:/lowres.gif", NULL);
-    if (!g_intro) {
+    GifFileType* GifFile = DGifOpenFileName("romfs:/lowres.gif", NULL);
+    if (!GifFile) {
         // Couldn’t open the file
         return PAPAS_NOT_OK;
     }
 
-    // 2) Slurp to populate all frames
-    if (DGifSlurp(g_intro) == GIF_ERROR) {
-        // Clean up if slurp fails
-        DGifCloseFile(g_intro, NULL);
-        return PAPAS_NOT_OK;
-    }
+    // // 2) Slurp to populate all frames
+    // if (DGifSlurp(g_intro) == GIF_ERROR) {
+    //     // Clean up if slurp fails
+    //     DGifCloseFile(g_intro, NULL);
+    //     return PAPAS_NOT_OK;
+    // }
 
     // 3) Dimensions and subtexture
-    int width  = g_intro->SWidth;
-    int height = g_intro->SHeight;
+    int width  = GifFile->SWidth;
+    int height = GifFile->SHeight;
 
 	sprite.subtex = new Tex3DS_SubTexture({(u16)width, (u16)height, 0.0f, 1.0f, width / 256.0f, 1.0f - (height / 256.0f)});
-
-    GifRecordType recordType;
-
-
-	for (size_t i = 0; i < 20; i++)
-    {
-		C3D_Tex* tempTex = new C3D_Tex;
 	
-		if (!C3D_TexInit(tempTex, 256, 256, GPU_RGBA8)) {
-			return PAPAS_NOT_OK;
-		}
 
-		C3D_TexSetFilter(tempTex, GPU_LINEAR, GPU_LINEAR);
-		tempTex->border = 0xFFFFFFFF;
-		C3D_TexSetWrap(tempTex, GPU_CLAMP_TO_BORDER, GPU_CLAMP_TO_BORDER);
-
-
-		//I dont wanna slurp
-		//it sounds weird :(
+	//I dont wanna slurp
+	//it sounds weird :(
 		
-		//Trying to break down the slurp function for each frame insead
-		SavedImage* image = &g_intro->SavedImages[g_intro->ImageCount - 1];
+	//Trying to break down the slurp function for each frame insead
+	size_t ImageSize;
+    GifRecordType RecordType;
+    SavedImage *sp;
+    GifByteType *ExtData;
+    int ExtFunction;
 
-		/* Allocate memory for the image */
-        size_t ImageSize = image->ImageDesc.Width * image->ImageDesc.Height;
+    GifFile->ExtensionBlocks = NULL;
+    GifFile->ExtensionBlockCount = 0;
+
+
+	//Slurp every frame
+	do {
+        if (DGifGetRecordType(GifFile, &RecordType) == PAPAS_NOT_OK)
+            return (PAPAS_NOT_OK);
+
+        switch (RecordType) {
+            case IMAGE_DESC_RECORD_TYPE:
+			//If its a picture
+				if (DGifGetImageDesc(GifFile) == PAPAS_NOT_OK)
+					return (PAPAS_NOT_OK);
+					
+				sp = &GifFile->SavedImages[GifFile->ImageCount - 1];
+				/* Allocate memory for the image */
+				//eror checkin
+				if (sp->ImageDesc.Width <= 0 || sp->ImageDesc.Height <= 0 ||
+						sp->ImageDesc.Width > (INT_MAX / sp->ImageDesc.Height)) {
+					return PAPAS_NOT_OK;
+				}
+
+				ImageSize = sp->ImageDesc.Width * sp->ImageDesc.Height;
+
+				if (ImageSize > (SIZE_MAX / sizeof(GifPixelType))) {
+					return PAPAS_NOT_OK;
+				}
+				sp->RasterBits = (unsigned char *)reallocarray(NULL, ImageSize,
+						sizeof(GifPixelType));
+
+				if (sp->RasterBits == NULL) {
+					return PAPAS_NOT_OK;
+				}
+
+				if (sp->ImageDesc.Interlace) {
+					int i, j;
+					/* 
+						* The way an interlaced image should be read - 
+						* offsets and jumps...
+						*/
+					int InterlacedOffset[] = { 0, 4, 2, 1 };
+					int InterlacedJumps[] = { 8, 8, 4, 2 };
+					/* Need to perform 4 passes on the image */
+					for (i = 0; i < 4; i++)
+						for (j = InterlacedOffset[i]; 
+						j < sp->ImageDesc.Height;
+						j += InterlacedJumps[i]) {
+						if (DGifGetLine(GifFile, 
+								sp->RasterBits+j*sp->ImageDesc.Width, 
+								sp->ImageDesc.Width) == PAPAS_NOT_OK)
+							return PAPAS_NOT_OK;
+						}
+
+				}
+				else {
+					if (DGifGetLine(GifFile,sp->RasterBits,ImageSize)==PAPAS_NOT_OK)
+						return (PAPAS_NOT_OK);
+				}
+
+				// if (GifFile->ExtensionBlocks) {
+				// 	sp->ExtensionBlocks = GifFile->ExtensionBlocks;
+				// 	sp->ExtensionBlockCount = GifFile->ExtensionBlockCount;
+
+				// 	GifFile->ExtensionBlocks = NULL;
+				// 	GifFile->ExtensionBlockCount = 0;
+				// }
+				// break;
 
 
 
-        // 4a) Allocate the RGBA buffer
-        u32* rgbabuffer = (u32*)malloc(width * height * 4);
-        if (!rgbabuffer) {
-            // On error, clean up and return
-            DGifCloseFile(g_intro, NULL);
-            return PAPAS_NOT_OK;
+				//All the stuff for the picture's been established, lets do ours now?
+
+				//Set up texture
+				C3D_Tex* tempTex = new C3D_Tex;
+	
+				if (!C3D_TexInit(tempTex, 256, 256, GPU_RGBA8)) {
+					return PAPAS_NOT_OK;
+				}
+
+				C3D_TexSetFilter(tempTex, GPU_LINEAR, GPU_LINEAR);
+				tempTex->border = 0xFFFFFFFF;
+				C3D_TexSetWrap(tempTex, GPU_CLAMP_TO_BORDER, GPU_CLAMP_TO_BORDER);
+
+				//Start reading from frame we just got
+				u32* rgbabuffer = (u32*)malloc(width * height * 4);
+				if (!rgbabuffer) {
+					return PAPAS_NOT_OK;
+				}
+				memset(rgbabuffer, 0, width * height * 4);
+
+				ColorMapObject* colorMap = (sp->ImageDesc.ColorMap ? sp->ImageDesc.ColorMap : GifFile->SColorMap);
+				if (!colorMap) {
+					return PAPAS_NOT_OK;
+				}
+
+				//GifByteType* raster = sp->RasterBits;
+
+				for (int y = 0; y < height; y++) {
+					for (int x = 0; x < width; x++) {
+						int index = *sp->RasterBits++;
+						if (index < colorMap->ColorCount) {
+							GifColorType color = colorMap->Colors[index];
+							int offset = (y * width + x) * 4;
+							rgbabuffer[offset + 1] = color.Green;
+							rgbabuffer[offset + 0] = color.Red;
+							rgbabuffer[offset + 2] = color.Blue;
+							rgbabuffer[offset + 3] = 0xFF; // Opaque alpha
+						}
+					}
+				}
+
+				for (u32 x = 0; x < width && x < 256; x++) {
+					for (u32 y = 0; y < height && y < 256; y++) {
+						const u32 dstPos = ((((y >> 3) * (256 >> 3) + (x >> 3)) << 6) +
+											((x & 1) | ((y & 1) << 1) | ((x & 2) << 1) | ((y & 2) << 2) |
+											((x & 4) << 2) | ((y & 4) << 3))) * 4;
+
+						const u32 srcPos = (y * width + x) * 4;
+						((uint8_t *)tempTex->data)[dstPos + 0] = rgbabuffer[srcPos + 3];
+						((uint8_t *)tempTex->data)[dstPos + 1] = rgbabuffer[srcPos + 2];
+						((uint8_t *)tempTex->data)[dstPos + 2] = rgbabuffer[srcPos + 1];
+						((uint8_t *)tempTex->data)[dstPos + 3] = rgbabuffer[srcPos + 0];
+					}
+				}
+
+				// Free RGBA buffer
+				free(rgbabuffer);
+
+				textures.emplace_back(tempTex);
+
+				//And now we close the memory for the stuff we just opened
+
+				if (sp->ImageDesc.ColorMap != NULL) {
+					GifFreeMapObject(sp->ImageDesc.ColorMap);
+					sp->ImageDesc.ColorMap = NULL;
+				}
+
+				if (sp->RasterBits != NULL)
+					free((char *)sp->RasterBits);
+				
+				break;
+			
+				//GifFreeExtensions(&sp->ExtensionBlockCount, &sp->ExtensionBlocks);
+
+        //     case EXTENSION_RECORD_TYPE:
+        //       if (DGifGetExtension(GifFile,&ExtFunction,&ExtData) == GIF_ERROR)
+        //           return (GIF_ERROR);
+	    //   /* Create an extension block with our data */
+        //       if (ExtData != NULL) {
+		//   if (GifAddExtensionBlock(&GifFile->ExtensionBlockCount,
+		// 			   &GifFile->ExtensionBlocks, 
+		// 			   ExtFunction, ExtData[0], &ExtData[1])
+		//       == GIF_ERROR)
+		//       return (GIF_ERROR);
+	    //   }
+        //       for (;;) {
+        //           if (DGifGetExtensionNext(GifFile, &ExtData) == GIF_ERROR)
+        //               return (GIF_ERROR);
+		//   if (ExtData == NULL)
+		//       break;
+        //           /* Continue the extension block */
+		//   if (ExtData != NULL)
+		//       if (GifAddExtensionBlock(&GifFile->ExtensionBlockCount,
+		// 			       &GifFile->ExtensionBlocks,
+		// 			       CONTINUE_EXT_FUNC_CODE, 
+		// 			       ExtData[0], &ExtData[1]) == GIF_ERROR)
+        //               return (GIF_ERROR);
+        //       }
+        //       break;
+
+          case TERMINATE_RECORD_TYPE:
+              break;
+
+          default:    /* Should be trapped by DGifGetRecordType */
+              break;
         }
-        memset(rgbabuffer, 0, width * height * 4);
+    } while (RecordType != TERMINATE_RECORD_TYPE);
 
 
-        // 4b) Get the color map
-        ColorMapObject* colorMap = (image.ImageDesc.ColorMap
-                                    ? image.ImageDesc.ColorMap
-                                    : g_intro->SColorMap);
-        if (!colorMap) {
-            free(rgbabuffer);
-            DGifCloseFile(g_intro, NULL);
-            return PAPAS_NOT_OK;
-        }
+	// for (size_t i = 0; i < 20; i++)
+    // {
+		
 
-        // 4c) Decode the raster bits into RGBA
-        GifByteType* raster = image.RasterBits;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int index = *raster++;
-                if (index < colorMap->ColorCount) {
-                    GifColorType color = colorMap->Colors[index];
-                    int offset = (y * width + x) * 4;
-                    rgbabuffer[offset + 1] = color.Green;
-                    rgbabuffer[offset + 0] = color.Red;
-                    rgbabuffer[offset + 2] = color.Blue;
-                    rgbabuffer[offset + 3] = 0xFF; // Opaque alpha
-                }
-            }
-        }
 
-		//raw_frames.push_back(rgbaBuffer);
 
-		for (u32 x = 0; x < width && x < 256; x++) {
-			for (u32 y = 0; y < height && y < 256; y++) {
-				const u32 dstPos = ((((y >> 3) * (256 >> 3) + (x >> 3)) << 6) +
-									((x & 1) | ((y & 1) << 1) | ((x & 2) << 1) | ((y & 2) << 2) |
-									((x & 4) << 2) | ((y & 4) << 3))) * 4;
+    //     // 4a) Allocate the RGBA buffer
+    //     u32* rgbabuffer = (u32*)malloc(width * height * 4);
+    //     if (!rgbabuffer) {
+    //         // On error, clean up and return
+    //         DGifCloseFile(g_intro, NULL);
+    //         return PAPAS_NOT_OK;
+    //     }
+    //     memset(rgbabuffer, 0, width * height * 4);
 
-				const u32 srcPos = (y * width + x) * 4;
-				((uint8_t *)tempTex->data)[dstPos + 0] = rgbabuffer[srcPos + 3];
-				((uint8_t *)tempTex->data)[dstPos + 1] = rgbabuffer[srcPos + 2];
-				((uint8_t *)tempTex->data)[dstPos + 2] = rgbabuffer[srcPos + 1];
-				((uint8_t *)tempTex->data)[dstPos + 3] = rgbabuffer[srcPos + 0];
-			}
-		}
 
-		// Free RGBA buffer
-		free(rgbabuffer);
+    //     // 4b) Get the color map
+    //     ColorMapObject* colorMap = (image.ImageDesc.ColorMap
+    //                                 ? image.ImageDesc.ColorMap
+    //                                 : g_intro->SColorMap);
+    //     if (!colorMap) {
+    //         free(rgbabuffer);
+    //         DGifCloseFile(g_intro, NULL);
+    //         return PAPAS_NOT_OK;
+    //     }
 
-		textures.emplace_back(tempTex);
+    //     // 4c) Decode the raster bits into RGBA
+    //     GifByteType* raster = image.RasterBits;
+    //     for (int y = 0; y < height; y++) {
+    //         for (int x = 0; x < width; x++) {
+    //             int index = *raster++;
+    //             if (index < colorMap->ColorCount) {
+    //                 GifColorType color = colorMap->Colors[index];
+    //                 int offset = (y * width + x) * 4;
+    //                 rgbabuffer[offset + 1] = color.Green;
+    //                 rgbabuffer[offset + 0] = color.Red;
+    //                 rgbabuffer[offset + 2] = color.Blue;
+    //                 rgbabuffer[offset + 3] = 0xFF; // Opaque alpha
+    //             }
+    //         }
+    //     }
 
-    }
+	// 	//raw_frames.push_back(rgbaBuffer);
 
-    DGifCloseFile(g_intro, NULL);
+	// 	for (u32 x = 0; x < width && x < 256; x++) {
+	// 		for (u32 y = 0; y < height && y < 256; y++) {
+	// 			const u32 dstPos = ((((y >> 3) * (256 >> 3) + (x >> 3)) << 6) +
+	// 								((x & 1) | ((y & 1) << 1) | ((x & 2) << 1) | ((y & 2) << 2) |
+	// 								((x & 4) << 2) | ((y & 4) << 3))) * 4;
+
+	// 			const u32 srcPos = (y * width + x) * 4;
+	// 			((uint8_t *)tempTex->data)[dstPos + 0] = rgbabuffer[srcPos + 3];
+	// 			((uint8_t *)tempTex->data)[dstPos + 1] = rgbabuffer[srcPos + 2];
+	// 			((uint8_t *)tempTex->data)[dstPos + 2] = rgbabuffer[srcPos + 1];
+	// 			((uint8_t *)tempTex->data)[dstPos + 3] = rgbabuffer[srcPos + 0];
+	// 		}
+	// 	}
+
+	// 	// Free RGBA buffer
+	// 	free(rgbabuffer);
+
+	// 	textures.emplace_back(tempTex);
+
+    // }
+
+    DGifCloseFile(GifFile, NULL);
 	
 	sprite.tex = textures[0];
 
