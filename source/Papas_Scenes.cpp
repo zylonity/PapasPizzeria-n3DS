@@ -167,62 +167,72 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
     int width  = g_intro->SWidth;
     int height = g_intro->SHeight;
 
-	
+	sprite.subtex = new Tex3DS_SubTexture({(u16)width, (u16)height, 0.0f, 1.0f, width / 256.0f, 1.0f - (height / 256.0f)});
 
-	for (size_t i = 0; i < g_intro->ImageCount; i++)
+    GifRecordType recordType;
+
+
+	for (size_t i = 0; i < 20; i++)
     {
-
-		C2D_Image sprite;
-
-		sprite.tex = new C3D_Tex;
-		sprite.subtex = new Tex3DS_SubTexture({(u16)width, (u16)height, 0.0f, 1.0f, width / 256.0f, 1.0f - (height / 256.0f)});
-
-		if (!C3D_TexInit(sprite.tex, 256, 256, GPU_RGBA8)) {
-				return PAPAS_NOT_OK;
+		C3D_Tex* tempTex = new C3D_Tex;
+	
+		if (!C3D_TexInit(tempTex, 256, 256, GPU_RGBA8)) {
+			return PAPAS_NOT_OK;
 		}
 
-		C3D_TexSetFilter(sprite.tex, GPU_LINEAR, GPU_LINEAR);
-		sprite.tex->border = 0xFFFFFFFF;
-		C3D_TexSetWrap(sprite.tex, GPU_CLAMP_TO_BORDER, GPU_CLAMP_TO_BORDER);
+		C3D_TexSetFilter(tempTex, GPU_LINEAR, GPU_LINEAR);
+		tempTex->border = 0xFFFFFFFF;
+		C3D_TexSetWrap(tempTex, GPU_CLAMP_TO_BORDER, GPU_CLAMP_TO_BORDER);
 
 
-        SavedImage* image = &g_intro->SavedImages[i];
+		//I dont wanna slurp
+		//it sounds weird :(
+		
+		//Trying to break down the slurp function for each frame insead
+		SavedImage* image = &g_intro->SavedImages[g_intro->ImageCount - 1];
+
+		/* Allocate memory for the image */
+        size_t ImageSize = image->ImageDesc.Width * image->ImageDesc.Height;
+
+
 
         // 4a) Allocate the RGBA buffer
-        u32* rgbaBuffer = (u32*)malloc(width * height * 4);
-        if (!rgbaBuffer) {
+        u32* rgbabuffer = (u32*)malloc(width * height * 4);
+        if (!rgbabuffer) {
             // On error, clean up and return
             DGifCloseFile(g_intro, NULL);
             return PAPAS_NOT_OK;
         }
-        memset(rgbaBuffer, 0, width * height * 4);
+        memset(rgbabuffer, 0, width * height * 4);
 
 
         // 4b) Get the color map
-        ColorMapObject* colorMap = (image->ImageDesc.ColorMap
-                                    ? image->ImageDesc.ColorMap
+        ColorMapObject* colorMap = (image.ImageDesc.ColorMap
+                                    ? image.ImageDesc.ColorMap
                                     : g_intro->SColorMap);
         if (!colorMap) {
-            free(rgbaBuffer);
+            free(rgbabuffer);
             DGifCloseFile(g_intro, NULL);
             return PAPAS_NOT_OK;
         }
 
         // 4c) Decode the raster bits into RGBA
-        GifByteType* raster = image->RasterBits;
+        GifByteType* raster = image.RasterBits;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int index = *raster++;
                 if (index < colorMap->ColorCount) {
                     GifColorType color = colorMap->Colors[index];
                     int offset = (y * width + x) * 4;
-                    rgbaBuffer[offset + 0] = color.Red;
-                    rgbaBuffer[offset + 1] = color.Green;
-                    rgbaBuffer[offset + 2] = color.Blue;
-                    rgbaBuffer[offset + 3] = 0xFF; // Opaque alpha
+                    rgbabuffer[offset + 1] = color.Green;
+                    rgbabuffer[offset + 0] = color.Red;
+                    rgbabuffer[offset + 2] = color.Blue;
+                    rgbabuffer[offset + 3] = 0xFF; // Opaque alpha
                 }
             }
         }
+
+		//raw_frames.push_back(rgbaBuffer);
 
 		for (u32 x = 0; x < width && x < 256; x++) {
 			for (u32 y = 0; y < height && y < 256; y++) {
@@ -231,34 +241,45 @@ PapasError Papas::IntroVideo::init(Papas::SceneManager* sceneManager)
 									((x & 4) << 2) | ((y & 4) << 3))) * 4;
 
 				const u32 srcPos = (y * width + x) * 4;
-				((uint8_t *)sprite.tex->data)[dstPos + 0] = rgbaBuffer[srcPos + 3];
-				((uint8_t *)sprite.tex->data)[dstPos + 1] = rgbaBuffer[srcPos + 2];
-				((uint8_t *)sprite.tex->data)[dstPos + 2] = rgbaBuffer[srcPos + 1];
-				((uint8_t *)sprite.tex->data)[dstPos + 3] = rgbaBuffer[srcPos + 0];
+				((uint8_t *)tempTex->data)[dstPos + 0] = rgbabuffer[srcPos + 3];
+				((uint8_t *)tempTex->data)[dstPos + 1] = rgbabuffer[srcPos + 2];
+				((uint8_t *)tempTex->data)[dstPos + 2] = rgbabuffer[srcPos + 1];
+				((uint8_t *)tempTex->data)[dstPos + 3] = rgbabuffer[srcPos + 0];
 			}
 		}
 
 		// Free RGBA buffer
-		free(rgbaBuffer);
+		free(rgbabuffer);
 
-		frames.push_back(sprite);
-
+		textures.emplace_back(tempTex);
 
     }
 
     DGifCloseFile(g_intro, NULL);
+	
+	sprite.tex = textures[0];
 
+	start = std::chrono::steady_clock::now();
+	currentFrame = 0;
 
     return PAPAS_OK;
 }
 
 PapasError Papas::IntroVideo::render_top() {
 
-	//auto frame = C2D_SpriteSheetGetImage(p_cSheet, 0);
-	//sprite.subtex.
+	end = std::chrono::steady_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 	
-	C2D_DrawImageAt(frames[0], 0, 0, 0);
+	if(elapsed.count() >= 85){
+		//C3D_TexDelete(frames[currentFrame].tex);
+		printf("%d\n", currentFrame);
+		currentFrame++;
+		start = end;
+	}
+	sprite.tex = textures[currentFrame];
 
+	C2D_DrawImageAt(sprite, 0, 0, 0);
+	//printf("loaded");
 	
 
 	return PAPAS_OK;

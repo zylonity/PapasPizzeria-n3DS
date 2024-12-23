@@ -1,6 +1,8 @@
 #include "Papas_Renderer.h"
 #include "Papas_Scenes.h"
 
+#define DEBUGGING_BOTTOM
+
 PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	PapasError ret;
 
@@ -32,7 +34,7 @@ PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	
 
 	//Init the first scene
-	sceneManager->changeScene(new Papas::MainMenu());
+	sceneManager->changeScene(new Papas::IntroVideo());
 
 
 	return PAPAS_OK;

@@ -48,8 +48,14 @@ namespace Papas {
 		Papas::SceneManager* p_sceneManager;
 		//backgrounds
 
-		std::vector<C2D_Image> frames;
-		//C2D_Image sprite;
+		//C2D_SpriteSheet p_cSheet;
+		//C3D_Tex tex;
+	    //Tex3DS_SubTexture subtexture;
+		int currentFrame;
+		std::chrono::steady_clock::time_point start;
+		std::chrono::steady_clock::time_point end;
+		std::vector<C3D_Tex*> textures;
+		C2D_Image sprite;
 
 	};
 
