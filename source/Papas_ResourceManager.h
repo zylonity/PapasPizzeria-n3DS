@@ -6,6 +6,7 @@
 #include "Papas_Constants.h"
 #include "Papas_Renderer.h"
 
+
 namespace Papas
 {
 
@@ -17,7 +18,7 @@ namespace Papas
 
 		PapasError terminate();
 
-		PapasError changeScenes();
+		PapasError initSoundEngine();
 
 		//===============================================================================
 		// Singleton Implementations
@@ -31,9 +32,10 @@ namespace Papas
 		void operator=(ResourceManager const&)			= delete;	// Assignment Operator
 		//===============================================================================
 	private:
-		
 
-		
+
+
+
 		//===============================================================================
 		// Singleton Implementations (Banned functions to prevent a new instance)
 		ResourceManager() {}										// Default Constructor private so can only be called from within
