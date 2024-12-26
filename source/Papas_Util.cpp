@@ -224,3 +224,16 @@ void Papas::GuyPeeking::resetAnim()
 	finished = false;
 	currentSprite = 0;
 }
+
+Papas::Receipt::Receipt(){
+
+}
+Papas::Receipt::Receipt(int num)
+{
+	createReceipt(num);
+}
+
+void Papas::Receipt::createReceipt(int num)
+{
+	
+}

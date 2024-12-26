@@ -95,4 +95,17 @@ namespace Papas {
 	private:
 		bool ranOnce = false;
 	};
+
+	class Receipt{
+		public:
+		Receipt() {};
+		Receipt(int receiptNum);
+		
+		void createReceipt(int receiptNum);
+		void showReceipt();
+
+		private:
+			C2D_SpriteSheet receipt_spriteSheet;
+			C2D_Sprite receipt_bg;
+	};
 }
