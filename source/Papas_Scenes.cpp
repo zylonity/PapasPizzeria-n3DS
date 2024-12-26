@@ -1,12 +1,14 @@
 #include "Papas_Scenes.h"
 #include "Papas_SceneManager.h"
+#include "Papas_ResourceManager.h"
 #include <string>
 #include <chrono>
-#include <limits.h>
-#include <citro3d.h>
+#include <citro2d.h>
 
 PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 {
+
+	Papas::ResourceManager::getInstance().playMusic("romfs:/music/toppingscreen_music.ogg");
 
 	// Load the backgrounds
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
@@ -39,10 +41,13 @@ PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 	b_credits.setPosition(creditsPos);
 	v_buttons.push_back(b_credits);
 
+
 	buttonIndex = 0;
 	aPressed = false;
 
 	p_sceneManager = sceneManager;
+
+
 
 	return PAPAS_OK;
 }
@@ -121,8 +126,9 @@ PapasError Papas::MainMenu::render_bottom()
 		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed))
 		{
 
-			IntroVideo *ivid = new IntroVideo();
-			p_sceneManager->changeScene(ivid);
+			Game *game = new Game();
+			p_sceneManager->changeScene(game);
+			//ResourceManager::getInstance().stopMusic();
 		}
 	}
 
@@ -132,7 +138,6 @@ PapasError Papas::MainMenu::render_bottom()
 PapasError Papas::MainMenu::terminate()
 {
 
-	// Ensure all Citro2D resources are properly freed
 	if (sheet_bg)
 	{
 		C2D_SpriteSheetFree(sheet_bg);
@@ -152,42 +157,109 @@ PapasError Papas::MainMenu::terminate()
 	return PAPAS_OK;
 }
 
-PapasError Papas::IntroVideo::init(Papas::SceneManager *sceneManager)
+PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 {
-	PapasError ret;
+	currentStation = TicketStation;
+
+	Papas::ResourceManager::getInstance().playMusic("romfs:/music/orderscreen_music.ogg");
+
+	bottomStations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
+	topStation = C2D_SpriteSheetLoad("romfs:/gfx/top_stations.t3x");
+
+	ticketsStationImg = C2D_SpriteSheetGetImage(topStation, 0);
+	ticketsHolderImg = C2D_SpriteSheetGetImage(topStation, 1);
+
+	currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 3);
 
 	return PAPAS_OK;
 }
 
-PapasError Papas::IntroVideo::render_top()
+PapasError Papas::Game::render_top()
 {
 
+	C2D_DrawImageAt(ticketsStationImg, 0, 0, -1);
+	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0);
 
 	return PAPAS_OK;
 }
 
-PapasError Papas::IntroVideo::update()
+PapasError Papas::Game::render_bottom()
+{
+
+	C2D_DrawImageAt(currentStationImg, 0, 0, -1);
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::Game::update()
 {
 
 	hidScanInput();
 
 	// Respond to user input
 	u32 kDown = hidKeysDown();
+//	u64 currentTime = osGetTime();
+
 	if (kDown & KEY_START)
 		return PAPAS_NOT_OK; // break in order to return to hbmenu
 
+	if (kDown & KEY_L)
+	{
+		if (currentStation > TicketStation)
+		{
+			SwitchStation((Stations)(currentStation - 1));
+		}
+		//lastInputTime = currentTime;
+	}
+
+	if (kDown & KEY_R)
+	{
+		if (currentStation < 1)
+		{
+			SwitchStation((Stations)(currentStation + 1));
+		}
+		//lastInputTime = currentTime;
+	}
+
 	return PAPAS_OK;
 }
 
-PapasError Papas::IntroVideo::render_bottom()
+void Papas::Game::SwitchStation(Stations station)
 {
-
-
-	return PAPAS_OK;
+	switch (station)
+	{
+	case TicketStation:
+		Papas::ResourceManager::getInstance().playMusic("romfs:/music/orderscreen_music.ogg");
+		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 3);
+		currentStation = station;
+	case ToppingStation:
+		Papas::ResourceManager::getInstance().playMusic("romfs:/music/toppingscreen_music.ogg");
+		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 0);
+		currentStation = station;
+	case BakingStation:
+		Papas::ResourceManager::getInstance().playMusic("romfs:/music/bakingscreen_music.ogg");
+		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 1);
+		currentStation = station;
+	case CuttingStation:
+		Papas::ResourceManager::getInstance().playMusic("romfs:/music/cuttingscreen_music.ogg");
+		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 2);
+		currentStation = station;
+	}
 }
 
-PapasError Papas::IntroVideo::terminate()
+PapasError Papas::Game::terminate()
 {
+
+	if (bottomStations)
+	{
+		C2D_SpriteSheetFree(bottomStations);
+		bottomStations = nullptr;
+	}
+	if (topStation)
+	{
+		C2D_SpriteSheetFree(topStation);
+		topStation = nullptr;
+	}
 
 	return PAPAS_OK;
 }

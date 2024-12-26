@@ -7,6 +7,8 @@
 PapasError Papas::Framework::init() {
 	PapasError ret;
 
+	Papas::ResourceManager::getInstance().init();
+
 	// Initialize our scene manager
 	m_pSceneManager = new Papas::SceneManager;
 	ASSERT(m_pSceneManager != nullptr, "");							// Always checking with any new if we have successfully allocated memory for it
@@ -50,6 +52,7 @@ PapasError Papas::Framework::terminate() {
 	m_pSceneManager = nullptr;
 	ASSERT(m_pSceneManager == nullptr, "");
 
+	Papas::ResourceManager::getInstance().terminate();
 
 	return PAPAS_OK;
 }

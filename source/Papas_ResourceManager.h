@@ -6,6 +6,8 @@
 #include "Papas_Constants.h"
 #include "Papas_Renderer.h"
 
+//Forward declarations
+typedef struct _Mix_Music Mix_Music;
 
 namespace Papas
 {
@@ -14,11 +16,12 @@ namespace Papas
 	{
 	public:
 		PapasError init();
-		PapasError update();
 
 		PapasError terminate();
 
-		PapasError initSoundEngine();
+		PapasError playMusic(const char* ogg_file);
+		PapasError stopMusic();
+		PapasError pauseMusic();
 
 		//===============================================================================
 		// Singleton Implementations
@@ -32,14 +35,14 @@ namespace Papas
 		void operator=(ResourceManager const&)			= delete;	// Assignment Operator
 		//===============================================================================
 	private:
-
-
-
+		Mix_Music *music;
 
 		//===============================================================================
 		// Singleton Implementations (Banned functions to prevent a new instance)
-		ResourceManager() {}										// Default Constructor private so can only be called from within
-		//===============================================================================
+		ResourceManager()
+		{
+		} // Default Constructor private so can only be called from within
+		  //===============================================================================
 	};
 }
 //===============================================================================

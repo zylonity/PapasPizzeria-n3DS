@@ -37,7 +37,10 @@ namespace Papas {
 
 	};
 
-	class IntroVideo : public Scene {
+	
+
+	class Game : public Scene
+	{
 	public:
 		PapasError init(Papas::SceneManager* sceneManager) override;
 		PapasError update() override;
@@ -45,10 +48,29 @@ namespace Papas {
 		PapasError render_bottom() override;
 		PapasError terminate() override;
 	private:
+		enum Stations : int
+		{
+			TicketStation,
+			ToppingStation,
+			BakingStation,
+			CuttingStation,
+			StationMAX
+		};
+
+		Stations currentStation;
+		C2D_SpriteSheet bottomStations;
+		C2D_SpriteSheet topStation;
+
+		C2D_Image ticketsStationImg;
+		C2D_Image ticketsHolderImg;
+
+		C2D_Image currentStationImg;
+
+		void SwitchStation(Stations station);
+
+		u64 lastInputTime = 0;		   // Last time input was processed
+		const u64 inputCooldown = 200; // 200ms cooldown
+
 		Papas::SceneManager* p_sceneManager;
-
-
 	};
-
-
 }

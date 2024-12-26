@@ -88,6 +88,7 @@
         "xtr1common": "cpp",
         "xtree": "cpp",
         "*.tcc": "cpp",
-        "text_encoding": "cpp"
+        "text_encoding": "cpp",
+        "semaphore": "cpp"
     }
 }
