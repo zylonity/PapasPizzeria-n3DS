@@ -41,10 +41,30 @@ PapasError Papas::ResourceManager::pauseMusic()
     return PAPAS_OK;
 }
 
+
 PapasError Papas::ResourceManager::stopMusic()
 {
-    Mix_FreeMusic(music);
-    music = nullptr;
+    Mix_HaltMusic();
+    return PAPAS_OK;
+}
+
+PapasError Papas::ResourceManager::switchMusic(const char *ogg_file)
+{
+    if (Mix_PlayingMusic())
+    {
+        Mix_HaltMusic();
+    }
+
+    if (music != NULL)
+    {
+        Mix_FreeMusic(music);
+    }
+
+    // Load the new music file
+    music = Mix_LoadMUS(ogg_file);
+
+    Mix_PlayMusic(music, -1);
+
     return PAPAS_OK;
 }
 

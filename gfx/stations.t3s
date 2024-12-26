@@ -1,6 +1,7 @@
 --atlas -f rgba -z auto
 
+order_bottom.png
 topping_station.png
 baking_station.png
 cutting_station.jpg
-empty_bottom.jpg
+

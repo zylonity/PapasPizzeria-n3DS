@@ -159,17 +159,13 @@ PapasError Papas::MainMenu::terminate()
 
 PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 {
-	currentStation = TicketStation;
-
-	Papas::ResourceManager::getInstance().playMusic("romfs:/music/orderscreen_music.ogg");
-
 	bottomStations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
 	topStation = C2D_SpriteSheetLoad("romfs:/gfx/top_stations.t3x");
 
 	ticketsStationImg = C2D_SpriteSheetGetImage(topStation, 0);
 	ticketsHolderImg = C2D_SpriteSheetGetImage(topStation, 1);
 
-	currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 3);
+	SwitchStation(TicketStation);
 
 	return PAPAS_OK;
 }
@@ -198,7 +194,6 @@ PapasError Papas::Game::update()
 
 	// Respond to user input
 	u32 kDown = hidKeysDown();
-//	u64 currentTime = osGetTime();
 
 	if (kDown & KEY_START)
 		return PAPAS_NOT_OK; // break in order to return to hbmenu
@@ -209,16 +204,14 @@ PapasError Papas::Game::update()
 		{
 			SwitchStation((Stations)(currentStation - 1));
 		}
-		//lastInputTime = currentTime;
 	}
 
 	if (kDown & KEY_R)
 	{
-		if (currentStation < 1)
+		if (currentStation < CuttingStation)
 		{
 			SwitchStation((Stations)(currentStation + 1));
 		}
-		//lastInputTime = currentTime;
 	}
 
 	return PAPAS_OK;
@@ -229,21 +222,25 @@ void Papas::Game::SwitchStation(Stations station)
 	switch (station)
 	{
 	case TicketStation:
-		Papas::ResourceManager::getInstance().playMusic("romfs:/music/orderscreen_music.ogg");
-		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 3);
-		currentStation = station;
-	case ToppingStation:
-		Papas::ResourceManager::getInstance().playMusic("romfs:/music/toppingscreen_music.ogg");
+		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/orderscreen_music.ogg");
 		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 0);
 		currentStation = station;
-	case BakingStation:
-		Papas::ResourceManager::getInstance().playMusic("romfs:/music/bakingscreen_music.ogg");
+		break;
+	case ToppingStation:
+		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/toppingscreen_music.ogg");
 		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 1);
 		currentStation = station;
-	case CuttingStation:
-		Papas::ResourceManager::getInstance().playMusic("romfs:/music/cuttingscreen_music.ogg");
+		break;
+	case BakingStation:
+		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/bakingscreen_music.ogg");
 		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 2);
 		currentStation = station;
+		break;
+	case CuttingStation:
+		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/cuttingscreen_music.ogg");
+		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 3);
+		currentStation = station;
+		break;
 	}
 }
 

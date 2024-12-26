@@ -22,6 +22,7 @@ namespace Papas
 		PapasError playMusic(const char* ogg_file);
 		PapasError stopMusic();
 		PapasError pauseMusic();
+		PapasError switchMusic(const char *ogg_file);
 
 		//===============================================================================
 		// Singleton Implementations

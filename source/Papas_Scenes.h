@@ -48,7 +48,7 @@ namespace Papas {
 		PapasError render_bottom() override;
 		PapasError terminate() override;
 	private:
-		enum Stations : int
+		enum Stations
 		{
 			TicketStation,
 			ToppingStation,
