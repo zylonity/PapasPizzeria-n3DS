@@ -108,4 +108,18 @@ namespace Papas {
 			C2D_SpriteSheet receipt_spriteSheet;
 			C2D_Sprite receipt_bg;
 	};
+
+	// class ReceiptManager
+	// {
+	// public:
+	// 	ReceiptManager() {};
+	// 	//ReceiptManager(int receiptNum);
+
+	// 	void createReceipt(int receiptNum);
+	// 	void showReceipt();
+
+	// private:
+	// 	C2D_SpriteSheet receipt_spriteSheet;
+	// 	C2D_Sprite receipt_bg;
+	// };
 }

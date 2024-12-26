@@ -76,5 +76,7 @@ namespace Papas {
 		const u64 inputCooldown = 200; // 200ms cooldown
 
 		Papas::SceneManager* p_sceneManager;
+
+		Receipt rep;
 	};
 }

@@ -170,6 +170,8 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	v2 scl = {0.8f, 0.8f};
 	guy.createAnim("romfs:/gfx/guy_peeking.t3x", 84.0f, pos, scl, 35.0f);
 
+	rep.createReceipt(1);
+
 	SwitchStation(TicketStation);
 
 	return PAPAS_OK;
@@ -197,6 +199,7 @@ PapasError Papas::Game::render_bottom()
 {
 
 	C2D_DrawImageAt(currentStationImg, 0, 0, -1);
+	rep.showReceipt();
 
 	return PAPAS_OK;
 }

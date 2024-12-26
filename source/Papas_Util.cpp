@@ -225,9 +225,6 @@ void Papas::GuyPeeking::resetAnim()
 	currentSprite = 0;
 }
 
-Papas::Receipt::Receipt(){
-
-}
 Papas::Receipt::Receipt(int num)
 {
 	createReceipt(num);
@@ -235,5 +232,11 @@ Papas::Receipt::Receipt(int num)
 
 void Papas::Receipt::createReceipt(int num)
 {
-	
+	receipt_spriteSheet = C2D_SpriteSheetLoad("romfs:/gfx/receipt.t3x");
+	C2D_SpriteFromSheet(&receipt_bg, receipt_spriteSheet, 0);
+}
+
+void Papas::Receipt::showReceipt()
+{
+	C2D_DrawSprite(&receipt_bg);
 }
