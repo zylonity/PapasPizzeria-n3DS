@@ -49,5 +49,27 @@ namespace Papas {
 		bool pressed;
 	};
 
+	class AnimatedSprite {
+	public:
+		AnimatedSprite() {};
+		AnimatedSprite(const char* spriteSheet, int unpressed, int selected, int pressed, v2 position = v2(0));
+		void createAnim(C2D_SpriteSheet &spriteSheet, int numOfSprites, float speed, v2 position = v2(0), v2 rotation = v2(0));
+		
+
+		void setPosition(v2 postoSet);
+		void setRotation(v2 postoSet);
+		const rect getRect() const { return hitBox; };
+
+	private:
+		
+		std::vector<C2D_Image> each_sprite;
+		C2D_SpriteSheet spriteSheet;
+
+		v2 pos;
+		rect hitBox;
+
+		bool pressed;
+	};
+
 
 }
