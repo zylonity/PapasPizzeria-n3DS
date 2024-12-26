@@ -3,6 +3,8 @@
 #include "Papas_Constants.h"
 #include <3ds.h>
 #include <citro2d.h>
+#include <vector>
+#include <chrono>
 
 namespace Papas {
 
@@ -52,24 +54,45 @@ namespace Papas {
 	class AnimatedSprite {
 	public:
 		AnimatedSprite() {};
-		AnimatedSprite(const char* spriteSheet, int unpressed, int selected, int pressed, v2 position = v2(0));
-		void createAnim(C2D_SpriteSheet &spriteSheet, int numOfSprites, float speed, v2 position = v2(0), v2 rotation = v2(0));
-		
+		AnimatedSprite(const char *spriteSheet, float time, v2 position = v2(0), v2 scale = v2(0), float rotation = 0);
+		void createAnim(const char *spriteSheet, float time, v2 position = v2(0), v2 scale = v2(0), float rotation = 0);
+		void destroyAnim();
+
+		virtual void renderAnim(bool loop);
 
 		void setPosition(v2 postoSet);
 		void setRotation(v2 postoSet);
-		const rect getRect() const { return hitBox; };
 
-	private:
+	protected:
 		
-		std::vector<C2D_Image> each_sprite;
-		C2D_SpriteSheet spriteSheet;
+		std::vector<C2D_Sprite> each_sprite;
+		C2D_SpriteSheet s_spriteSheet;
 
 		v2 pos;
-		rect hitBox;
+		v2 size;
+		float rot;
 
-		bool pressed;
+		u64 start;
+		u64 end;
+		int numOfSprites;
+		float animTime;
+
+		int currentSprite;
+
+		bool finished;
+
 	};
 
+	class GuyPeeking : public AnimatedSprite
+	{
+	public:
+		using AnimatedSprite::AnimatedSprite;
 
+		void renderAnim(bool loop) override;
+		void resetAnim();
+		void renderAnimBackwards(bool loop);
+
+	private:
+		bool ranOnce = false;
+	};
 }

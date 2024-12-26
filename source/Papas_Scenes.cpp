@@ -161,9 +161,14 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 {
 	bottomStations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
 	topStation = C2D_SpriteSheetLoad("romfs:/gfx/top_stations.t3x");
+	popups = C2D_SpriteSheetLoad("romfs:/gfx/popups.t3x");
 
 	ticketsStationImg = C2D_SpriteSheetGetImage(topStation, 0);
 	ticketsHolderImg = C2D_SpriteSheetGetImage(topStation, 1);
+
+	v2 pos = {-24, 45};
+	v2 scl = {0.8f, 0.8f};
+	guy.createAnim("romfs:/gfx/guy_peeking.t3x", 84.0f, pos, scl, 35.0f);
 
 	SwitchStation(TicketStation);
 
@@ -175,6 +180,15 @@ PapasError Papas::Game::render_top()
 
 	C2D_DrawImageAt(ticketsStationImg, 0, 0, -1);
 	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0);
+	C2D_DrawImageAt(currentPopupImg, 0, 214, 1);
+
+		if(currentStation == TicketStation){
+		guy.renderAnim(true);
+	}
+	else{
+		guy.renderAnimBackwards(false);
+	}
+	
 
 	return PAPAS_OK;
 }
@@ -219,29 +233,40 @@ PapasError Papas::Game::update()
 
 void Papas::Game::SwitchStation(Stations station)
 {
+	if (station == TicketStation || currentStation == TicketStation)
+	{
+		guy.resetAnim();
+	}
+
 	switch (station)
 	{
 	case TicketStation:
 		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/orderscreen_music.ogg");
 		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 0);
+		currentPopupImg = C2D_SpriteSheetGetImage(popups, 0);
 		currentStation = station;
 		break;
 	case ToppingStation:
 		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/toppingscreen_music.ogg");
 		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 1);
+		currentPopupImg = C2D_SpriteSheetGetImage(popups, 1);
 		currentStation = station;
 		break;
 	case BakingStation:
 		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/bakingscreen_music.ogg");
 		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 2);
+		currentPopupImg = C2D_SpriteSheetGetImage(popups, 2);
 		currentStation = station;
 		break;
 	case CuttingStation:
 		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/cuttingscreen_music.ogg");
 		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 3);
+		currentPopupImg = C2D_SpriteSheetGetImage(popups, 3);
 		currentStation = station;
 		break;
 	}
+
+	
 }
 
 PapasError Papas::Game::terminate()
@@ -257,6 +282,8 @@ PapasError Papas::Game::terminate()
 		C2D_SpriteSheetFree(topStation);
 		topStation = nullptr;
 	}
+
+	guy.destroyAnim();
 
 	return PAPAS_OK;
 }

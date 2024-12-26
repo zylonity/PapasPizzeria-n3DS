@@ -60,11 +60,15 @@ namespace Papas {
 		Stations currentStation;
 		C2D_SpriteSheet bottomStations;
 		C2D_SpriteSheet topStation;
+		C2D_SpriteSheet popups;
+
+		GuyPeeking guy;
 
 		C2D_Image ticketsStationImg;
 		C2D_Image ticketsHolderImg;
 
 		C2D_Image currentStationImg;
+		C2D_Image currentPopupImg;
 
 		void SwitchStation(Stations station);
 
