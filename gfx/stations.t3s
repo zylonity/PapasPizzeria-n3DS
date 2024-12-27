@@ -1,7 +1,13 @@
 --atlas -f rgba -z auto
 
-order_bottom.png
-topping_station.png
-baking_station.png
-cutting_station.jpg
+./Stations/order_bottom.png
+./Stations/orders_popup.png
+./Stations/topping_station.png
+./Stations/toppings_popup.png
+./Stations/baking_station.png
+./Stations/baking_popup.png
+./Stations/cutting_station.jpg
+./Stations/cutting_popup.png
+./Stations/ticket_station.jpg
+./Stations/ticket_holder.png
 

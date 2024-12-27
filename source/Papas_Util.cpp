@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <chrono>
+#include <iomanip>
+#include <sstream>
 
 Papas::Button::Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
 
@@ -92,6 +94,7 @@ void Papas::AnimatedSprite::createAnim(const char *spriteSheet, float time, v2 p
 		C2D_SpriteSetPos(&spr, pos.x, pos.y);
 		C2D_SpriteSetScale(&spr, size.x, size.y);
 		C2D_SpriteSetRotationDegrees(&spr, rot);
+		C3D_TexSetFilter(spr.image.tex, GPU_LINEAR, GPU_LINEAR); //Adds bilinear filtering, the sprite looks a bit pixelated otherwise
 		
 		each_sprite.push_back(spr);
 	}
@@ -225,18 +228,63 @@ void Papas::GuyPeeking::resetAnim()
 	currentSprite = 0;
 }
 
-Papas::Receipt::Receipt(int num)
+Papas::ReceiptManager::ReceiptManager(C2D_Font *font, int num)
 {
-	createReceipt(num);
+	createReceipt(font, num);
 }
 
-void Papas::Receipt::createReceipt(int num)
+void Papas::ReceiptManager::createReceipt(C2D_Font *font, int num)
 {
+	dokyo = font;
+
 	receipt_spriteSheet = C2D_SpriteSheetLoad("romfs:/gfx/receipt.t3x");
 	C2D_SpriteFromSheet(&receipt_bg, receipt_spriteSheet, 0);
+	tempReceipt.pReceipt_bg = &receipt_bg;
+
+	tempReceipt.receipt_Buf = C2D_TextBufNew(4);
+
+	//int to 000 whatever number
+	std::ostringstream formatted;
+	formatted << std::setw(3) << std::setfill('0') << num;
+
+	C2D_TextFontParse(&tempReceipt.receipt_text, *dokyo, tempReceipt.receipt_Buf, formatted.str().c_str());
+	C2D_TextOptimize(&tempReceipt.receipt_text);
+
+	tempReceipt.pos = {0, 0};
+	tempReceipt.scale = {1, 1};
+	tempReceipt.hitBox = {tempReceipt.pReceipt_bg->params.pos.x, tempReceipt.pReceipt_bg->params.pos.y, tempReceipt.pReceipt_bg->params.pos.w, tempReceipt.pReceipt_bg->params.pos.h};
 }
 
-void Papas::Receipt::showReceipt()
+void Papas::ReceiptManager::showReceipt()
 {
-	C2D_DrawSprite(&receipt_bg);
+	C2D_DrawSprite(tempReceipt.pReceipt_bg);
+	// Calculate the new position for the text based on scale
+	float scaledTextX = tempReceipt.pos.x + (39 * tempReceipt.scale.x);
+	float scaledTextY = tempReceipt.pos.y + (19 * tempReceipt.scale.y);
+
+	// Draw the text at the scaled position
+	C2D_DrawText(&tempReceipt.receipt_text, C2D_WithColor, scaledTextX, scaledTextY, 0, tempReceipt.scale.x, tempReceipt.scale.y, C2D_Color32(240, 156, 156, 255));
+	//C2D_DrawText(&tempReceipt.receipt_text, C2D_WithColor, tempReceipt.pos.x + 39, tempReceipt.pos.y + 19, 0, tempReceipt.scale.x, tempReceipt.scale.y, C2D_Color32(240, 156, 156, 255));
+}
+
+void Papas::ReceiptManager::moveReceipt(v2 moveBy)
+{
+	C2D_SpriteMove(tempReceipt.pReceipt_bg, moveBy.x, moveBy.y);
+	tempReceipt.hitBox = {tempReceipt.pReceipt_bg->params.pos.x, tempReceipt.pReceipt_bg->params.pos.y, tempReceipt.pReceipt_bg->params.pos.w, tempReceipt.pReceipt_bg->params.pos.h};
+	tempReceipt.pos.x = tempReceipt.pos.x + moveBy.x;
+	tempReceipt.pos.y = tempReceipt.pos.y + moveBy.y;
+}
+
+void Papas::ReceiptManager::scaleReceipt(v2 scaleBy)
+{
+	C2D_SpriteScale(tempReceipt.pReceipt_bg, scaleBy.x, scaleBy.y);
+	tempReceipt.hitBox = {tempReceipt.pReceipt_bg->params.pos.x, tempReceipt.pReceipt_bg->params.pos.y, tempReceipt.pReceipt_bg->params.pos.w, tempReceipt.pReceipt_bg->params.pos.h};
+	tempReceipt.scale.x = tempReceipt.scale.x * scaleBy.x;
+	tempReceipt.scale.y = tempReceipt.scale.y * scaleBy.y;
+}
+
+void Papas::ReceiptManager::destroyReceipt()
+{
+	C2D_SpriteSheetFree(receipt_spriteSheet);
+	C2D_TextBufDelete(tempReceipt.receipt_Buf);
 }

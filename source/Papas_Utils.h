@@ -96,17 +96,49 @@ namespace Papas {
 		bool ranOnce = false;
 	};
 
-	class Receipt{
-		public:
-		Receipt() {};
-		Receipt(int receiptNum);
-		
-		void createReceipt(int receiptNum);
-		void showReceipt();
+	struct ReceiptSection
+	{
+		v2 pos;
+		v2 scale;
+		C2D_Sprite *pReceipt_bg;
+		C2D_TextBuf receipt_Buf;
+		C2D_Text receipt_text;
+		rect hitBox;
+	};
 
-		private:
-			C2D_SpriteSheet receipt_spriteSheet;
-			C2D_Sprite receipt_bg;
+	struct Receipt{
+		v2 pos;
+		v2 scale;
+		C2D_Sprite* pReceipt_bg;
+		C2D_TextBuf receipt_Buf;
+		C2D_Text receipt_text;
+		rect hitBox;
+
+	};
+	
+
+	class ReceiptManager{
+		public:
+		ReceiptManager() {};
+		ReceiptManager(C2D_Font *font, int receiptNum);
+
+		void createReceipt(C2D_Font *font, int receiptNum);
+		void showReceipt();
+		void moveReceipt(v2 moveTo);
+		void scaleReceipt(v2 scaleTo);
+		void destroyReceipt();
+
+	private:
+	//Text stuff
+		C2D_Font* dokyo;
+		
+		Receipt tempReceipt;
+
+		C2D_SpriteSheet receipt_spriteSheet;
+		C2D_Sprite receipt_bg;
+
+		std::vector<Receipt> receipts_total;
+		rect hitBox;
 	};
 
 	// class ReceiptManager

@@ -22,10 +22,9 @@ namespace Papas {
 		C2D_SpriteSheet sheet_bg;
 		C2D_Image top_bg;
 		C2D_Image bottom_bg;
-
-		//icons
-		C2D_SpriteSheet sheet_icons;
 		C2D_Image logo;
+		//icons
+		
 
 		touchPosition touch;
 
@@ -58,9 +57,7 @@ namespace Papas {
 		};
 
 		Stations currentStation;
-		C2D_SpriteSheet bottomStations;
-		C2D_SpriteSheet topStation;
-		C2D_SpriteSheet popups;
+		C2D_SpriteSheet s_stations;
 
 		GuyPeeking guy;
 
@@ -77,6 +74,9 @@ namespace Papas {
 
 		Papas::SceneManager* p_sceneManager;
 
-		Receipt rep;
+		// Receipt system stuff to move later
+		C2D_Font dokyo;
+
+		ReceiptManager rep;
 	};
 }

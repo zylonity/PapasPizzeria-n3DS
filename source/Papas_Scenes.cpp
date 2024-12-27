@@ -14,10 +14,7 @@ PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
 	top_bg = C2D_SpriteSheetGetImage(sheet_bg, 1);
 	bottom_bg = C2D_SpriteSheetGetImage(sheet_bg, 0);
-
-	// Load the icons
-	sheet_icons = C2D_SpriteSheetLoad("romfs:/gfx/icons.t3x");
-	logo = C2D_SpriteSheetGetImage(sheet_icons, 0);
+	logo = C2D_SpriteSheetGetImage(sheet_bg, 2);
 
 	// Load the buttons
 	sheet_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
@@ -143,11 +140,6 @@ PapasError Papas::MainMenu::terminate()
 		C2D_SpriteSheetFree(sheet_bg);
 		sheet_bg = nullptr;
 	}
-	if (sheet_icons)
-	{
-		C2D_SpriteSheetFree(sheet_icons);
-		sheet_icons = nullptr;
-	}
 	if (sheet_buttons)
 	{
 		C2D_SpriteSheetFree(sheet_buttons);
@@ -159,18 +151,18 @@ PapasError Papas::MainMenu::terminate()
 
 PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 {
-	bottomStations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
-	topStation = C2D_SpriteSheetLoad("romfs:/gfx/top_stations.t3x");
-	popups = C2D_SpriteSheetLoad("romfs:/gfx/popups.t3x");
+	s_stations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
 
-	ticketsStationImg = C2D_SpriteSheetGetImage(topStation, 0);
-	ticketsHolderImg = C2D_SpriteSheetGetImage(topStation, 1);
+	ticketsStationImg = C2D_SpriteSheetGetImage(s_stations, 8);
+	ticketsHolderImg = C2D_SpriteSheetGetImage(s_stations, 9);
 
 	v2 pos = {-24, 45};
 	v2 scl = {0.8f, 0.8f};
 	guy.createAnim("romfs:/gfx/guy_peeking.t3x", 84.0f, pos, scl, 35.0f);
 
-	rep.createReceipt(1);
+	// Receipt system stuff to move later
+	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
+	rep.createReceipt(&dokyo, 1);
 
 	SwitchStation(TicketStation);
 
@@ -211,6 +203,7 @@ PapasError Papas::Game::update()
 
 	// Respond to user input
 	u32 kDown = hidKeysDown();
+	u32 kHeld = hidKeysHeld();
 
 	if (kDown & KEY_START)
 		return PAPAS_NOT_OK; // break in order to return to hbmenu
@@ -231,6 +224,46 @@ PapasError Papas::Game::update()
 		}
 	}
 
+	if (kHeld & KEY_CPAD_LEFT)
+	{
+		rep.moveReceipt(v2(-1, 0));
+	}
+
+	if (kHeld & KEY_CPAD_RIGHT)
+	{
+		rep.moveReceipt(v2(1, 0));
+	}
+
+	if (kHeld & KEY_CPAD_UP)
+	{
+		rep.moveReceipt(v2(0, -1));
+	}
+
+	if (kHeld & KEY_CPAD_DOWN)
+	{
+		rep.moveReceipt(v2(0, 1));
+	}
+
+	if (kHeld & KEY_LEFT)
+	{
+		rep.scaleReceipt(v2(0.9, 1));
+	}
+
+	if (kHeld & KEY_RIGHT)
+	{
+		rep.scaleReceipt(v2(1.1, 1));
+	}
+
+	if (kHeld & KEY_UP)
+	{
+		rep.scaleReceipt(v2(1, 1.1));
+	}
+
+	if (kHeld & KEY_DOWN)
+	{
+		rep.scaleReceipt(v2(1, 0.9));
+	}
+
 	return PAPAS_OK;
 }
 
@@ -245,26 +278,26 @@ void Papas::Game::SwitchStation(Stations station)
 	{
 	case TicketStation:
 		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/orderscreen_music.ogg");
-		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 0);
-		currentPopupImg = C2D_SpriteSheetGetImage(popups, 0);
+		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 0);
+		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 1);
 		currentStation = station;
 		break;
 	case ToppingStation:
 		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/toppingscreen_music.ogg");
-		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 1);
-		currentPopupImg = C2D_SpriteSheetGetImage(popups, 1);
+		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 2);
+		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 3);
 		currentStation = station;
 		break;
 	case BakingStation:
 		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/bakingscreen_music.ogg");
-		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 2);
-		currentPopupImg = C2D_SpriteSheetGetImage(popups, 2);
+		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 4);
+		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 5);
 		currentStation = station;
 		break;
 	case CuttingStation:
 		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/cuttingscreen_music.ogg");
-		currentStationImg = C2D_SpriteSheetGetImage(bottomStations, 3);
-		currentPopupImg = C2D_SpriteSheetGetImage(popups, 3);
+		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 6);
+		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 7);
 		currentStation = station;
 		break;
 	}
@@ -275,15 +308,10 @@ void Papas::Game::SwitchStation(Stations station)
 PapasError Papas::Game::terminate()
 {
 
-	if (bottomStations)
+	if (s_stations)
 	{
-		C2D_SpriteSheetFree(bottomStations);
-		bottomStations = nullptr;
-	}
-	if (topStation)
-	{
-		C2D_SpriteSheetFree(topStation);
-		topStation = nullptr;
+		C2D_SpriteSheetFree(s_stations);
+		s_stations = nullptr;
 	}
 
 	guy.destroyAnim();
