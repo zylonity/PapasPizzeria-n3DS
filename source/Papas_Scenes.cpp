@@ -162,7 +162,9 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 	// Receipt system stuff to move later
 	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
-	rep.createReceipt(&dokyo, 1);
+
+	r_manager.initManager(&dokyo);
+	r_manager.createReceipt();
 
 	SwitchStation(TicketStation);
 
@@ -183,7 +185,7 @@ PapasError Papas::Game::render_top()
 		guy.renderAnimBackwards(false);
 	}
 
-	rep.showReceipt(true);
+	r_manager.renderReceipt(true);
 
 	return PAPAS_OK;
 }
@@ -194,7 +196,7 @@ PapasError Papas::Game::render_bottom()
 	C2D_DrawImageAt(currentStationImg, 0, 0, 0.0f);
 
 	if (currentStation == TicketStation){
-		rep.showReceipt(false);
+		r_manager.renderReceipt(false);
 	}
 		
 
@@ -230,7 +232,7 @@ PapasError Papas::Game::update()
 		}
 	}
 
-	rep.detectMovement(touch);
+	r_manager.detectMovement(touch);
 
 	return PAPAS_OK;
 }
@@ -283,6 +285,7 @@ PapasError Papas::Game::terminate()
 	}
 
 	guy.destroyAnim();
+	r_manager.terminateManager();
 
 	return PAPAS_OK;
 }

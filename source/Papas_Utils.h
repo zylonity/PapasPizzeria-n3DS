@@ -144,10 +144,12 @@ namespace Papas {
 		ReceiptParts top, bottom;
 		//Position and scales to dock the ticket screens
 		const v2 snapPosTop = {277.6f, 0.0f};
-		const v2 snapScaleTop = {0.95f, 0.95f};
+		const v2 bigScaleTop = {0.95f, 0.95f};
+		const v2 smallScaleTop = {0.35f, 0.35f};
 
 		const v2 snapPosBottom = {198.0f, 40.0f};
-		const v2 snapScaleBottom = {0.85f, 0.85f};
+		const v2 bigScaleBottom = {0.85f, 0.85f};
+		const v2 smallScaleBottom = {0.32f, 0.32f};
 
 		//Actual functions to do with creating a receipt on both screens;
 		void init(int receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet);
@@ -160,21 +162,24 @@ namespace Papas {
 	class ReceiptManager{
 		public:
 		ReceiptManager() {};
-		ReceiptManager(C2D_Font *font, int receiptNum);
+		ReceiptManager(C2D_Font *font);
 
-		void createReceipt(C2D_Font *font, int receiptNum);
-		void showReceipt(bool topReceipt);
+		void initManager(C2D_Font *font);
+		void terminateManager();
 
+		void createReceipt();
+		void renderReceipt(bool topReceipt);
 		void detectMovement(touchPosition &touch);
-		void destroyReceipt();
+		
 
 	private:
 	//Text stuff
 		C2D_Font* dokyo;
-		
-		
-		Receipt receipt;
-
 		C2D_SpriteSheet receipt_spriteSheet;
+
+		std::vector<Receipt> v_receipts;
+		u16 maxReceipts;
+
+		
 	};
 }

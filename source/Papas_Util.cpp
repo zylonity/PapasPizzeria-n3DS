@@ -301,8 +301,8 @@ void Papas::Receipt::init(int receiptNum, C2D_Font *font, C2D_SpriteSheet &recei
 	std::ostringstream formatted;
 	formatted << std::setw(3) << std::setfill('0') << receiptNum;
 
-	top.init(formatted.str().c_str(), font, receipt_spriteSheet, snapPosTop, snapScaleTop, true);
-	bottom.init(formatted.str().c_str(), font, receipt_spriteSheet, snapPosBottom, snapScaleBottom, false);
+	top.init(formatted.str().c_str(), font, receipt_spriteSheet, snapPosTop, bigScaleTop, true);
+	bottom.init(formatted.str().c_str(), font, receipt_spriteSheet, snapPosBottom, bigScaleBottom, false);
 }
 
 void Papas::Receipt::showReceipt(bool topReceipt)
@@ -335,7 +335,7 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 			if (!isDragging)
 			{
 				// Set the initial position and scale as soon as you start grabbing it, to prevent a "jolt" or "jump" (idk but this fixes that)
-				bottom.setScaleReceipt(v2(0.32f, 0.32f));
+				bottom.setScaleReceipt(smallScaleBottom);
 
 				if (bottom.pinnedTop)
 				{
@@ -362,16 +362,16 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 		{
 			bottom.setPosReceipt(v2(bottom.pos.x, 5));
 			bottom.pinnedTop = true;
-			top.setScaleReceipt(v2(0.35f, 0.35f));
+			top.setScaleReceipt(smallScaleTop);
 			top.setPosReceipt(v2(bottom.pos.x, -7.0f));
 		}
 		else
 		{
 			bottom.setPosReceipt(snapPosBottom);
-			bottom.setScaleReceipt(snapScaleBottom);
+			bottom.setScaleReceipt(bigScaleBottom);
 			bottom.pinnedTop = false;
 			top.setPosReceipt(snapPosTop);
-			top.setScaleReceipt(snapScaleTop);
+			top.setScaleReceipt(bigScaleTop);
 		}
 
 		isDragging = false;
@@ -384,34 +384,49 @@ void Papas::Receipt::terminate()
 	C2D_TextBufDelete(top.receipt_Buf);
 }
 
-Papas::ReceiptManager::ReceiptManager(C2D_Font *font, int num)
+Papas::ReceiptManager::ReceiptManager(C2D_Font *font)
 {
-	createReceipt(font, num);
+	initManager(font);
 }
 
-void Papas::ReceiptManager::createReceipt(C2D_Font *font, int num)
+void Papas::ReceiptManager::initManager(C2D_Font *font)
 {
 	dokyo = font;
-
 	receipt_spriteSheet = C2D_SpriteSheetLoad("romfs:/gfx/receipt.t3x");
-
-	receipt.init(1, dokyo, receipt_spriteSheet);
+	maxReceipts = 1;
 }
 
-void Papas::ReceiptManager::showReceipt(bool topReceipt)
+void Papas::ReceiptManager::createReceipt()
 {
-	receipt.showReceipt(topReceipt);
+	Receipt temp;
+	temp.init(maxReceipts, dokyo, receipt_spriteSheet);
+	v_receipts.push_back(temp);
+	maxReceipts++;
+}
+
+void Papas::ReceiptManager::renderReceipt(bool topReceipt)
+{
+	for (size_t i = 0; i < v_receipts.size(); i++)
+	{
+		v_receipts[i].showReceipt(topReceipt);
+	}
+	
 }
 
 
 void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 {
-
-	receipt.detectMovement(touch);
+	for (size_t i = 0; i < v_receipts.size(); i++)
+	{
+		v_receipts[i].detectMovement(touch);
+	}
 }
 
-void Papas::ReceiptManager::destroyReceipt()
+void Papas::ReceiptManager::terminateManager()
 {
 	C2D_SpriteSheetFree(receipt_spriteSheet);
-	receipt.terminate();
+	for (size_t i = 0; i < v_receipts.size(); i++)
+	{
+		v_receipts[i].terminate();
+	}
 }

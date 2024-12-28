@@ -77,7 +77,7 @@ namespace Papas {
 		// Receipt system stuff to move later
 		C2D_Font dokyo;
 
-		ReceiptManager rep;
+		ReceiptManager r_manager;
 
 		touchPosition touch;
 	};
