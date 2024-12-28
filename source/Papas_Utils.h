@@ -177,6 +177,7 @@ namespace Papas {
 
 	private:
 	//Text stuff
+		void normalizeDepths();
 		C2D_Font* dokyo;
 		C2D_SpriteSheet receipt_spriteSheet;
 

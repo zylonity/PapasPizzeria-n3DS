@@ -177,9 +177,9 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 PapasError Papas::Game::render_top()
 {
 
-	C2D_DrawImageAt(ticketsStationImg, 0, 0, 0.6f);
-	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0.7f);
-	C2D_DrawImageAt(currentPopupImg, 0, 214, 0.8f);
+	C2D_DrawImageAt(ticketsStationImg, 0, 0, 0.01f);
+	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0.02f);
+	C2D_DrawImageAt(currentPopupImg, 0, 214, 0.03f);
 
 	if(currentStation == TicketStation){
 		guy.renderAnim(true);
@@ -196,7 +196,7 @@ PapasError Papas::Game::render_top()
 PapasError Papas::Game::render_bottom()
 {
 
-	C2D_DrawImageAt(currentStationImg, 0, 0, 0.9f);
+	C2D_DrawImageAt(currentStationImg, 0, 0, 0.01f);
 
 	if (currentStation == TicketStation){
 		r_manager.renderReceipt(false);

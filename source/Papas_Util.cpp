@@ -242,7 +242,7 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 	topReceipt = top;
 	pos = posToGive;
 	scale = scaleToGive;
-	currentDepth = 0.0f;
+	currentDepth = 0.01f;
 
 	C2D_SpriteFromSheet(&receipt_bg, receipt_spriteSheet, 0);
 
@@ -254,7 +254,7 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 	C2D_SpriteSetPos(&receipt_bg, pos.x, pos.y);
 	C2D_SpriteSetScale(&receipt_bg, scale.x, scale.y);
 	C3D_TexSetFilter(receipt_bg.image.tex, GPU_LINEAR, GPU_LINEAR);
-	C2D_SpriteSetDepth(&receipt_bg, 0.9f);
+	C2D_SpriteSetDepth(&receipt_bg, currentDepth);
 	hitBox = {receipt_bg.params.pos.x, receipt_bg.params.pos.y, receipt_bg.params.pos.w, receipt_bg.params.pos.h};
 }
 
@@ -290,7 +290,7 @@ void Papas::ReceiptParts::setScaleReceipt(v2 scaleBy)
 
 void Papas::ReceiptParts::renderReceipt()
 {
-	//
+	C2D_SpriteSetDepth(&receipt_bg, currentDepth);
 	C2D_DrawSprite(&receipt_bg);
 
 
@@ -298,8 +298,9 @@ void Papas::ReceiptParts::renderReceipt()
 	float scaledTextX = pos.x + (39 * scale.x);
 	float scaledTextY = pos.y + (19 * scale.y);
 
+	float textDepth = std::min(currentDepth + 0.01f, 1.0f);
 	// Draw the text at the scaled position
-	C2D_DrawText(&receipt_text, C2D_WithColor, scaledTextX, scaledTextY, currentDepth + 1.0f, scale.x, scale.y, C2D_Color32(240, 156, 156, 255));
+	C2D_DrawText(&receipt_text, C2D_WithColor, scaledTextX, scaledTextY, textDepth, scale.x, scale.y, C2D_Color32(240, 156, 156, 255));
 }
 
 void Papas::Receipt::init(int receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet)
@@ -423,6 +424,29 @@ void Papas::ReceiptManager::renderReceipt(bool topReceipt)
 	
 }
 
+void Papas::ReceiptManager::normalizeDepths()
+{
+	const float maxDepth = 0.9f;
+	const float minDepth = 0.1f;
+	float step = (maxDepth - minDepth) / (v_receipts.size() - 1);
+
+	for (size_t i = 0; i < v_receipts.size(); i++)
+	{
+		if (i == activeReceiptIndex)
+		{
+			// Active receipt is at the front
+			v_receipts[i].bottom.currentDepth = maxDepth;
+			v_receipts[i].top.currentDepth = maxDepth + 0.01f; // Text is slightly closer
+		}
+		else
+		{
+			// Spread other receipts based on their order
+			float depth = minDepth + step * i;
+			v_receipts[i].bottom.currentDepth = depth;
+			v_receipts[i].top.currentDepth = depth + 0.01f; // Ensure text stays closer
+		}
+	}
+}
 
 void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 {
@@ -440,10 +464,10 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 				{
 					//add the depth and allow it to moove
 					activeReceiptIndex = i;
-					v_receipts[i].bottom.currentDepth = ++currentMaxDepth;
-					v_receipts[i].top.currentDepth = ++currentMaxDepth;
-					C2D_SpriteSetDepth(&v_receipts[i].bottom.receipt_bg, currentMaxDepth + 0.9f);
-					C2D_SpriteSetDepth(&v_receipts[i].top.receipt_bg, currentMaxDepth + 0.9f);
+					currentMaxDepth += 0.1f; // Increment depth step (can be adjusted)
+					v_receipts[i].bottom.currentDepth = currentMaxDepth;
+					v_receipts[i].top.currentDepth = currentMaxDepth + 0.01f; // Ensure text is closer
+					normalizeDepths();
 					break;
 				}
 			}
