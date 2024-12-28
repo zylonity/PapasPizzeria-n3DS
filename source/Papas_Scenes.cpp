@@ -152,6 +152,7 @@ PapasError Papas::MainMenu::terminate()
 PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 {
 	s_stations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
+	shee_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
 
 	ticketsStationImg = C2D_SpriteSheetGetImage(s_stations, 8);
 	ticketsHolderImg = C2D_SpriteSheetGetImage(s_stations, 9);
@@ -165,6 +166,8 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 	r_manager.initManager(&dokyo);
 	r_manager.createReceipt();
+
+	createReceipt.createButton(shee_buttons, 0, 1, 2, {20, 120});
 
 	SwitchStation(TicketStation);
 
@@ -198,7 +201,13 @@ PapasError Papas::Game::render_bottom()
 	if (currentStation == TicketStation){
 		r_manager.renderReceipt(false);
 	}
-		
+
+	if (currentStation == TicketStation)
+	{
+		if(createReceipt.showButton(touch)){
+			r_manager.createReceipt();
+		}
+	}
 
 	return PAPAS_OK;
 }
@@ -231,6 +240,7 @@ PapasError Papas::Game::update()
 			SwitchStation((Stations)(currentStation + 1));
 		}
 	}
+
 
 	r_manager.detectMovement(touch);
 
@@ -286,6 +296,7 @@ PapasError Papas::Game::terminate()
 
 	guy.destroyAnim();
 	r_manager.terminateManager();
+	C2D_SpriteSheetFree(shee_buttons);
 
 	return PAPAS_OK;
 }

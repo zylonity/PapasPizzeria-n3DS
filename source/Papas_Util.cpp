@@ -303,6 +303,7 @@ void Papas::Receipt::init(int receiptNum, C2D_Font *font, C2D_SpriteSheet &recei
 
 	top.init(formatted.str().c_str(), font, receipt_spriteSheet, snapPosTop, bigScaleTop, true);
 	bottom.init(formatted.str().c_str(), font, receipt_spriteSheet, snapPosBottom, bigScaleBottom, false);
+	dockInUse = true;
 }
 
 void Papas::Receipt::showReceipt(bool topReceipt)

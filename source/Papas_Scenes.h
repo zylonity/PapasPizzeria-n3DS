@@ -63,6 +63,8 @@ namespace Papas {
 
 		C2D_Image ticketsStationImg;
 		C2D_Image ticketsHolderImg;
+		C2D_SpriteSheet shee_buttons;
+		Button createReceipt;
 
 		C2D_Image currentStationImg;
 		C2D_Image currentPopupImg;

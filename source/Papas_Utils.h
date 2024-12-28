@@ -151,6 +151,8 @@ namespace Papas {
 		const v2 bigScaleBottom = {0.85f, 0.85f};
 		const v2 smallScaleBottom = {0.32f, 0.32f};
 
+		bool dockInUse;
+
 		//Actual functions to do with creating a receipt on both screens;
 		void init(int receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet);
 		void showReceipt(bool topReceipt);
