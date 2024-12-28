@@ -158,6 +158,7 @@ namespace Papas {
 		void init(int receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet);
 		void showReceipt(bool topReceipt);
 		void detectMovement(touchPosition &touch);
+		void forceDocking();
 		void terminate();
 	};
 	

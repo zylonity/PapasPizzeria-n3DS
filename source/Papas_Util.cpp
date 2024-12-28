@@ -5,6 +5,7 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include <cstdlib> // for rand() and srand()
 
 Papas::Button::Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
 
@@ -293,7 +294,7 @@ void Papas::ReceiptParts::renderReceipt()
 	C2D_SpriteSetDepth(&receipt_bg, currentDepth);
 	C2D_DrawSprite(&receipt_bg);
 
-
+	hitBox = {receipt_bg.params.pos.x, receipt_bg.params.pos.y, receipt_bg.params.pos.w, receipt_bg.params.pos.h};
 	// Calculate the new position for the text based on scale
 	float scaledTextX = pos.x + (39 * scale.x);
 	float scaledTextY = pos.y + (19 * scale.y);
@@ -329,7 +330,7 @@ void Papas::Receipt::showReceipt(bool topReceipt)
 void Papas::Receipt::detectMovement(touchPosition &touch)
 {
 
-	bottom.hitBox = {bottom.receipt_bg.params.pos.x, bottom.receipt_bg.params.pos.y, bottom.receipt_bg.params.pos.w, bottom.receipt_bg.params.pos.h};
+	//bottom.hitBox = {bottom.receipt_bg.params.pos.x, bottom.receipt_bg.params.pos.y, bottom.receipt_bg.params.pos.w, bottom.receipt_bg.params.pos.h};
 
 	static bool isDragging = false;
 	static touchPosition prevTouch;
@@ -370,6 +371,7 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 	{
 		if (bottom.pos.y < 30.0f)
 		{
+			dockInUse = false;
 			bottom.setPosReceipt(v2(bottom.pos.x, 5));
 			bottom.pinnedTop = true;
 			top.setScaleReceipt(smallScaleTop);
@@ -377,6 +379,7 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 		}
 		else
 		{
+			dockInUse = true;
 			bottom.setPosReceipt(snapPosBottom);
 			bottom.setScaleReceipt(bigScaleBottom);
 			bottom.pinnedTop = false;
@@ -386,6 +389,18 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 
 		isDragging = false;
 	}
+}
+
+void Papas::Receipt::forceDocking()
+{
+	std::srand(osGetTime());
+	int randomPos = std::rand() % 20 + 1;
+	bottom.setScaleReceipt(smallScaleBottom);
+	bottom.setPosReceipt(v2(randomPos, 5));
+	bottom.pinnedTop = true;
+	top.setScaleReceipt(smallScaleTop);
+	top.setPosReceipt(v2(randomPos, -7.0f));
+	dockInUse = false;
 }
 
 void Papas::Receipt::terminate()
@@ -411,8 +426,18 @@ void Papas::ReceiptManager::initManager(C2D_Font *font)
 
 void Papas::ReceiptManager::createReceipt()
 {
+	
+	for (size_t i = 0; i < v_receipts.size(); i++)
+	{
+		if (v_receipts[i].dockInUse){
+			v_receipts[i].forceDocking();
+		}
+	}
 	Receipt temp;
 	temp.init(maxReceipts, dokyo, receipt_spriteSheet);
+	currentMaxDepth += 0.1f;
+	temp.bottom.currentDepth = normalizedDepth();
+	temp.top.currentDepth = normalizedDepth();
 	v_receipts.push_back(temp);
 	maxReceipts++;
 }
