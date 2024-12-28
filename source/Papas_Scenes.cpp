@@ -176,13 +176,14 @@ PapasError Papas::Game::render_top()
 	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0);
 	C2D_DrawImageAt(currentPopupImg, 0, 214, 1);
 
-		if(currentStation == TicketStation){
+	if(currentStation == TicketStation){
 		guy.renderAnim(true);
 	}
 	else{
 		guy.renderAnimBackwards(false);
 	}
-	
+
+	rep.showReceiptTop();
 
 	return PAPAS_OK;
 }
@@ -200,6 +201,7 @@ PapasError Papas::Game::update()
 {
 
 	hidScanInput();
+	hidTouchRead(&touch);
 
 	// Respond to user input
 	u32 kDown = hidKeysDown();
@@ -263,6 +265,8 @@ PapasError Papas::Game::update()
 	{
 		rep.scaleReceipt(v2(1, 0.9));
 	}
+
+	rep.detectMovement(touch);
 
 	return PAPAS_OK;
 }

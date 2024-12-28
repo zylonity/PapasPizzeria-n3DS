@@ -96,14 +96,29 @@ namespace Papas {
 		bool ranOnce = false;
 	};
 
+	enum Toppings{
+		Pepperoni,
+		Meat,
+		Mushroom,
+		Pepper,
+		Onion,
+		Olive,
+		Anochovie
+	};
+
+	enum Places
+	{
+		Quarter,
+		Half,
+		Quarters3,
+		Full
+	};
+
 	struct ReceiptSection
 	{
-		v2 pos;
-		v2 scale;
-		C2D_Sprite *pReceipt_bg;
-		C2D_TextBuf receipt_Buf;
-		C2D_Text receipt_text;
-		rect hitBox;
+		Places place;
+		Toppings topping;
+		int Quantity;
 	};
 
 	struct Receipt{
@@ -112,8 +127,9 @@ namespace Papas {
 		C2D_Sprite* pReceipt_bg;
 		C2D_TextBuf receipt_Buf;
 		C2D_Text receipt_text;
+		bool pinnedTop;
 		rect hitBox;
-
+		//ReceiptSection sections[8];
 	};
 	
 
@@ -124,8 +140,12 @@ namespace Papas {
 
 		void createReceipt(C2D_Font *font, int receiptNum);
 		void showReceipt();
+		void showReceiptTop();
 		void moveReceipt(v2 moveTo);
+		void setPosReceipt(v2 moveTo);
 		void scaleReceipt(v2 scaleTo);
+		void setScaleReceipt(v2 scaleTo);
+		void detectMovement(touchPosition &touch);
 		void destroyReceipt();
 
 	private:
@@ -133,12 +153,12 @@ namespace Papas {
 		C2D_Font* dokyo;
 		
 		Receipt tempReceipt;
+		Receipt tempReceipt_top;
 
 		C2D_SpriteSheet receipt_spriteSheet;
 		C2D_Sprite receipt_bg;
 
 		std::vector<Receipt> receipts_total;
-		rect hitBox;
 	};
 
 	// class ReceiptManager

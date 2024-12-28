@@ -78,5 +78,7 @@ namespace Papas {
 		C2D_Font dokyo;
 
 		ReceiptManager rep;
+
+		touchPosition touch;
 	};
 }
