@@ -172,9 +172,9 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 PapasError Papas::Game::render_top()
 {
 
-	C2D_DrawImageAt(ticketsStationImg, 0, 0, -1);
-	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0);
-	C2D_DrawImageAt(currentPopupImg, 0, 214, 1);
+	C2D_DrawImageAt(ticketsStationImg, 0, 0, 0.6f);
+	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0.7f);
+	C2D_DrawImageAt(currentPopupImg, 0, 214, 0.8f);
 
 	if(currentStation == TicketStation){
 		guy.renderAnim(true);
@@ -192,7 +192,11 @@ PapasError Papas::Game::render_bottom()
 {
 
 	C2D_DrawImageAt(currentStationImg, 0, 0, -1);
-	rep.showReceipt();
+
+	if (currentStation == TicketStation){
+		rep.showReceipt();
+	}
+		
 
 	return PAPAS_OK;
 }
@@ -224,46 +228,6 @@ PapasError Papas::Game::update()
 		{
 			SwitchStation((Stations)(currentStation + 1));
 		}
-	}
-
-	if (kHeld & KEY_CPAD_LEFT)
-	{
-		rep.moveReceipt(v2(-1, 0));
-	}
-
-	if (kHeld & KEY_CPAD_RIGHT)
-	{
-		rep.moveReceipt(v2(1, 0));
-	}
-
-	if (kHeld & KEY_CPAD_UP)
-	{
-		rep.moveReceipt(v2(0, -1));
-	}
-
-	if (kHeld & KEY_CPAD_DOWN)
-	{
-		rep.moveReceipt(v2(0, 1));
-	}
-
-	if (kHeld & KEY_LEFT)
-	{
-		rep.scaleReceipt(v2(0.9, 1));
-	}
-
-	if (kHeld & KEY_RIGHT)
-	{
-		rep.scaleReceipt(v2(1.1, 1));
-	}
-
-	if (kHeld & KEY_UP)
-	{
-		rep.scaleReceipt(v2(1, 1.1));
-	}
-
-	if (kHeld & KEY_DOWN)
-	{
-		rep.scaleReceipt(v2(1, 0.9));
 	}
 
 	rep.detectMovement(touch);

@@ -239,9 +239,12 @@ void Papas::ReceiptManager::createReceipt(C2D_Font *font, int num)
 
 	receipt_spriteSheet = C2D_SpriteSheetLoad("romfs:/gfx/receipt.t3x");
 	C2D_SpriteFromSheet(&receipt_bg, receipt_spriteSheet, 0);
+	C2D_SpriteFromSheet(&receipt_bg_top, receipt_spriteSheet, 0);
 	tempReceipt.pReceipt_bg = &receipt_bg;
+	tempReceipt_top.pReceipt_bg = &receipt_bg_top;
 
 	tempReceipt.receipt_Buf = C2D_TextBufNew(4);
+	tempReceipt_top.receipt_Buf = C2D_TextBufNew(4);
 
 	//int to 000 whatever number
 	std::ostringstream formatted;
@@ -249,6 +252,16 @@ void Papas::ReceiptManager::createReceipt(C2D_Font *font, int num)
 
 	C2D_TextFontParse(&tempReceipt.receipt_text, *dokyo, tempReceipt.receipt_Buf, formatted.str().c_str());
 	C2D_TextOptimize(&tempReceipt.receipt_text);
+
+	C2D_TextFontParse(&tempReceipt_top.receipt_text, *dokyo, tempReceipt_top.receipt_Buf, formatted.str().c_str());
+	C2D_TextOptimize(&tempReceipt_top.receipt_text);
+
+	tempReceipt_top.pos = {277.6f, 0};
+	tempReceipt_top.scale = {0.95f, 0.95f};
+	C2D_SpriteSetPos(tempReceipt_top.pReceipt_bg, tempReceipt_top.pos.x, tempReceipt_top.pos.y);
+	//C2D_SpriteSetDepth(tempReceipt_top.pReceipt_bg, 10.0f);
+	C2D_SpriteSetScale(tempReceipt_top.pReceipt_bg, tempReceipt_top.scale.x, tempReceipt_top.scale.y);
+	C3D_TexSetFilter(tempReceipt_top.pReceipt_bg->image.tex, GPU_LINEAR, GPU_LINEAR);
 
 	tempReceipt.pos = {198, 40};
 	tempReceipt.scale = {0.85f, 0.85f};
@@ -264,60 +277,51 @@ void Papas::ReceiptManager::showReceipt()
 	// Calculate the new position for the text based on scale
 	float scaledTextX = tempReceipt.pos.x + (39 * tempReceipt.scale.x);
 	float scaledTextY = tempReceipt.pos.y + (19 * tempReceipt.scale.y);
-
+	
 	// Draw the text at the scaled position
-	C2D_DrawText(&tempReceipt.receipt_text, C2D_WithColor, scaledTextX, scaledTextY, 0, tempReceipt.scale.x, tempReceipt.scale.y, C2D_Color32(240, 156, 156, 255));
+	C2D_DrawText(&tempReceipt.receipt_text, C2D_WithColor, scaledTextX, scaledTextY, 0.0f, tempReceipt.scale.x, tempReceipt.scale.y, C2D_Color32(240, 156, 156, 255));
 }
 
 void Papas::ReceiptManager::showReceiptTop()
 {
+	C2D_SpriteSetDepth(tempReceipt_top.pReceipt_bg, 0.9f);
+	C2D_DrawSprite(tempReceipt_top.pReceipt_bg);
+	// Calculate the new position for the text based on scale
+	float scaledTextX = tempReceipt_top.pos.x + (39 * tempReceipt_top.scale.x);
+	float scaledTextY = tempReceipt_top.pos.y + (19 * tempReceipt_top.scale.y);
 
-	// if(!tempReceipt.pinnedTop){
-
-	// 	Receipt topReceipt = tempReceipt;
-	// 	topReceipt.pos = {198, 40};
-	// 	topReceipt.scale = {1.0f, 1.0f};
-	// 	C2D_SpriteSetPos(topReceipt.pReceipt_bg, topReceipt.pos.x, topReceipt.pos.y);
-	// 	C2D_SpriteSetScale(topReceipt.pReceipt_bg, topReceipt.scale.x, topReceipt.scale.y);
-	// 	C2D_DrawSprite(topReceipt.pReceipt_bg);
-	// 	// Calculate the new position for the text based on scale
-	// 	float scaledTextX = topReceipt.pos.x + (39 * topReceipt.scale.x);
-	// 	float scaledTextY = topReceipt.pos.y + (19 * topReceipt.scale.y);
-
-	// 	// Draw the text at the scaled position
-	// 	C2D_DrawText(&topReceipt.receipt_text, C2D_WithColor, scaledTextX, scaledTextY, 0, topReceipt.scale.x, topReceipt.scale.y, C2D_Color32(240, 156, 156, 255));
-	// }
-	
+	// Draw the text at the scaled position
+	C2D_DrawText(&tempReceipt_top.receipt_text, C2D_WithColor, scaledTextX, scaledTextY, 1.0f, tempReceipt_top.scale.x, tempReceipt_top.scale.y, C2D_Color32(240, 156, 156, 255));
 }
 
-void Papas::ReceiptManager::moveReceipt(v2 moveBy)
+void Papas::ReceiptManager::moveReceipt(v2 moveBy, Receipt& receiptToMove)
 {
-	C2D_SpriteMove(tempReceipt.pReceipt_bg, moveBy.x, moveBy.y);
-	
-	tempReceipt.pos.x = tempReceipt.pos.x + moveBy.x;
-	tempReceipt.pos.y = tempReceipt.pos.y + moveBy.y;
+	C2D_SpriteMove(receiptToMove.pReceipt_bg, moveBy.x, moveBy.y);
+
+	receiptToMove.pos.x = receiptToMove.pos.x + moveBy.x;
+	receiptToMove.pos.y = receiptToMove.pos.y + moveBy.y;
 }
 
-void Papas::ReceiptManager::setPosReceipt(v2 pos)
+void Papas::ReceiptManager::setPosReceipt(v2 pos, Receipt& receiptToMove)
 {
-	C2D_SpriteSetPos(tempReceipt.pReceipt_bg, pos.x, pos.y);
+	C2D_SpriteSetPos(receiptToMove.pReceipt_bg, pos.x, pos.y);
 
-	tempReceipt.pos.x = pos.x;
-	tempReceipt.pos.y = pos.y;
+	receiptToMove.pos.x = pos.x;
+	receiptToMove.pos.y = pos.y;
 }
 
-void Papas::ReceiptManager::scaleReceipt(v2 scaleBy)
+void Papas::ReceiptManager::scaleReceipt(v2 scaleBy, Receipt& receiptToMove)
 {
-	C2D_SpriteScale(tempReceipt.pReceipt_bg, scaleBy.x, scaleBy.y);
-	tempReceipt.scale.x = tempReceipt.scale.x * scaleBy.x;
-	tempReceipt.scale.y = tempReceipt.scale.y * scaleBy.y;
+	C2D_SpriteScale(receiptToMove.pReceipt_bg, scaleBy.x, scaleBy.y);
+	receiptToMove.scale.x = receiptToMove.scale.x * scaleBy.x;
+	receiptToMove.scale.y = receiptToMove.scale.y * scaleBy.y;
 }
 
-void Papas::ReceiptManager::setScaleReceipt(v2 scaleBy)
+void Papas::ReceiptManager::setScaleReceipt(v2 scaleBy, Receipt& receiptToMove)
 {
-	C2D_SpriteSetScale(tempReceipt.pReceipt_bg, scaleBy.x, scaleBy.y);
-	tempReceipt.scale.x = scaleBy.x;
-	tempReceipt.scale.y = scaleBy.y;
+	C2D_SpriteSetScale(receiptToMove.pReceipt_bg, scaleBy.x, scaleBy.y);
+	receiptToMove.scale.x = scaleBy.x;
+	receiptToMove.scale.y = scaleBy.y;
 }
 
 void Papas::ReceiptManager::detectMovement(touchPosition &touch)
@@ -339,14 +343,14 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 			if (!isDragging)
 			{
 				//Set the initial position and scale as soon as you start grabbing it, to prevent a "jolt" or "jump" (idk but this fixes that)
-				setScaleReceipt(v2(0.32f, 0.32f));
-				
+				setScaleReceipt(v2(0.32f, 0.32f), tempReceipt);
+
 				if (tempReceipt.pinnedTop)
 				{
-					setPosReceipt(v2(touch.px - (tempReceipt.hitBox.width * 0.5f), touch.py - (tempReceipt.hitBox.height * 0.3f)));
+					setPosReceipt(v2(touch.px - (tempReceipt.hitBox.width * 0.5f), touch.py - (tempReceipt.hitBox.height * 0.3f)), tempReceipt);
 				}
 				else{
-					setPosReceipt(v2(touch.px - tempReceipt.hitBox.width * 0.2f, touch.py - tempReceipt.hitBox.height * 0.1f));
+					setPosReceipt(v2(touch.px - tempReceipt.hitBox.width * 0.2f, touch.py - tempReceipt.hitBox.height * 0.1f), tempReceipt);
 				}
 
 				
@@ -355,7 +359,7 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 			}
 			else
 			{
-				moveReceipt(v2(touch.px - prevTouch.px, touch.py - prevTouch.py));
+				moveReceipt(v2(touch.px - prevTouch.px, touch.py - prevTouch.py), tempReceipt);
 			}
 
 			prevTouch = touch;
@@ -365,12 +369,12 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 	else if (isDragging)
 	{
 		if(tempReceipt.pos.y < 20){
-			setPosReceipt(v2(tempReceipt.pos.x, 5));
+			setPosReceipt(v2(tempReceipt.pos.x, 5), tempReceipt);
 			tempReceipt.pinnedTop = true;
 		}
 		else{
-			setPosReceipt(v2(198, 40));
-			setScaleReceipt(v2(0.85f, 0.85f));
+			setPosReceipt(v2(198, 40), tempReceipt);
+			setScaleReceipt(v2(0.85f, 0.85f), tempReceipt);
 			tempReceipt.pinnedTop = false;
 		}
 		

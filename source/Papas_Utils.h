@@ -141,37 +141,25 @@ namespace Papas {
 		void createReceipt(C2D_Font *font, int receiptNum);
 		void showReceipt();
 		void showReceiptTop();
-		void moveReceipt(v2 moveTo);
-		void setPosReceipt(v2 moveTo);
-		void scaleReceipt(v2 scaleTo);
-		void setScaleReceipt(v2 scaleTo);
+		void moveReceipt(v2 moveTo, Receipt& receiptToMove);
+		void setPosReceipt(v2 moveTo, Receipt& receiptToMove);
+		void scaleReceipt(v2 scaleTo, Receipt& receiptToMove);
+		void setScaleReceipt(v2 scaleTo, Receipt& receiptToMove);
 		void detectMovement(touchPosition &touch);
 		void destroyReceipt();
+		Receipt tempReceipt;
 
 	private:
 	//Text stuff
 		C2D_Font* dokyo;
 		
-		Receipt tempReceipt;
+		
 		Receipt tempReceipt_top;
 
 		C2D_SpriteSheet receipt_spriteSheet;
 		C2D_Sprite receipt_bg;
+		C2D_Sprite receipt_bg_top;
 
 		std::vector<Receipt> receipts_total;
 	};
-
-	// class ReceiptManager
-	// {
-	// public:
-	// 	ReceiptManager() {};
-	// 	//ReceiptManager(int receiptNum);
-
-	// 	void createReceipt(int receiptNum);
-	// 	void showReceipt();
-
-	// private:
-	// 	C2D_SpriteSheet receipt_spriteSheet;
-	// 	C2D_Sprite receipt_bg;
-	// };
 }
