@@ -149,6 +149,7 @@ namespace Papas {
 		const v2 snapPosBottom = {198.0f, 40.0f};
 		const v2 snapScaleBottom = {0.85f, 0.85f};
 
+		//Actual functions to do with creating a receipt on both screens;
 		void init(int receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet);
 		void showReceipt(bool topReceipt);
 		void detectMovement(touchPosition &touch);
