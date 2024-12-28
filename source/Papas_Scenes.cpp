@@ -196,7 +196,7 @@ PapasError Papas::Game::render_top()
 PapasError Papas::Game::render_bottom()
 {
 
-	C2D_DrawImageAt(currentStationImg, 0, 0, 0.0f);
+	C2D_DrawImageAt(currentStationImg, 0, 0, 0.9f);
 
 	if (currentStation == TicketStation){
 		r_manager.renderReceipt(false);

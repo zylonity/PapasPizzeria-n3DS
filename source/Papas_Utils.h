@@ -48,7 +48,7 @@ namespace Papas {
 		v2 pos;
 		rect hitBox;
 
-		bool pressed;
+		bool wasPressed;
 	};
 
 	class AnimatedSprite {
@@ -131,6 +131,7 @@ namespace Papas {
 		bool pinnedTop;
 		bool topReceipt;
 		rect hitBox;
+		float currentDepth;
 		//ReceiptSection sections[8];
 		void init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top);
 		void moveReceipt(v2 moveTo);
@@ -181,7 +182,7 @@ namespace Papas {
 
 		std::vector<Receipt> v_receipts;
 		u16 maxReceipts;
-
-		
+		size_t activeReceiptIndex = -1;
+		float currentMaxDepth = 0.0f;
 	};
 }

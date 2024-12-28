@@ -13,6 +13,7 @@ Papas::Button::Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected,
 
 void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
 
+	wasPressed = false;
 	// Load the sprites
 	img_Unpressed = C2D_SpriteSheetGetImage(spriteSheet, selected);
 	img_Selected = C2D_SpriteSheetGetImage(spriteSheet, unpressed);
@@ -36,9 +37,15 @@ bool Papas::Button::showButton(touchPosition& touch, bool selected, bool* aPress
 	//If between left and between right and between top and between bottom
 	if (touch.px > hitBox.left && touch.px < hitBox.left + hitBox.width && touch.py > hitBox.top && touch.py < hitBox.top + hitBox.height) {
 		C2D_DrawImageAt(img_Pressed, pos.x, pos.y, 1, NULL, 1, 1);
-		return true;
+
+		if (!wasPressed)
+		{
+			wasPressed = true; 
+			return true;
+		}
 	}
 	else {
+		wasPressed = false;
 
 		if (selected && *aPressed == true) {
 			*aPressed = false;
@@ -51,11 +58,10 @@ bool Papas::Button::showButton(touchPosition& touch, bool selected, bool* aPress
 		else
 			C2D_DrawImageAt(img_Unpressed, pos.x, pos.y, 1, NULL, 1, 1);
 
-		return false;
+		
 	}
 
-	
-
+	return false;
 }
 
 void Papas::Button::setPosition(v2 showPos) {
@@ -236,6 +242,7 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 	topReceipt = top;
 	pos = posToGive;
 	scale = scaleToGive;
+	currentDepth = 0.0f;
 
 	C2D_SpriteFromSheet(&receipt_bg, receipt_spriteSheet, 0);
 
@@ -283,20 +290,21 @@ void Papas::ReceiptParts::setScaleReceipt(v2 scaleBy)
 
 void Papas::ReceiptParts::renderReceipt()
 {
+	//
 	C2D_DrawSprite(&receipt_bg);
 
-	printf("Receipt scale: (%f, %f)\n", pos.x, pos.y);
 
 	// Calculate the new position for the text based on scale
 	float scaledTextX = pos.x + (39 * scale.x);
 	float scaledTextY = pos.y + (19 * scale.y);
 
 	// Draw the text at the scaled position
-	C2D_DrawText(&receipt_text, C2D_WithColor, scaledTextX, scaledTextY, 1.0f, scale.x, scale.y, C2D_Color32(240, 156, 156, 255));
+	C2D_DrawText(&receipt_text, C2D_WithColor, scaledTextX, scaledTextY, currentDepth + 1.0f, scale.x, scale.y, C2D_Color32(240, 156, 156, 255));
 }
 
 void Papas::Receipt::init(int receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet)
 {
+
 	// int to 000 whatever number
 	std::ostringstream formatted;
 	formatted << std::setw(3) << std::setfill('0') << receiptNum;
@@ -395,6 +403,7 @@ void Papas::ReceiptManager::initManager(C2D_Font *font)
 	dokyo = font;
 	receipt_spriteSheet = C2D_SpriteSheetLoad("romfs:/gfx/receipt.t3x");
 	maxReceipts = 1;
+	currentMaxDepth = 0;
 }
 
 void Papas::ReceiptManager::createReceipt()
@@ -417,9 +426,41 @@ void Papas::ReceiptManager::renderReceipt(bool topReceipt)
 
 void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 {
-	for (size_t i = 0; i < v_receipts.size(); i++)
+	if (touch.px != 0 || touch.py != 0) // Check if the screen is touched
 	{
-		v_receipts[i].detectMovement(touch);
+		if (activeReceiptIndex == -1) // No receipt is being dragged
+		{
+			// Find the first receipt that is touched
+			for (size_t i = 0; i < v_receipts.size(); i++)
+			{
+				if (touch.px > v_receipts[i].bottom.hitBox.left &&
+					touch.px < v_receipts[i].bottom.hitBox.left + v_receipts[i].bottom.hitBox.width &&
+					touch.py > v_receipts[i].bottom.hitBox.top &&
+					touch.py < v_receipts[i].bottom.hitBox.top + v_receipts[i].bottom.hitBox.height)
+				{
+					//add the depth and allow it to moove
+					activeReceiptIndex = i;
+					v_receipts[i].bottom.currentDepth = ++currentMaxDepth;
+					v_receipts[i].top.currentDepth = ++currentMaxDepth;
+					C2D_SpriteSetDepth(&v_receipts[i].bottom.receipt_bg, currentMaxDepth + 0.9f);
+					C2D_SpriteSetDepth(&v_receipts[i].top.receipt_bg, currentMaxDepth + 0.9f);
+					break;
+				}
+			}
+		}
+
+		if (activeReceiptIndex != -1)
+		{
+			v_receipts[activeReceiptIndex].detectMovement(touch);
+		}
+	}
+	else
+	{
+		if (activeReceiptIndex != -1)
+		{
+			v_receipts[activeReceiptIndex].detectMovement(touch);
+			activeReceiptIndex = -1;							 
+		}
 	}
 }
 
