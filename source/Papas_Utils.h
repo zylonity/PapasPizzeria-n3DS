@@ -121,18 +121,38 @@ namespace Papas {
 		int Quantity;
 	};
 
-	struct Receipt{
+	struct ReceiptParts{
 		C2D_Font *dokyo;
 		v2 pos;
 		v2 scale;
-		C2D_SpriteSheet* receipt_spriteSheet;
-		C2D_Sprite* pReceipt_bg;
+		C2D_Sprite receipt_bg;
 		C2D_TextBuf receipt_Buf;
 		C2D_Text receipt_text;
 		bool pinnedTop;
+		bool topReceipt;
 		rect hitBox;
 		//ReceiptSection sections[8];
-		void init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet, v2 posToGive, v2 scaleToGive);
+		void init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top);
+		void moveReceipt(v2 moveTo);
+		void setPosReceipt(v2 moveTo);
+		void scaleReceipt(v2 scaleTo);
+		void setScaleReceipt(v2 scaleTo);
+		void renderReceipt();
+	};
+
+	struct Receipt{
+		ReceiptParts top, bottom;
+		//Position and scales to dock the ticket screens
+		const v2 snapPosTop = {277.6f, 0.0f};
+		const v2 snapScaleTop = {0.95f, 0.95f};
+
+		const v2 snapPosBottom = {198.0f, 40.0f};
+		const v2 snapScaleBottom = {0.85f, 0.85f};
+
+		void init(int receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet);
+		void showReceipt(bool topReceipt);
+		void detectMovement(touchPosition &touch);
+		void terminate();
 	};
 	
 
@@ -142,27 +162,18 @@ namespace Papas {
 		ReceiptManager(C2D_Font *font, int receiptNum);
 
 		void createReceipt(C2D_Font *font, int receiptNum);
-		void showReceipt();
-		void showReceiptTop();
-		void moveReceipt(v2 moveTo, Receipt& receiptToMove);
-		void setPosReceipt(v2 moveTo, Receipt& receiptToMove);
-		void scaleReceipt(v2 scaleTo, Receipt& receiptToMove);
-		void setScaleReceipt(v2 scaleTo, Receipt& receiptToMove);
+		void showReceipt(bool topReceipt);
+
 		void detectMovement(touchPosition &touch);
 		void destroyReceipt();
-		Receipt tempReceipt;
 
 	private:
 	//Text stuff
 		C2D_Font* dokyo;
 		
 		
-		Receipt tempReceipt_top;
+		Receipt receipt;
 
 		C2D_SpriteSheet receipt_spriteSheet;
-		C2D_Sprite receipt_bg;
-		C2D_Sprite receipt_bg_top;
-
-		std::vector<Receipt> receipts_total;
 	};
 }

@@ -183,7 +183,7 @@ PapasError Papas::Game::render_top()
 		guy.renderAnimBackwards(false);
 	}
 
-	rep.showReceiptTop();
+	rep.showReceipt(true);
 
 	return PAPAS_OK;
 }
@@ -191,10 +191,10 @@ PapasError Papas::Game::render_top()
 PapasError Papas::Game::render_bottom()
 {
 
-	C2D_DrawImageAt(currentStationImg, 0, 0, -1);
+	C2D_DrawImageAt(currentStationImg, 0, 0, 0.0f);
 
 	if (currentStation == TicketStation){
-		rep.showReceipt();
+		rep.showReceipt(false);
 	}
 		
 
