@@ -94,6 +94,7 @@ void Papas::AnimatedSprite::createAnim(const char *spriteSheet, float time, v2 p
 		C2D_SpriteSetPos(&spr, pos.x, pos.y);
 		C2D_SpriteSetScale(&spr, size.x, size.y);
 		C2D_SpriteSetRotationDegrees(&spr, rot);
+		C2D_SpriteSetDepth(&spr, 0.7f);
 		C3D_TexSetFilter(spr.image.tex, GPU_LINEAR, GPU_LINEAR); //Adds bilinear filtering, the sprite looks a bit pixelated otherwise
 		
 		each_sprite.push_back(spr);
@@ -226,6 +227,29 @@ void Papas::GuyPeeking::resetAnim()
 {
 	finished = false;
 	currentSprite = 0;
+}
+
+
+void Papas::Receipt::init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet &pass_receipt_spriteSheet, v2 posToGive, v2 scaleToGive)
+{
+	dokyo = font;
+
+	pos = posToGive;
+	scale = scaleToGive;
+
+	*receipt_spriteSheet = pass_receipt_spriteSheet;
+
+	C2D_SpriteFromSheet(pReceipt_bg, *receipt_spriteSheet, 0);
+
+	receipt_Buf = C2D_TextBufNew(4);
+
+	C2D_TextFontParse(&receipt_text, *dokyo, receipt_Buf, receiptNum);
+	C2D_TextOptimize(&receipt_text);
+
+	C2D_SpriteSetPos(pReceipt_bg, pos.x, pos.y);
+	C2D_SpriteSetScale(pReceipt_bg, scale.x, scale.y);
+	C3D_TexSetFilter(pReceipt_bg->image.tex, GPU_LINEAR, GPU_LINEAR);
+	hitBox = {pReceipt_bg->params.pos.x, pReceipt_bg->params.pos.y, pReceipt_bg->params.pos.w, pReceipt_bg->params.pos.h};
 }
 
 Papas::ReceiptManager::ReceiptManager(C2D_Font *font, int num)
@@ -368,14 +392,20 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 	}
 	else if (isDragging)
 	{
-		if(tempReceipt.pos.y < 20){
+		if(tempReceipt.pos.y < 30.0f){
 			setPosReceipt(v2(tempReceipt.pos.x, 5), tempReceipt);
 			tempReceipt.pinnedTop = true;
+			setScaleReceipt(v2(0.35f, 0.35f), tempReceipt_top);
+			setPosReceipt(v2(tempReceipt.pos.x, -7.0f), tempReceipt_top);
+			
 		}
 		else{
 			setPosReceipt(v2(198, 40), tempReceipt);
 			setScaleReceipt(v2(0.85f, 0.85f), tempReceipt);
 			tempReceipt.pinnedTop = false;
+			setPosReceipt(v2(277.6f, 0), tempReceipt_top);
+			setScaleReceipt(v2(0.95f, 0.95f), tempReceipt_top);
+			
 		}
 		
 		isDragging = false;

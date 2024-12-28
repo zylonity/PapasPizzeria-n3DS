@@ -122,14 +122,17 @@ namespace Papas {
 	};
 
 	struct Receipt{
+		C2D_Font *dokyo;
 		v2 pos;
 		v2 scale;
+		C2D_SpriteSheet* receipt_spriteSheet;
 		C2D_Sprite* pReceipt_bg;
 		C2D_TextBuf receipt_Buf;
 		C2D_Text receipt_text;
 		bool pinnedTop;
 		rect hitBox;
 		//ReceiptSection sections[8];
+		void init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet, v2 posToGive, v2 scaleToGive);
 	};
 	
 
