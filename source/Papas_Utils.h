@@ -177,13 +177,13 @@ namespace Papas {
 
 	private:
 	//Text stuff
-		void normalizeDepths();
+		float normalizedDepth();
 		C2D_Font* dokyo;
 		C2D_SpriteSheet receipt_spriteSheet;
 
 		std::vector<Receipt> v_receipts;
 		u16 maxReceipts;
-		size_t activeReceiptIndex = -1;
-		float currentMaxDepth = 0.0f;
+		size_t activeReceiptIndex;
+		float currentMaxDepth;
 	};
 }

@@ -404,7 +404,9 @@ void Papas::ReceiptManager::initManager(C2D_Font *font)
 	dokyo = font;
 	receipt_spriteSheet = C2D_SpriteSheetLoad("romfs:/gfx/receipt.t3x");
 	maxReceipts = 1;
-	currentMaxDepth = 0;
+	activeReceiptIndex = -1;
+	currentMaxDepth = 0.1f;
+	
 }
 
 void Papas::ReceiptManager::createReceipt()
@@ -424,36 +426,28 @@ void Papas::ReceiptManager::renderReceipt(bool topReceipt)
 	
 }
 
-void Papas::ReceiptManager::normalizeDepths()
+float Papas::ReceiptManager::normalizedDepth()
 {
-	const float maxDepth = 0.9f;
-	const float minDepth = 0.1f;
-	float step = (maxDepth - minDepth) / (v_receipts.size() - 1);
-
-	for (size_t i = 0; i < v_receipts.size(); i++)
-	{
-		if (i == activeReceiptIndex)
-		{
-			// Active receipt is at the front
-			v_receipts[i].bottom.currentDepth = maxDepth;
-			v_receipts[i].top.currentDepth = maxDepth + 0.01f; // Text is slightly closer
-		}
-		else
-		{
-			// Spread other receipts based on their order
-			float depth = minDepth + step * i;
-			v_receipts[i].bottom.currentDepth = depth;
-			v_receipts[i].top.currentDepth = depth + 0.01f; // Ensure text stays closer
-		}
-	}
+	const float maxDepth = 0.95f; // Closest to the camera
+	const float minDepth = 0.1f; // Farthest from the camera
+	return (currentMaxDepth - minDepth) / (maxDepth / minDepth);
 }
 
 void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 {
+	/*There is a bug where the transparency of a receipt lower in the array isnt processed on top of the transparency of a receipt higher in the array
+	i'm 96% sure its because of the rendering order, since technically the one lower in the array is processed first
+	to fix this i have to reorder the array in terms of depth, which i can't be fucked to do right now, but will do later*/
 	if (touch.px != 0 || touch.py != 0) // Check if the screen is touched
 	{
 		if (activeReceiptIndex == -1) // No receipt is being dragged
 		{
+
+			//Basically, we need to figure out what the best receipt to grab is, depending on how deep it is
+			// so these guys lmk which the best index is by going through the loop
+			float maxDepth = -1.0f;
+			float bestReceiptIndex = -1;
+
 			// Find the first receipt that is touched
 			for (size_t i = 0; i < v_receipts.size(); i++)
 			{
@@ -462,14 +456,24 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 					touch.py > v_receipts[i].bottom.hitBox.top &&
 					touch.py < v_receipts[i].bottom.hitBox.top + v_receipts[i].bottom.hitBox.height)
 				{
-					//add the depth and allow it to moove
-					activeReceiptIndex = i;
-					currentMaxDepth += 0.1f; // Increment depth step (can be adjusted)
-					v_receipts[i].bottom.currentDepth = currentMaxDepth;
-					v_receipts[i].top.currentDepth = currentMaxDepth + 0.01f; // Ensure text is closer
-					normalizeDepths();
-					break;
+					if (v_receipts[i].bottom.currentDepth > maxDepth)
+					{
+						maxDepth = v_receipts[i].bottom.currentDepth;
+						bestReceiptIndex = i;
+					}
+
 				}
+			}
+
+			if (bestReceiptIndex != -1)
+			{
+				activeReceiptIndex = bestReceiptIndex;
+
+				// add the depth and allow it to moove
+				// this might fuck up later, if you move the receipts too much, pain in my ass
+				currentMaxDepth += 0.1f;
+				v_receipts[activeReceiptIndex].bottom.currentDepth = normalizedDepth();
+				v_receipts[activeReceiptIndex].top.currentDepth = normalizedDepth();
 			}
 		}
 
