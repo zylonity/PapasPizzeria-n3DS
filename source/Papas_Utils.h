@@ -106,7 +106,7 @@ namespace Papas {
 		Anochovie
 	};
 
-	enum Places
+	enum Coverage
 	{
 		Quarter,
 		Half,
@@ -114,9 +114,9 @@ namespace Papas {
 		Full
 	};
 
-	struct ReceiptSection
+	struct ReceiptSubSection
 	{
-		Places place;
+		Coverage cover;
 		Toppings topping;
 		int Quantity;
 	};
@@ -132,7 +132,7 @@ namespace Papas {
 		bool topReceipt;
 		rect hitBox;
 		float currentDepth;
-		//ReceiptSection sections[8];
+		ReceiptSubSection sections[7];
 		void init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top);
 		void moveReceipt(v2 moveTo);
 		void setPosReceipt(v2 moveTo);

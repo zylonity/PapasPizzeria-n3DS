@@ -1,3 +1,16 @@
 --atlas -f rgba -z auto
 
 ./Receipt/receipt_empty.png
+./Receipt/numbers/1.png
+./Receipt/numbers/2.png
+./Receipt/numbers/3.png
+./Receipt/numbers/4.png
+./Receipt/numbers/5.png
+./Receipt/numbers/6.png
+./Receipt/numbers/7.png
+./Receipt/numbers/8.png
+./Receipt/numbers/9.png
+./Receipt/numbers/10.png
+./Receipt/numbers/11.png
+./Receipt/numbers/12.png
+./Receipt/numbers/X.png
