@@ -114,11 +114,15 @@ namespace Papas {
 		Full
 	};
 
+
 	struct ReceiptSubSection
 	{
 		Coverage cover;
+		C2D_Image i_cover;
 		Toppings topping;
+		C2D_Image i_topping;
 		int Quantity;
+		C2D_Image i_Quantity;
 	};
 
 	struct ReceiptParts{
@@ -126,18 +130,23 @@ namespace Papas {
 		v2 pos;
 		v2 scale;
 		C2D_Sprite receipt_bg;
+		C2D_Image s_nums_cross;
+		C2D_Image s_nums[12];
+		C2D_Image s_topps[7];
 		C2D_TextBuf receipt_Buf;
 		C2D_Text receipt_text;
 		bool pinnedTop;
 		bool topReceipt;
 		rect hitBox;
 		float currentDepth;
+		size_t currentItems;
 		ReceiptSubSection sections[7];
 		void init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top);
 		void moveReceipt(v2 moveTo);
 		void setPosReceipt(v2 moveTo);
 		void scaleReceipt(v2 scaleTo);
 		void setScaleReceipt(v2 scaleTo);
+		void addItem(Coverage size, Toppings top, int Quant);
 		void renderReceipt();
 	};
 

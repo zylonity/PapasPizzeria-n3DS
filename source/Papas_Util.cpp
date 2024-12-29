@@ -244,19 +244,48 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 	pos = posToGive;
 	scale = scaleToGive;
 	currentDepth = 0.01f;
+	currentItems = 0;
 
 	C2D_SpriteFromSheet(&receipt_bg, receipt_spriteSheet, 0);
 
-	receipt_Buf = C2D_TextBufNew(4);
+	//Numbers and cross
+	//I want cross to be 0th item cos that way each number corresponds to itself soo:
+	s_nums_cross = C2D_SpriteSheetGetImage(receipt_spriteSheet, 13);
+	C3D_TexSetFilter(s_nums_cross.tex, GPU_LINEAR, GPU_LINEAR);
+	for (size_t i = 0; i < 12; i++)
+	{
+		s_nums[i] = C2D_SpriteSheetGetImage(receipt_spriteSheet, i + 1);
+		C3D_TexSetFilter(s_nums[i].tex, GPU_LINEAR, GPU_LINEAR);
+	}
+	//Toppings for receipt
+	for (size_t i = 0; i < 7; i++)
+	{
+		s_topps[i] = C2D_SpriteSheetGetImage(receipt_spriteSheet, i + 14);
+		C3D_TexSetFilter(s_topps[i].tex, GPU_LINEAR, GPU_LINEAR);
+	}
 
+	//Deal with text (number on the top)
+	receipt_Buf = C2D_TextBufNew(4);
 	C2D_TextFontParse(&receipt_text, *dokyo, receipt_Buf, receiptNum);
 	C2D_TextOptimize(&receipt_text);
 
+	//Deal with the background sprite and hitbox
 	C2D_SpriteSetPos(&receipt_bg, pos.x, pos.y);
 	C2D_SpriteSetScale(&receipt_bg, scale.x, scale.y);
 	C3D_TexSetFilter(receipt_bg.image.tex, GPU_LINEAR, GPU_LINEAR);
 	C2D_SpriteSetDepth(&receipt_bg, currentDepth);
 	hitBox = {receipt_bg.params.pos.x, receipt_bg.params.pos.y, receipt_bg.params.pos.w, receipt_bg.params.pos.h};
+	addItem(Quarter, Pepperoni, 2);
+}
+
+void Papas::ReceiptParts::addItem(Coverage size, Toppings top, int Quant)
+{
+	sections[currentItems].cover = size;
+	sections[currentItems].topping = top;
+	sections[currentItems].i_topping = s_topps[top];
+	sections[currentItems].Quantity = Quant;
+	sections[currentItems].i_Quantity = s_nums[Quant-1];
+	currentItems++;
 }
 
 void Papas::ReceiptParts::moveReceipt(v2 moveBy)
@@ -302,6 +331,23 @@ void Papas::ReceiptParts::renderReceipt()
 	float textDepth = std::min(currentDepth + 0.01f, 1.0f);
 	// Draw the text at the scaled position
 	C2D_DrawText(&receipt_text, C2D_WithColor, scaledTextX, scaledTextY, textDepth, scale.x, scale.y, C2D_Color32(240, 156, 156, 255));
+
+
+	//For the sections:
+	for (size_t i = 0; i < currentItems; i++)
+	{
+		float PosY = pos.y + (49 * scale.y);
+
+		float CrossPosX = pos.x + (57 * scale.x);
+		C2D_DrawImageAt(s_nums_cross, CrossPosX, PosY, textDepth, nullptr, scale.x * 0.8f, scale.y * 0.8f);
+
+		float QuantPosX = pos.x + (83 * scale.x);
+		C2D_DrawImageAt(sections[i].i_Quantity, QuantPosX, PosY, textDepth, nullptr, scale.x * 0.8f, scale.y * 0.8f);
+
+		float ToppPosX = pos.x + (40 * scale.x);
+		C2D_DrawImageAt(sections[i].i_topping, ToppPosX, PosY, textDepth, nullptr, scale.x * 0.5f, scale.y * 0.5f);
+	}
+	
 }
 
 void Papas::Receipt::init(int receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet)
