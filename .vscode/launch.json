@@ -13,7 +13,7 @@
             "request": "attach",
             "name": "Debug on 3DS",
             "executable": "${workspaceRoot}/PapasPizzeria_vsc.elf",
-            "target": "192.168.1.236:4003",
+            "target": "192.168.1.245:4003",
             "remote": true,
             "cwd": "${workspaceRoot}",
             "gdbpath": "C:/devkitPro/devkitARM/bin/arm-none-eabi-gdb.exe",

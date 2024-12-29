@@ -263,6 +263,12 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 		s_topps[i] = C2D_SpriteSheetGetImage(receipt_spriteSheet, i + 14);
 		C3D_TexSetFilter(s_topps[i].tex, GPU_LINEAR, GPU_LINEAR);
 	}
+	//Coverage for receipt
+	for (size_t i = 0; i < 4; i++)
+	{
+		s_quarters[i] = C2D_SpriteSheetGetImage(receipt_spriteSheet, i + 21);
+		C3D_TexSetFilter(s_quarters[i].tex, GPU_LINEAR, GPU_LINEAR);
+	}
 
 	//Deal with text (number on the top)
 	receipt_Buf = C2D_TextBufNew(4);
@@ -275,12 +281,12 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 	C3D_TexSetFilter(receipt_bg.image.tex, GPU_LINEAR, GPU_LINEAR);
 	C2D_SpriteSetDepth(&receipt_bg, currentDepth);
 	hitBox = {receipt_bg.params.pos.x, receipt_bg.params.pos.y, receipt_bg.params.pos.w, receipt_bg.params.pos.h};
-	addItem(Quarter, Pepperoni, 2);
 }
 
 void Papas::ReceiptParts::addItem(Coverage size, Toppings top, int Quant)
 {
 	sections[currentItems].cover = size;
+	sections[currentItems].i_cover = s_quarters[size];
 	sections[currentItems].topping = top;
 	sections[currentItems].i_topping = s_topps[top];
 	sections[currentItems].Quantity = Quant;
@@ -336,16 +342,20 @@ void Papas::ReceiptParts::renderReceipt()
 	//For the sections:
 	for (size_t i = 0; i < currentItems; i++)
 	{
-		float PosY = pos.y + (49 * scale.y);
+		float PosY = pos.y + (i * 20 * scale.y) + (49 * scale.y);
 
-		float CrossPosX = pos.x + (57 * scale.x);
+		float CrossPosX = pos.x + (59 * scale.x);
 		C2D_DrawImageAt(s_nums_cross, CrossPosX, PosY, textDepth, nullptr, scale.x * 0.8f, scale.y * 0.8f);
 
 		float QuantPosX = pos.x + (83 * scale.x);
 		C2D_DrawImageAt(sections[i].i_Quantity, QuantPosX, PosY, textDepth, nullptr, scale.x * 0.8f, scale.y * 0.8f);
 
-		float ToppPosX = pos.x + (40 * scale.x);
-		C2D_DrawImageAt(sections[i].i_topping, ToppPosX, PosY, textDepth, nullptr, scale.x * 0.5f, scale.y * 0.5f);
+		float ToppPosX = pos.x + (37 * scale.x);
+		float ToppPosY = pos.y + (i * 20 * scale.y) + (48 * scale.y);
+		C2D_DrawImageAt(sections[i].i_topping, ToppPosX, ToppPosY, textDepth, nullptr, scale.x * 0.45f, scale.y * 0.45f);
+
+		float CoveragePosX = pos.x + (10 * scale.x);
+		C2D_DrawImageAt(sections[i].i_cover, CoveragePosX, PosY, textDepth, nullptr, scale.x * 0.15f, scale.y * 0.15f);
 	}
 	
 }

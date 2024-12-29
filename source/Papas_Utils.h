@@ -133,6 +133,7 @@ namespace Papas {
 		C2D_Image s_nums_cross;
 		C2D_Image s_nums[12];
 		C2D_Image s_topps[7];
+		C2D_Image s_quarters[4];
 		C2D_TextBuf receipt_Buf;
 		C2D_Text receipt_text;
 		bool pinnedTop;
