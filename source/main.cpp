@@ -1,11 +1,11 @@
 #include "Papas_Framework.h"
 #include <3ds.h>
 
-
 //===============================================================================
 // Framework is constructed as Global
 Papas::Framework g_framework;
 //===============================================================================
+
 
 int main(int argc, char* argv[]) {
     

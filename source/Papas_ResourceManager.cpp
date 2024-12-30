@@ -19,6 +19,7 @@ PapasError Papas::ResourceManager::init()
     return PAPAS_OK;
 }
 
+
 PapasError Papas::ResourceManager::playMusic(const char *ogg_file)
 {
 
