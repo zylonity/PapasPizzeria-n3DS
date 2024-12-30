@@ -5,6 +5,8 @@
 #include <chrono>
 #include <citro2d.h>
 #include <theoraplayer.h>
+
+#include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
 
 PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
@@ -159,9 +161,12 @@ PapasError Papas::IntroVid::init(Papas::SceneManager *sceneManager)
 	p_sceneManager = sceneManager;
 	startedPlaying = false;
 	ndspInit();
-	
-	ndspSetCallback(TP_audioCallback, NULL);
 
+	//ndspCallback
+	ndspSetCallback(TP_audioCallback, NULL);
+	//ndspAuxSetCallback(0, TP_audioCallback, NULL);
+	//DSP_UnloadComponent();
+	//ndspRe
 	//ndspCallback();
 	//ndspGet
 	return PAPAS_OK;
@@ -215,16 +220,22 @@ PapasError Papas::IntroVid::render_bottom()
 PapasError Papas::IntroVid::terminate()
 {
 	TP_exitThread();
-	//ndspExit();
+	ndspExit();
+	//Mix_HookMusic(ndspCallback, NULL);
 
-	Mix_HookMusic(ndspCallback, NULL);
+	Mix_CloseAudio();
+	//SDL_Quit();
 
 	return PAPAS_OK;
 }
 
 PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 {
-	
+
+	//SDL_Init(SDL_INIT_AUDIO);
+	//ndspcal
+	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+
 	s_stations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
 	shee_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
 
