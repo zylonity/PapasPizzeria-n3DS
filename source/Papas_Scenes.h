@@ -9,6 +9,20 @@
 
 namespace Papas {
 
+	class IntroVid : public Scene
+	{
+	public:
+		PapasError init(Papas::SceneManager *sceneManager) override;
+		PapasError update() override;
+		PapasError render_top() override;
+		PapasError render_bottom() override;
+		PapasError terminate() override;
+
+	private:
+		bool startedPlaying;
+		Papas::SceneManager *p_sceneManager;
+	};
+
 	class MainMenu : public Scene {
 	public:
 		PapasError init(Papas::SceneManager* sceneManager) override;

@@ -4,10 +4,14 @@
 #include <string>
 #include <chrono>
 #include <citro2d.h>
+#include <theoraplayer.h>
+#include <SDL/SDL_mixer.h>
 
 PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 {
 
+	//linearFree(THEORA_audioBuffer);
+	//ndspChnReset(0);
 	Papas::ResourceManager::getInstance().playMusic("romfs:/music/toppingscreen_music.ogg");
 
 	// Load the backgrounds
@@ -123,8 +127,7 @@ PapasError Papas::MainMenu::render_bottom()
 		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed))
 		{
 
-			Game *game = new Game();
-			p_sceneManager->changeScene(game);
+			p_sceneManager->changeScene(new Papas::IntroVid());
 			//ResourceManager::getInstance().stopMusic();
 		}
 	}
@@ -145,12 +148,83 @@ PapasError Papas::MainMenu::terminate()
 		C2D_SpriteSheetFree(sheet_buttons);
 		sheet_buttons = nullptr;
 	}
+	Papas::ResourceManager::getInstance().stopMusic();
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::IntroVid::init(Papas::SceneManager *sceneManager)
+{
+
+	p_sceneManager = sceneManager;
+	startedPlaying = false;
+	ndspInit();
+	
+	ndspSetCallback(TP_audioCallback, NULL);
+
+	//ndspCallback();
+	//ndspGet
+	return PAPAS_OK;
+}
+
+PapasError Papas::IntroVid::update()
+{
+
+	hidScanInput();
+
+	// Respond to user input
+	u32 kDown = hidKeysDown();
+	if (kDown & KEY_START)
+		return PAPAS_NOT_OK; // break in order to return to hbmenu
+
+	if (!THEORA_isplaying && startedPlaying == false)
+	{
+		TP_changeFile("romfs:/videos/test.ogg");
+	}
+	else{
+		startedPlaying = true;
+	}
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::IntroVid::render_top()
+{
+
+	if (THEORA_isplaying && THEORA_HasVideo(&THEORA_vidCtx)){
+		frameDrawAtCentered(&THEORA_frame, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 0.5f, THEORA_scaleframe, THEORA_scaleframe);
+	}
+
+	if (!THEORA_isplaying && startedPlaying)
+	{
+		p_sceneManager->changeScene(new Papas::Game());
+	}
+
+
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::IntroVid::render_bottom()
+{
+
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::IntroVid::terminate()
+{
+	TP_exitThread();
+	//ndspExit();
+
+	Mix_HookMusic(ndspCallback, NULL);
 
 	return PAPAS_OK;
 }
 
 PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 {
+	
 	s_stations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
 	shee_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
 
