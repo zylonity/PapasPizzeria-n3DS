@@ -370,6 +370,7 @@ void Papas::Receipt::init(int receiptNum, C2D_Font *font, C2D_SpriteSheet &recei
 	top.init(formatted.str().c_str(), font, receipt_spriteSheet, snapPosTop, bigScaleTop, true);
 	bottom.init(formatted.str().c_str(), font, receipt_spriteSheet, snapPosBottom, bigScaleBottom, false);
 	dockInUse = true;
+	bottom.pinnedTop = false;
 }
 
 void Papas::Receipt::showReceipt(bool topReceipt)
@@ -453,7 +454,7 @@ void Papas::Receipt::forceDocking()
 	int randomPos = std::rand() % 20 + 1;
 	bottom.setScaleReceipt(smallScaleBottom);
 	bottom.setPosReceipt(v2(randomPos, 5));
-	bottom.pinnedTop = true;
+	bottom.pinnedTop = false;
 	top.setScaleReceipt(smallScaleTop);
 	top.setPosReceipt(v2(randomPos, -7.0f));
 	dockInUse = false;
