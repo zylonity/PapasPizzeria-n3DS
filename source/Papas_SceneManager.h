@@ -33,8 +33,6 @@ namespace Papas {
 	private:
 
 		Papas::Scene* currentScene;
-
-
 	};
 
 

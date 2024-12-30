@@ -1,10 +1,8 @@
 #include "Papas_Renderer.h"
 #include "Papas_Scenes.h"
 
-#define DEBUGGING_BOTTOM
-
 PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
-	PapasError ret;
+	//PapasError ret;
 
 	// Init various things
 	romfsInit();
@@ -34,7 +32,7 @@ PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	
 
 	//Init the first scene
-	sceneManager->changeScene(new Papas::IntroVideo());
+	sceneManager->changeScene(new Papas::MainMenu());
 
 
 	return PAPAS_OK;
@@ -53,7 +51,7 @@ PapasError Papas::Renderer::update(Papas::SceneManager* sceneManager) {
 }
 
 PapasError Papas::Renderer::render(Papas::SceneManager* sceneManager) {
-	PapasError ret;
+	//PapasError ret;
 
 #ifndef DEBUGGING_TOP
 	// Render the scene
@@ -86,7 +84,7 @@ PapasError Papas::Renderer::render(Papas::SceneManager* sceneManager) {
 }
 
 PapasError Papas::Renderer::terminate() {
-	PapasError ret;
+	//PapasError ret;
 
 	// Deinit libs
 	C2D_Fini();

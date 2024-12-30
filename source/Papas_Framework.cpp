@@ -1,11 +1,13 @@
 #include "Papas_Framework.h"
 #include "Papas_Renderer.h"
 #include "Papas_SceneManager.h"
-
+#include "Papas_ResourceManager.h"
 
 
 PapasError Papas::Framework::init() {
 	PapasError ret;
+
+	Papas::ResourceManager::getInstance().init();
 
 	// Initialize our scene manager
 	m_pSceneManager = new Papas::SceneManager;
@@ -19,7 +21,7 @@ PapasError Papas::Framework::init() {
 	ret = m_pRenderer->init(m_pSceneManager);
 	ASSERT(ret == PAPAS_OK, "");									// Always checking if we have a valid return code
 
-
+	Papas::ResourceManager::getInstance().init();
 
 	return PAPAS_OK;
 }
@@ -50,6 +52,7 @@ PapasError Papas::Framework::terminate() {
 	m_pSceneManager = nullptr;
 	ASSERT(m_pSceneManager == nullptr, "");
 
+	Papas::ResourceManager::getInstance().terminate();
 
 	return PAPAS_OK;
 }
