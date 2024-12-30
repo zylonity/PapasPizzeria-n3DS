@@ -22,10 +22,9 @@ namespace Papas {
 		C2D_SpriteSheet sheet_bg;
 		C2D_Image top_bg;
 		C2D_Image bottom_bg;
-
-		//icons
-		C2D_SpriteSheet sheet_icons;
 		C2D_Image logo;
+		//icons
+		
 
 		touchPosition touch;
 
@@ -37,7 +36,10 @@ namespace Papas {
 
 	};
 
-	class IntroVideo : public Scene {
+	
+
+	class Game : public Scene
+	{
 	public:
 		PapasError init(Papas::SceneManager* sceneManager) override;
 		PapasError update() override;
@@ -45,22 +47,41 @@ namespace Papas {
 		PapasError render_bottom() override;
 		PapasError terminate() override;
 	private:
+		enum Stations
+		{
+			TicketStation,
+			ToppingStation,
+			BakingStation,
+			CuttingStation,
+			StationMAX
+		};
+
+		Stations currentStation;
+		C2D_SpriteSheet s_stations;
+
+		GuyPeeking guy;
+
+		C2D_Image ticketsStationImg;
+		C2D_Image ticketsHolderImg;
+		C2D_SpriteSheet shee_buttons;
+		Button createReceipt;
+		
+
+		C2D_Image currentStationImg;
+		C2D_Image currentPopupImg;
+
+		void SwitchStation(Stations station);
+
+		u64 lastInputTime = 0;		   // Last time input was processed
+		const u64 inputCooldown = 200; // 200ms cooldown
+
 		Papas::SceneManager* p_sceneManager;
-		//backgrounds
 
-		//C2D_SpriteSheet p_cSheet;
-		//C3D_Tex tex;
-	    //Tex3DS_SubTexture subtexture;
-		int counter;
-		int currentFrame;
-		std::chrono::steady_clock::time_point start;
-		std::chrono::steady_clock::time_point end;
-		std::vector<C3D_Tex*> textures;
-		std::vector<void*> voids;
-		C3D_Tex *tempTex;
-		C2D_Image sprite;
+		// Receipt system stuff to move later
+		C2D_Font dokyo;
 
+		ReceiptManager r_manager;
+
+		touchPosition touch;
 	};
-
-
 }

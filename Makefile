@@ -57,29 +57,14 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lcitro2d -lcitro3d -lctru -lm
+LIBS := -lcitro2d -lcitro3d -lSDL_mixer -lSDL -lvorbisidec -logg -lmad -lmikmod -lctru -lm
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:= $(CTRULIB)
+LIBDIRS	:= $(PORTLIBS) $(CTRULIB)
 
-#---------------------------------------------------------------------------------
-# ADDED: If you installed GIFLIB to $(DEVKITPRO)/portlibs/3ds via "make install",
-#        you can add its path here. This is typical for portlibs:
-#---------------------------------------------------------------------------------
-LIBDIRS += $(DEVKITPRO)/portlibs/3ds
-
-#---------------------------------------------------------------------------------
-# Then, in order to link libgif and libutil, append them to LIBS:
-#---------------------------------------------------------------------------------
-LIBS += -lgif -lutil
-
-#---------------------------------------------------------------------------------
-# Also add the include directory so the compiler finds gif_lib.h etc.:
-#---------------------------------------------------------------------------------
-INCLUDES += $(DEVKITPRO)/portlibs/3ds/include
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional

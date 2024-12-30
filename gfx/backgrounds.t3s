@@ -1,4 +1,5 @@
 --atlas -f rgba -z auto
 
-empty_bottom.jpg
-empty_top.jpg
+./MainMenu/empty_bottom.jpg
+./MainMenu/empty_top.jpg
+./MainMenu/logo.png
