@@ -13,8 +13,6 @@ PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 {
 
 	Papas::ResourceManager::getInstance().initMusicPlayer();
-	//linearFree(THEORA_audioBuffer);
-	//ndspChnReset(0);
 	Papas::ResourceManager::getInstance().playMusic("romfs:/music/toppingscreen_music.ogg");
 
 	// Load the backgrounds
@@ -162,6 +160,10 @@ PapasError Papas::IntroVid::init(Papas::SceneManager *sceneManager)
 	p_sceneManager = sceneManager;
 	startedPlaying = false;
 	Papas::ResourceManager::getInstance().endMusicPlayer();
+
+	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
+	skip_bg = C2D_SpriteSheetGetImage(sheet_bg, 0);
+
 	ndspInit();
 
 	ndspSetCallback(TP_audioCallback, NULL);
@@ -210,6 +212,7 @@ PapasError Papas::IntroVid::render_top()
 PapasError Papas::IntroVid::render_bottom()
 {
 
+	C2D_DrawImageAt(skip_bg, 0, 0, 0, NULL, 1, 1);
 
 	return PAPAS_OK;
 }

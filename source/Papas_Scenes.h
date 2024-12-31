@@ -21,6 +21,8 @@ namespace Papas {
 	private:
 		bool startedPlaying;
 		Papas::SceneManager *p_sceneManager;
+		C2D_SpriteSheet sheet_bg;
+		C2D_Image skip_bg;
 	};
 
 	class MainMenu : public Scene {
