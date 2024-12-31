@@ -62,6 +62,7 @@ namespace Papas {
 		PapasError render_top() override;
 		PapasError render_bottom() override;
 		PapasError terminate() override;
+		void TakeOrder();
 	private:
 		enum Stations
 		{
