@@ -83,6 +83,7 @@ namespace Papas {
 		C2D_SpriteSheet shee_buttons;
 		Button createReceipt;
 		
+		bool takingOrder;
 
 		C2D_Image currentStationImg;
 		C2D_Image currentPopupImg;
