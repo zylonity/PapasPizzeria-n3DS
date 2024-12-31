@@ -131,6 +131,10 @@ namespace Papas {
 		v2 scale;
 		C2D_Sprite receipt_bg;
 		C2D_Image s_nums_cross;
+		bool needleDrawn;
+		int selectedCut;
+		C2D_Sprite needle;
+		C2D_Image s_cuts[4];
 		C2D_Image s_nums[12];
 		C2D_Image s_topps[7];
 		C2D_Image s_quarters[4];
@@ -142,12 +146,14 @@ namespace Papas {
 		float currentDepth;
 		size_t currentItems;
 		ReceiptSubSection sections[7];
-		void init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top);
+		void init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top);
 		void moveReceipt(v2 moveTo);
 		void setPosReceipt(v2 moveTo);
 		void scaleReceipt(v2 scaleTo);
 		void setScaleReceipt(v2 scaleTo);
 		void addItem(Coverage size, Toppings top, int Quant);
+		void addTime(int time);
+		void addCut(int slices);
 		void renderReceipt();
 	};
 
@@ -165,7 +171,7 @@ namespace Papas {
 		bool dockInUse;
 
 		//Actual functions to do with creating a receipt on both screens;
-		void init(int receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet);
+		void init(int receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet);
 		void showReceipt(bool topReceipt);
 		void detectMovement(touchPosition &touch);
 		bool detectTouch(touchPosition &touch);
@@ -184,7 +190,7 @@ namespace Papas {
 
 		void createReceipt();
 		void renderReceipt(bool topReceipt);
-		
+
 		void detectMovement(touchPosition &touch);
 		void moveReceiptToBack(int indexToMove);
 		
@@ -194,7 +200,7 @@ namespace Papas {
 		float normalizedDepth();
 		C2D_Font* dokyo;
 		C2D_SpriteSheet receipt_spriteSheet;
-
+		C2D_SpriteSheet receipt_spriteSheet2;
 		std::vector<Receipt*> v_receipts;
 		u16 maxReceipts;
 		size_t activeReceiptIndex;

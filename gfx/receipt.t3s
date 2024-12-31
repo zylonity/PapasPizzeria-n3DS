@@ -13,7 +13,7 @@
 ./Receipt/numbers/10.png
 ./Receipt/numbers/11.png
 ./Receipt/numbers/12.png
-./Receipt/numbers/X.png
+./Receipt/numbers/X_cross.png
 ./Receipt/toppings/Pepperoni.png
 ./Receipt/toppings/Meat.png
 ./Receipt/toppings/Mushroom.png
@@ -25,3 +25,9 @@
 ./Receipt/Half.png
 ./Receipt/Quarter3.png
 ./Receipt/Full.png
+./Receipt/needle.png
+./Receipt/slices2.png
+./Receipt/slices4.png
+./Receipt/slices6.png
+./Receipt/slices8.png
+
