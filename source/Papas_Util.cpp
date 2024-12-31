@@ -30,6 +30,8 @@ void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, in
 
 bool Papas::Button::showButton(touchPosition& touch, bool selected, bool* aPressed) {
 
+	static touchPosition lastTouch;
+
 	hitBox.left = pos.x;
 	hitBox.top = pos.y;
 	hitBox.height = img_Pressed.subtex->height;
@@ -37,7 +39,8 @@ bool Papas::Button::showButton(touchPosition& touch, bool selected, bool* aPress
 
 	//Detect touch
 	//If between left and between right and between top and between bottom
-	if (touch.px > hitBox.left && touch.px < hitBox.left + hitBox.width && touch.py > hitBox.top && touch.py < hitBox.top + hitBox.height) {
+	if (touch.px == 0.0f && touch.py == 0.0f && lastTouch.px > hitBox.left && lastTouch.px < hitBox.left + hitBox.width && lastTouch.py > hitBox.top && lastTouch.py < hitBox.top + hitBox.height)
+	{
 		C2D_DrawImageAt(img_Pressed, pos.x, pos.y, 1, NULL, 1, 1);
 
 		if (!wasPressed)
@@ -60,8 +63,9 @@ bool Papas::Button::showButton(touchPosition& touch, bool selected, bool* aPress
 		else
 			C2D_DrawImageAt(img_Unpressed, pos.x, pos.y, 1, NULL, 1, 1);
 
-		
+		lastTouch = touch;
 	}
+
 
 	return false;
 }

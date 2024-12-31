@@ -42,14 +42,6 @@ PapasError Papas::ResourceManager::endMusicPlayer()
 PapasError Papas::ResourceManager::playMusic(const char *name)
 {
 
-    // music = Mix_LoadMUS(ogg_file);
-    // if (music == NULL)
-    // {
-    //     Mix_CloseAudio();
-    //     SDL_Quit();
-    //     return PAPAS_NOT_OK;
-    // }
-
     Mix_PlayMusic(songs[name], -1);
 
     return PAPAS_OK;
@@ -70,21 +62,8 @@ PapasError Papas::ResourceManager::stopMusic()
 
 PapasError Papas::ResourceManager::switchMusic(const char *name)
 {
-    // if (Mix_PlayingMusic())
-    // {
-    //     Mix_HaltMusic();
-    // }
 
-    // if (music != NULL)
-    // {
-    //     Mix_FreeMusic(music);
-    // }
-
-    // Load the new music file
-    //music = Mix_LoadMUS(ogg_file);
-    //Mix_FadeOutMusic(1000);
     Mix_FadeInMusic(songs[name], -1, 1000);
-    //Mix_PlayMusic(songs[name], -1);
 
     return PAPAS_OK;
 }
