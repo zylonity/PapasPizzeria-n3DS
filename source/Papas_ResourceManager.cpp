@@ -6,8 +6,8 @@
 
 #include "Papas_ResourceManager.h"
 
-#include <SDL/SDL.h>
-#include <SDL/SDL_mixer.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
 PapasError Papas::ResourceManager::init()
 {

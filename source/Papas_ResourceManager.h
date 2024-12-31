@@ -5,9 +5,8 @@
 
 #include "Papas_Constants.h"
 #include "Papas_Renderer.h"
-
-//Forward declarations
-typedef struct _Mix_Music Mix_Music;
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
 namespace Papas
 {
