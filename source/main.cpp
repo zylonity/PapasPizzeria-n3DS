@@ -12,11 +12,12 @@
 int main(int argc, char* argv[]) {
     
 	// PapasError ret;
-
+	SDL_SetMainReady();
 	// // Initialize our framework. This encapsulates all systems.
 	// ret = g_framework.init();
 	// ASSERT(ret == PAPAS_OK, "");
 	romfsInit();
+	
 	// Initialize SDL
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
