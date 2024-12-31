@@ -290,6 +290,12 @@ PapasError Papas::Game::render_top()
 	return PAPAS_OK;
 }
 
+void Papas::Game::TakeOrder()
+{
+
+	
+}
+
 PapasError Papas::Game::render_bottom()
 {
 
