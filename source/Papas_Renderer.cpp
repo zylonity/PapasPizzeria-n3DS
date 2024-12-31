@@ -53,32 +53,32 @@ PapasError Papas::Renderer::update(Papas::SceneManager* sceneManager) {
 PapasError Papas::Renderer::render(Papas::SceneManager* sceneManager) {
 	//PapasError ret;
 
+	C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+
 #ifndef DEBUGGING_TOP
 	// Render the scene
 	C2D_TargetClear(topRenderTarget, C2D_Color32(0x00, 0x00, 0x00, 0xff));
-	C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
 	C2D_SceneBegin(topRenderTarget);
 
 	//Render the scene's top screen
 	sceneManager->render_top();
 
 
-	C3D_FrameEnd(0);
+	//C3D_FrameEnd(0);
 #endif
 	
 #ifndef DEBUGGING_BOTTOM
 	// Render the scene
 	C2D_TargetClear(bottomRenderTarget, C2D_Color32(0x00, 0x00, 0x00, 0xff));
-	C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+	//C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
 	C2D_SceneBegin(bottomRenderTarget);
 
 	//Render the scene's bottom screen
 	sceneManager->render_bottom();
 
-	C3D_FrameEnd(0);
 #endif
-	
 
+	C3D_FrameEnd(0);
 	gspWaitForVBlank();
 	return PAPAS_OK;
 }

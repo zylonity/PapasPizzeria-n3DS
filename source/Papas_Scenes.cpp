@@ -12,6 +12,7 @@
 PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 {
 
+	Papas::ResourceManager::getInstance().initMusicPlayer();
 	//linearFree(THEORA_audioBuffer);
 	//ndspChnReset(0);
 	Papas::ResourceManager::getInstance().playMusic("romfs:/music/toppingscreen_music.ogg");
@@ -150,7 +151,7 @@ PapasError Papas::MainMenu::terminate()
 		C2D_SpriteSheetFree(sheet_buttons);
 		sheet_buttons = nullptr;
 	}
-	Papas::ResourceManager::getInstance().stopMusic();
+
 
 	return PAPAS_OK;
 }
@@ -160,15 +161,11 @@ PapasError Papas::IntroVid::init(Papas::SceneManager *sceneManager)
 
 	p_sceneManager = sceneManager;
 	startedPlaying = false;
+	Papas::ResourceManager::getInstance().endMusicPlayer();
 	ndspInit();
 
-	//ndspCallback
 	ndspSetCallback(TP_audioCallback, NULL);
-	//ndspAuxSetCallback(0, TP_audioCallback, NULL);
-	//DSP_UnloadComponent();
-	//ndspRe
-	//ndspCallback();
-	//ndspGet
+
 	return PAPAS_OK;
 }
 
@@ -184,7 +181,7 @@ PapasError Papas::IntroVid::update()
 
 	if (!THEORA_isplaying && startedPlaying == false)
 	{
-		TP_changeFile("romfs:/videos/test.ogg");
+		TP_changeFile("romfs:/videos/ready.ogv");
 	}
 	else{
 		startedPlaying = true;
@@ -223,7 +220,7 @@ PapasError Papas::IntroVid::terminate()
 	ndspExit();
 	//Mix_HookMusic(ndspCallback, NULL);
 
-	Mix_CloseAudio();
+	Papas::ResourceManager::getInstance().initMusicPlayer();
 	//SDL_Quit();
 
 	return PAPAS_OK;

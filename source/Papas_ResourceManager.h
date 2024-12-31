@@ -16,6 +16,8 @@ namespace Papas
 	{
 	public:
 		PapasError init();
+		PapasError initMusicPlayer();
+		PapasError endMusicPlayer();
 
 		PapasError terminate();
 
