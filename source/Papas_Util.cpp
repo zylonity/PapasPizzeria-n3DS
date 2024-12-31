@@ -593,7 +593,18 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 	{
 		if (activeReceiptIndex != -1)
 		{
+			//Once the receipt's been let go
 			v_receipts[activeReceiptIndex]->detectMovement(touch);
+			if (v_receipts[activeReceiptIndex]->dockInUse){
+				for (size_t j = 0; j < v_receipts.size(); j++)
+				{
+					if (v_receipts[j]->dockInUse && v_receipts[j] != v_receipts[activeReceiptIndex])
+					{
+						v_receipts[j]->forceDocking();
+					}
+				}
+				
+			}
 			moveReceiptToBack(activeReceiptIndex);
 			activeReceiptIndex = -1;
 			
