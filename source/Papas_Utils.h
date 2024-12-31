@@ -168,6 +168,7 @@ namespace Papas {
 		void init(int receiptNum, C2D_Font *font, C2D_SpriteSheet& receipt_spriteSheet);
 		void showReceipt(bool topReceipt);
 		void detectMovement(touchPosition &touch);
+		bool detectTouch(touchPosition &touch);
 		void forceDocking();
 		void terminate();
 	};
@@ -184,6 +185,7 @@ namespace Papas {
 		void createReceipt();
 		void renderReceipt(bool topReceipt);
 		void detectMovement(touchPosition &touch);
+		void moveReceiptToBack(int indexToMove);
 		
 
 	private:
@@ -192,7 +194,7 @@ namespace Papas {
 		C2D_Font* dokyo;
 		C2D_SpriteSheet receipt_spriteSheet;
 
-		std::vector<Receipt> v_receipts;
+		std::vector<Receipt*> v_receipts;
 		u16 maxReceipts;
 		size_t activeReceiptIndex;
 		float currentMaxDepth;
