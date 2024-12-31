@@ -13,7 +13,11 @@ PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 {
 
 	Papas::ResourceManager::getInstance().initMusicPlayer();
-	Papas::ResourceManager::getInstance().playMusic("romfs:/music/toppingscreen_music.ogg");
+	Papas::ResourceManager::getInstance().loadSong("topping_music", "romfs:/music/toppingscreen_music.ogg");
+	Papas::ResourceManager::getInstance().loadSong("baking_music", "romfs:/music/bakingscreen_music.ogg");
+	Papas::ResourceManager::getInstance().loadSong("cutting_music", "romfs:/music/cuttingscreen_music.ogg");
+	Papas::ResourceManager::getInstance().loadSong("orders_music", "romfs:/music/orderscreen_music.ogg");
+	Papas::ResourceManager::getInstance().playMusic("topping_music");
 
 	// Load the backgrounds
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
@@ -348,32 +352,30 @@ void Papas::Game::SwitchStation(Stations station)
 	switch (station)
 	{
 	case TicketStation:
-		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/orderscreen_music.ogg");
+		Papas::ResourceManager::getInstance().switchMusic("orders_music");
 		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 0);
 		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 1);
 		currentStation = station;
 		break;
 	case ToppingStation:
-		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/toppingscreen_music.ogg");
+		Papas::ResourceManager::getInstance().switchMusic("topping_music");
 		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 2);
 		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 3);
 		currentStation = station;
 		break;
 	case BakingStation:
-		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/bakingscreen_music.ogg");
+		Papas::ResourceManager::getInstance().switchMusic("baking_music");
 		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 4);
 		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 5);
 		currentStation = station;
 		break;
 	case CuttingStation:
-		Papas::ResourceManager::getInstance().switchMusic("romfs:/music/cuttingscreen_music.ogg");
+		Papas::ResourceManager::getInstance().switchMusic("cutting_music");
 		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 6);
 		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 7);
 		currentStation = station;
 		break;
 	}
-
-	
 }
 
 PapasError Papas::Game::terminate()

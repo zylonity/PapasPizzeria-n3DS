@@ -4,7 +4,7 @@
 //===============================================================================
 
 #include "Papas_Constants.h"
-#include "Papas_Renderer.h"
+#include <unordered_map>
 
 //Forward declarations
 typedef struct _Mix_Music Mix_Music;
@@ -21,10 +21,11 @@ namespace Papas
 
 		PapasError terminate();
 
-		PapasError playMusic(const char* ogg_file);
+		PapasError loadSong(const char *name, const char *ogg_file);
+		PapasError playMusic(const char* name);
 		PapasError stopMusic();
 		PapasError pauseMusic();
-		PapasError switchMusic(const char *ogg_file);
+		PapasError switchMusic(const char *name);
 
 		//===============================================================================
 		// Singleton Implementations
@@ -38,7 +39,8 @@ namespace Papas
 		void operator=(ResourceManager const&)			= delete;	// Assignment Operator
 		//===============================================================================
 	private:
-		Mix_Music *music;
+		std::unordered_map<const char*, Mix_Music*> songs;
+		//Mix_Music *music;
 
 		//===============================================================================
 		// Singleton Implementations (Banned functions to prevent a new instance)

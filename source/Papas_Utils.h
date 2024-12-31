@@ -184,6 +184,7 @@ namespace Papas {
 
 		void createReceipt();
 		void renderReceipt(bool topReceipt);
+		
 		void detectMovement(touchPosition &touch);
 		void moveReceiptToBack(int indexToMove);
 		
