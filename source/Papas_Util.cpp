@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 #include <cstdlib> // for rand() and srand()
+#include <vector>
 
 Papas::Button::Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
 
@@ -338,7 +339,6 @@ void Papas::ReceiptParts::renderReceipt()
 	// Draw the text at the scaled position
 	C2D_DrawText(&receipt_text, C2D_WithColor, scaledTextX, scaledTextY, textDepth, scale.x, scale.y, C2D_Color32(240, 156, 156, 255));
 
-
 	//For the sections:
 	for (size_t i = 0; i < currentItems; i++)
 	{
@@ -382,6 +382,24 @@ void Papas::Receipt::showReceipt(bool topReceipt)
 		bottom.renderReceipt();
 	}
 	
+}
+
+bool Papas::Receipt::detectTouch(touchPosition &touch)
+{
+
+	if (touch.px != 0 || touch.py != 0) // I wanna account for latency, if the receipt is moving but you move outside the hitbox faster than the hitbox can move, it still drags
+	{
+		if (
+			(touch.px > bottom.hitBox.left && touch.px < bottom.hitBox.left + bottom.hitBox.width &&
+			 touch.py > bottom.hitBox.top && touch.py < bottom.hitBox.top + bottom.hitBox.height))
+		{
+
+			return true;
+		}
+	}
+	
+
+	return false;
 }
 
 void Papas::Receipt::detectMovement(touchPosition &touch)
@@ -445,6 +463,7 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 		}
 
 		isDragging = false;
+		
 	}
 }
 
@@ -483,18 +502,18 @@ void Papas::ReceiptManager::initManager(C2D_Font *font)
 
 void Papas::ReceiptManager::createReceipt()
 {
-	
-	for (size_t i = 0; i < v_receipts.size(); i++)
+
+	for (size_t i = v_receipts.size(); i-- > 0;)
 	{
-		if (v_receipts[i].dockInUse){
-			v_receipts[i].forceDocking();
+		if (v_receipts[i]->dockInUse){
+			v_receipts[i]->forceDocking();
 		}
 	}
-	Receipt temp;
-	temp.init(maxReceipts, dokyo, receipt_spriteSheet);
+	Receipt* temp = new Receipt();
+	temp->init(maxReceipts, dokyo, receipt_spriteSheet);
 	currentMaxDepth += 0.1f;
-	temp.bottom.currentDepth = normalizedDepth();
-	temp.top.currentDepth = normalizedDepth();
+	temp->bottom.currentDepth = normalizedDepth();
+	temp->top.currentDepth = normalizedDepth();
 	v_receipts.push_back(temp);
 	maxReceipts++;
 }
@@ -503,9 +522,8 @@ void Papas::ReceiptManager::renderReceipt(bool topReceipt)
 {
 	for (size_t i = 0; i < v_receipts.size(); i++)
 	{
-		v_receipts[i].showReceipt(topReceipt);
+		v_receipts[i]->showReceipt(topReceipt);
 	}
-	
 }
 
 float Papas::ReceiptManager::normalizedDepth()
@@ -513,6 +531,13 @@ float Papas::ReceiptManager::normalizedDepth()
 	const float maxDepth = 0.95f; // Closest to the camera
 	const float minDepth = 0.1f; // Farthest from the camera
 	return (currentMaxDepth - minDepth) / (maxDepth / minDepth);
+}
+
+void Papas::ReceiptManager::moveReceiptToBack(int indexToMove)
+{
+	Receipt* tempReceipt = v_receipts[indexToMove];
+	v_receipts.erase(v_receipts.begin() + indexToMove);
+	v_receipts.push_back(tempReceipt);
 }
 
 void Papas::ReceiptManager::detectMovement(touchPosition &touch)
@@ -525,25 +550,25 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 		if (activeReceiptIndex == -1) // No receipt is being dragged
 		{
 
-			//Basically, we need to figure out what the best receipt to grab is, depending on how deep it is
-			// so these guys lmk which the best index is by going through the loop
+			// Basically, we need to figure out what the best receipt to grab is, depending on how deep it is
+			//  so these guys lmk which the best index is by going through the loop
 			float maxDepth = -1.0f;
 			float bestReceiptIndex = -1;
 
 			// Find the first receipt that is touched
-			for (size_t i = 0; i < v_receipts.size(); i++)
+			for (size_t i = v_receipts.size(); i-- > 0;)
 			{
-				if (touch.px > v_receipts[i].bottom.hitBox.left &&
-					touch.px < v_receipts[i].bottom.hitBox.left + v_receipts[i].bottom.hitBox.width &&
-					touch.py > v_receipts[i].bottom.hitBox.top &&
-					touch.py < v_receipts[i].bottom.hitBox.top + v_receipts[i].bottom.hitBox.height)
+				
+				if (touch.px > v_receipts[i]->bottom.hitBox.left &&
+					touch.px < v_receipts[i]->bottom.hitBox.left + v_receipts[i]->bottom.hitBox.width &&
+					touch.py > v_receipts[i]->bottom.hitBox.top &&
+					touch.py < v_receipts[i]->bottom.hitBox.top + v_receipts[i]->bottom.hitBox.height)
 				{
-					if (v_receipts[i].bottom.currentDepth > maxDepth)
+					if (v_receipts[i]->bottom.currentDepth > maxDepth)
 					{
-						maxDepth = v_receipts[i].bottom.currentDepth;
+						maxDepth = v_receipts[i]->bottom.currentDepth;
 						bestReceiptIndex = i;
 					}
-
 				}
 			}
 
@@ -554,22 +579,24 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 				// add the depth and allow it to moove
 				// this might fuck up later, if you move the receipts too much, pain in my ass
 				currentMaxDepth += 0.1f;
-				v_receipts[activeReceiptIndex].bottom.currentDepth = normalizedDepth();
-				v_receipts[activeReceiptIndex].top.currentDepth = normalizedDepth();
+				v_receipts[activeReceiptIndex]->bottom.currentDepth = normalizedDepth();
+				v_receipts[activeReceiptIndex]->top.currentDepth = normalizedDepth();
 			}
 		}
 
 		if (activeReceiptIndex != -1)
 		{
-			v_receipts[activeReceiptIndex].detectMovement(touch);
+			v_receipts[activeReceiptIndex]->detectMovement(touch);
 		}
 	}
 	else
 	{
 		if (activeReceiptIndex != -1)
 		{
-			v_receipts[activeReceiptIndex].detectMovement(touch);
-			activeReceiptIndex = -1;							 
+			v_receipts[activeReceiptIndex]->detectMovement(touch);
+			moveReceiptToBack(activeReceiptIndex);
+			activeReceiptIndex = -1;
+			
 		}
 	}
 }
@@ -577,8 +604,10 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 void Papas::ReceiptManager::terminateManager()
 {
 	C2D_SpriteSheetFree(receipt_spriteSheet);
-	for (size_t i = 0; i < v_receipts.size(); i++)
+	for (size_t i = v_receipts.size(); i-- > 0;)
 	{
-		v_receipts[i].terminate();
+		v_receipts[i]->terminate();
+		delete v_receipts[i];
+		v_receipts[i] = nullptr;
 	}
 }
