@@ -4,6 +4,66 @@
 #include <string>
 #include <chrono>
 #include <citro2d.h>
+#include <SDL_theora.h>
+
+PapasError Papas::InitVideo::init(Papas::SceneManager *sceneManager)
+{
+
+
+	SDL_Window *window = SDL_CreateWindow(
+		"SDL2 Renderer Example",
+		SDL_WINDOWPOS_CENTERED,
+		SDL_WINDOWPOS_CENTERED,
+		400, 240, // Screen size for the 3DS
+		SDL_WINDOW_SHOWN);
+
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+	my_video = THR_Load("romfs:/videos/test.ogg", renderer);
+
+	SDL_Texture *video_texture = THR_UpdateVideo(my_video);
+	// Use SDL_RenderCopy to blit the texture normally
+
+	if (THR_IsPlaying(my_video) == 0)
+		THR_DestroyVideo(my_video);
+	p_sceneManager = sceneManager;
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::InitVideo::update()
+{
+
+	hidScanInput();
+	// Respond to user input
+	u32 kDown = hidKeysDown();
+	if (kDown & KEY_START)
+		return PAPAS_NOT_OK; // break in order to return to hbmenu
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::InitVideo::render_top()
+{
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::InitVideo::render_bottom()
+{
+
+
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::InitVideo::terminate()
+{
+
+
+
+	return PAPAS_OK;
+}
 
 PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 {

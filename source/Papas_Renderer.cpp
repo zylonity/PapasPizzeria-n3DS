@@ -32,7 +32,7 @@ PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	
 
 	//Init the first scene
-	sceneManager->changeScene(new Papas::MainMenu());
+	sceneManager->changeScene(new Papas::InitVideo());
 
 
 	return PAPAS_OK;
