@@ -14,11 +14,30 @@ PapasError Papas::ResourceManager::init()
 
     SDL_Init(SDL_INIT_AUDIO);
 
+    //
+
+    return PAPAS_OK;
+}
+
+PapasError Papas::ResourceManager::initMusicPlayer()
+{
+
+    //SDL_Init(SDL_INIT_AUDIO);
+
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 
     return PAPAS_OK;
 }
 
+PapasError Papas::ResourceManager::endMusicPlayer()
+{
+
+    // SDL_Init(SDL_INIT_AUDIO);
+    Mix_CloseAudio();
+    //Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+
+    return PAPAS_OK;
+}
 
 PapasError Papas::ResourceManager::playMusic(const char *ogg_file)
 {
