@@ -162,7 +162,7 @@ PapasError Papas::IntroVid::init(Papas::SceneManager *sceneManager)
 	Papas::ResourceManager::getInstance().endMusicPlayer();
 
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
-	skip_bg = C2D_SpriteSheetGetImage(sheet_bg, 0);
+	skip_bg = C2D_SpriteSheetGetImage(sheet_bg, 3);
 
 	ndspInit();
 
@@ -189,6 +189,11 @@ PapasError Papas::IntroVid::update()
 		startedPlaying = true;
 	}
 
+	if (kDown & KEY_B && THEORA_isplaying && startedPlaying)
+	{
+		TP_exitThread(); //finishes playing the video (skips)
+	}
+
 	return PAPAS_OK;
 }
 
@@ -211,7 +216,6 @@ PapasError Papas::IntroVid::render_top()
 
 PapasError Papas::IntroVid::render_bottom()
 {
-
 	C2D_DrawImageAt(skip_bg, 0, 0, 0, NULL, 1, 1);
 
 	return PAPAS_OK;
@@ -221,10 +225,13 @@ PapasError Papas::IntroVid::terminate()
 {
 	TP_exitThread();
 	ndspExit();
-	//Mix_HookMusic(ndspCallback, NULL);
 
-	Papas::ResourceManager::getInstance().initMusicPlayer();
-	//SDL_Quit();
+	if (sheet_bg)
+	{
+		C2D_SpriteSheetFree(sheet_bg);
+		sheet_bg = nullptr;
+	}
+
 
 	return PAPAS_OK;
 }
@@ -232,9 +239,8 @@ PapasError Papas::IntroVid::terminate()
 PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 {
 
-	//SDL_Init(SDL_INIT_AUDIO);
-	//ndspcal
-	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+
+	Papas::ResourceManager::getInstance().initMusicPlayer();
 
 	s_stations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
 	shee_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
