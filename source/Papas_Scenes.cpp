@@ -132,7 +132,7 @@ PapasError Papas::MainMenu::render_bottom()
 		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed))
 		{
 			if(i == 0){
-				p_sceneManager->changeScene(new Papas::IntroVid());
+				p_sceneManager->changeScene(new Papas::Game()); //skip intro video temporarily
 				// ResourceManager::getInstance().stopMusic();
 			}
 

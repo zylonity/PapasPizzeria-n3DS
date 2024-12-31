@@ -250,9 +250,24 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 	scale = scaleToGive;
 	currentDepth = 0.01f;
 	currentItems = 0;
+	needleDrawn = false;
+	selectedCut = -1;
 
 	C2D_SpriteFromSheet(&receipt_bg, receipt_spriteSheet, 0);
 
+
+
+	//Needle
+	C2D_SpriteFromSheet(&needle, receipt_spriteSheet, 25);
+	C2D_SpriteSetCenterRaw(&needle, 3, 19);
+	C3D_TexSetFilter(needle.image.tex, GPU_LINEAR, GPU_LINEAR);
+
+	//Cuts/Slices
+	for (size_t i = 0; i < 4; i++)
+	{
+		s_cuts[i] = C2D_SpriteSheetGetImage(receipt_spriteSheet, i + 26);
+		C3D_TexSetFilter(s_cuts[i].tex, GPU_LINEAR, GPU_LINEAR);
+	}
 	//Numbers and cross
 	//I want cross to be 0th item cos that way each number corresponds to itself soo:
 	s_nums_cross = C2D_SpriteSheetGetImage(receipt_spriteSheet, 13);
@@ -286,6 +301,8 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 	C3D_TexSetFilter(receipt_bg.image.tex, GPU_LINEAR, GPU_LINEAR);
 	C2D_SpriteSetDepth(&receipt_bg, currentDepth);
 	hitBox = {receipt_bg.params.pos.x, receipt_bg.params.pos.y, receipt_bg.params.pos.w, receipt_bg.params.pos.h};
+	addTime(7);
+	addCut(8);
 }
 
 void Papas::ReceiptParts::addItem(Coverage size, Toppings top, int Quant)
@@ -297,6 +314,30 @@ void Papas::ReceiptParts::addItem(Coverage size, Toppings top, int Quant)
 	sections[currentItems].Quantity = Quant;
 	sections[currentItems].i_Quantity = s_nums[Quant-1];
 	currentItems++;
+}
+
+void Papas::ReceiptParts::addTime(int time)
+{
+	needleDrawn = true;
+	C2D_SpriteSetRotationDegrees(&needle, time * 45);
+}
+
+void Papas::ReceiptParts::addCut(int slices)
+{
+	switch (slices){
+		case 2:
+		selectedCut = 0;
+		break;
+		case 4:
+		selectedCut = 1;
+		break;
+		case 6:
+		selectedCut = 2;
+		break;
+		case 8:
+		selectedCut = 3;
+		break;
+	}
 }
 
 void Papas::ReceiptParts::moveReceipt(v2 moveBy)
@@ -360,6 +401,23 @@ void Papas::ReceiptParts::renderReceipt()
 
 		float CoveragePosX = pos.x + (10 * scale.x);
 		C2D_DrawImageAt(sections[i].i_cover, CoveragePosX, PosY, textDepth, nullptr, scale.x * 0.15f, scale.y * 0.15f);
+	}
+	// Calculate the needle
+	if (needleDrawn)
+	{
+		float NeedlePosY = pos.y + (203.4f * scale.y);
+
+		float NeedlePosX = pos.x + (31.8f * scale.x);
+		C2D_SpriteSetDepth(&needle, textDepth);
+		C2D_SpriteSetPos(&needle, NeedlePosX, NeedlePosY);
+		C2D_SpriteSetScale(&needle, 0.75f * scale.x, 0.75f * scale.y);
+		C2D_DrawSprite(&needle);
+	}
+
+	if(selectedCut != -1){
+		float SlicesPosY = pos.y + (189 * scale.y);
+		float SlicesPosX = pos.x + (75 * scale.x);
+		C2D_DrawImageAt(s_cuts[selectedCut], SlicesPosX, SlicesPosY, textDepth, nullptr, scale.x * 0.5f, scale.y * 0.5f);
 	}
 	
 }
