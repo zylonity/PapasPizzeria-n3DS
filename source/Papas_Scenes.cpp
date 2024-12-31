@@ -268,23 +268,32 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 	SwitchStation(TicketStation);
 
+	takingOrder = true;
+
 	return PAPAS_OK;
 }
 
 PapasError Papas::Game::render_top()
 {
 
-	C2D_DrawImageAt(ticketsStationImg, 0, 0, 0.001f);
+	
 	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0.002f);
-	C2D_DrawImageAt(currentPopupImg, 0, 214, 0.003f);
 
-	if(currentStation == TicketStation){
-		guy.renderAnim(true);
+	if(!takingOrder){
+		C2D_DrawImageAt(ticketsStationImg, 0, 0, 0.001f);
+		C2D_DrawImageAt(currentPopupImg, 0, 214, 0.003f);
+		if (currentStation == TicketStation)
+		{
+			guy.renderAnim(true);
+		}
+		else
+		{
+			guy.renderAnimBackwards(false);
+		}
 	}
-	else{
-		guy.renderAnimBackwards(false);
-	}
+	
 
+	
 	r_manager.renderReceipt(true);
 
 	return PAPAS_OK;
@@ -344,9 +353,9 @@ PapasError Papas::Game::update()
 		}
 	}
 
-
-	r_manager.detectMovement(touch);
-
+	if (!takingOrder){
+		r_manager.detectMovement(touch);
+	}
 	return PAPAS_OK;
 }
 
