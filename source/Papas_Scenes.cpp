@@ -131,9 +131,11 @@ PapasError Papas::MainMenu::render_bottom()
 		// Detect when button is pressed either through keys or touchscreen
 		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed))
 		{
+			if(i == 0){
+				p_sceneManager->changeScene(new Papas::IntroVid());
+				// ResourceManager::getInstance().stopMusic();
+			}
 
-			p_sceneManager->changeScene(new Papas::IntroVid());
-			//ResourceManager::getInstance().stopMusic();
 		}
 	}
 
