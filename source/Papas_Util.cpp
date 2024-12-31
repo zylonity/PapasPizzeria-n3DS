@@ -615,10 +615,11 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 void Papas::ReceiptManager::terminateManager()
 {
 	C2D_SpriteSheetFree(receipt_spriteSheet);
-	for (size_t i = v_receipts.size(); i-- > 0;)
+	for (size_t j = 0; j < v_receipts.size(); j++)
 	{
-		v_receipts[i]->terminate();
-		delete v_receipts[i];
-		v_receipts[i] = nullptr;
+		v_receipts[j]->terminate();
+		delete v_receipts[j];
+		v_receipts[j] = nullptr;
 	}
+	v_receipts.clear();
 }
