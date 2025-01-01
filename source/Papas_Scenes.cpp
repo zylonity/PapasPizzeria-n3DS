@@ -260,11 +260,11 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 	v2 pos = {-24, 45};
 	v2 scl = {0.8f, 0.8f};
-	guy.createAnim("romfs:/gfx/guy_peeking.t3x", 0.0f, pos, scl, 35.0f);
+	Roy.createAnim("romfs:/gfx/Roy_peeking.t3x", 0.0f, pos, scl, 35.0f);
 
 	v2 pos_order = {-45, 45};
 	v2 scl_order = {1.0f, 1.0f};
-	guy2.createAnim("romfs:/gfx/guy_takingorder.t3x", 0.0f, pos_order, scl_order, 0.0f);
+	Roy2.createAnim("romfs:/gfx/Roy_takingorder.t3x", 0.0f, pos_order, scl_order, 0.0f);
 
 	// Receipt system stuff to move later
 	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
@@ -292,11 +292,11 @@ PapasError Papas::Game::render_top()
 		C2D_DrawImageAt(currentPopupImg, 0, 214, 0.003f);
 		if (currentStation == TicketStation)
 		{
-			guy.renderAnim(true);
+			Roy.renderAnim(true);
 		}
 		else
 		{
-			guy.renderAnimBackwards(false);
+			Roy.renderAnimBackwards(false);
 		}
 	}
 	else{
@@ -314,7 +314,7 @@ void Papas::Game::TakeOrder()
 {
 	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
 	C2D_DrawImageAt(to_counter, 0, 0, 0);
-	guy2.renderAnimWithPauses(5, 3000);
+	Roy2.renderAnimWithPauses(5, 3000);
 }
 
 PapasError Papas::Game::render_bottom()
@@ -376,7 +376,7 @@ void Papas::Game::SwitchStation(Stations station)
 {
 	if (station == TicketStation || currentStation == TicketStation)
 	{
-		guy.resetAnim();
+		Roy.resetAnim();
 	}
 
 	switch (station)
@@ -417,8 +417,8 @@ PapasError Papas::Game::terminate()
 		s_stations = nullptr;
 	}
 
-	guy.destroyAnim();
-	guy2.destroyAnim();
+	Roy.destroyAnim();
+	Roy2.destroyAnim();
 	r_manager.terminateManager();
 	C2D_SpriteSheetFree(orderStation);
 

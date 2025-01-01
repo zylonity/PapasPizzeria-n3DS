@@ -76,8 +76,8 @@ namespace Papas {
 		Stations currentStation;
 		C2D_SpriteSheet s_stations;
 
-		GuyPeeking guy;
-		GuyTakingOrder guy2;
+		RoyPeeking Roy;
+		RoyTakingOrder Roy2;
 
 		C2D_Image ticketsStationImg;
 		C2D_Image ticketsHolderImg;
