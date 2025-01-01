@@ -89,6 +89,9 @@
         "xtree": "cpp",
         "*.tcc": "cpp",
         "text_encoding": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "functional": "cpp",
+        "numeric": "cpp",
+        "random": "cpp"
     }
 }

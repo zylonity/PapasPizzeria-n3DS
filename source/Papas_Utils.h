@@ -101,9 +101,11 @@ namespace Papas {
 	public:
 		using AnimatedSprite::AnimatedSprite;
 
-		void renderAnimWithPauses(int pauses, float pauseTime);
+		bool renderAnimWithPauses(int pauses, float pauseTime);
+		void resetAnim();
 
 	private:
+		bool pauseTriggered = false;
 		bool paused = false;
 		int currentPauses = 0;
 	};
@@ -187,6 +189,9 @@ namespace Papas {
 		void showReceipt(bool topReceipt);
 		void detectMovement(touchPosition &touch);
 		bool detectTouch(touchPosition &touch);
+		void addItem(Coverage size, Toppings topping, int Quant);
+		void addTime(int time);
+		void addCut(int slices);
 		void forceDocking();
 		void terminate();
 	};
@@ -202,9 +207,12 @@ namespace Papas {
 
 		void createReceipt();
 		void renderReceipt(bool topReceipt);
+		void renderDockedReceipt(bool topReceipt);
 
 		void detectMovement(touchPosition &touch);
 		void moveReceiptToBack(int indexToMove);
+
+		void getDockedReceipt(Receipt** returnReceipt);
 		
 
 	private:
