@@ -77,11 +77,10 @@ namespace Papas {
 		C2D_SpriteSheet s_stations;
 
 		GuyPeeking guy;
-		AnimatedSprite guy2;
+		GuyTakingOrder guy2;
 
 		C2D_Image ticketsStationImg;
 		C2D_Image ticketsHolderImg;
-		C2D_SpriteSheet shee_buttons;
 		Button createReceipt;
 		
 		C2D_SpriteSheet orderStation;
@@ -89,7 +88,7 @@ namespace Papas {
 		C2D_Image to_wallpaper;
 		C2D_Image to_counter;
 
-			C2D_Image currentStationImg;
+		C2D_Image currentStationImg;
 		C2D_Image currentPopupImg;
 
 		void SwitchStation(Stations station);
