@@ -83,7 +83,7 @@ namespace Papas {
 
 	};
 
-	class GuyPeeking : public AnimatedSprite
+	class RoyPeeking : public AnimatedSprite
 	{
 	public:
 		using AnimatedSprite::AnimatedSprite;
@@ -96,7 +96,7 @@ namespace Papas {
 		bool ranOnce = false;
 	};
 
-	class GuyTakingOrder : public AnimatedSprite
+	class RoyTakingOrder : public AnimatedSprite
 	{
 	public:
 		using AnimatedSprite::AnimatedSprite;

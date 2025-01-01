@@ -151,7 +151,7 @@ void Papas::AnimatedSprite::destroyAnim()
 	C2D_SpriteSheetFree(s_spriteSheet);
 }
 
-void Papas::GuyPeeking::renderAnim(bool loop)
+void Papas::RoyPeeking::renderAnim(bool loop)
 {
 	end = osGetTime();
 
@@ -201,7 +201,7 @@ void Papas::GuyPeeking::renderAnim(bool loop)
 	}
 }
 
-void Papas::GuyPeeking::renderAnimBackwards(bool loop)
+void Papas::RoyPeeking::renderAnimBackwards(bool loop)
 {
 
 	if(finished == false){
@@ -235,13 +235,13 @@ void Papas::GuyPeeking::renderAnimBackwards(bool loop)
 	}
 }
 
-void Papas::GuyPeeking::resetAnim()
+void Papas::RoyPeeking::resetAnim()
 {
 	finished = false;
 	currentSprite = 0;
 }
 
-void Papas::GuyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
+void Papas::RoyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
 {
 	end = osGetTime();
 
