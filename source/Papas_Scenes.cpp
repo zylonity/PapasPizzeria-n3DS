@@ -247,9 +247,8 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 
 	Papas::ResourceManager::getInstance().initMusicPlayer();
-	takingOrder = true;
+	takingOrder = false;
 	s_stations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
-	shee_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
 
 	ticketsStationImg = C2D_SpriteSheetGetImage(s_stations, 8);
 	ticketsHolderImg = C2D_SpriteSheetGetImage(s_stations, 9);
@@ -261,11 +260,11 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 	v2 pos = {-24, 45};
 	v2 scl = {0.8f, 0.8f};
-	guy.createAnim("romfs:/gfx/guy_peeking.t3x", 84.0f, pos, scl, 35.0f);
+	guy.createAnim("romfs:/gfx/guy_peeking.t3x", 0.0f, pos, scl, 35.0f);
 
-	v2 pos_order = {0, 45};
+	v2 pos_order = {-45, 45};
 	v2 scl_order = {1.0f, 1.0f};
-	guy2.createAnim("romfs:/gfx/guy_takingorder.t3x", 20.0f, pos_order, scl_order, 0.0f);
+	guy2.createAnim("romfs:/gfx/guy_takingorder.t3x", 0.0f, pos_order, scl_order, 0.0f);
 
 	// Receipt system stuff to move later
 	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
@@ -273,7 +272,7 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	r_manager.initManager(&dokyo);
 	r_manager.createReceipt();
 
-	createReceipt.createButton(shee_buttons, 0, 1, 2, {20, 120});
+	createReceipt.createButton(orderStation, 2, 2, 3, {34, 141});
 
 	SwitchStation(TicketStation);
 
@@ -313,10 +312,9 @@ PapasError Papas::Game::render_top()
 
 void Papas::Game::TakeOrder()
 {
-	takingOrder = true;
 	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
 	C2D_DrawImageAt(to_counter, 0, 0, 0);
-	guy2.renderAnim(true);
+	guy2.renderAnimWithPauses(5, 3000);
 }
 
 PapasError Papas::Game::render_bottom()
@@ -331,6 +329,7 @@ PapasError Papas::Game::render_bottom()
 	if (currentStation == TicketStation)
 	{
 		if(createReceipt.showButton(touch)){
+			takingOrder = true;
 			r_manager.createReceipt();
 		}
 	}
@@ -421,7 +420,7 @@ PapasError Papas::Game::terminate()
 	guy.destroyAnim();
 	guy2.destroyAnim();
 	r_manager.terminateManager();
-	C2D_SpriteSheetFree(shee_buttons);
+	C2D_SpriteSheetFree(orderStation);
 
 	return PAPAS_OK;
 }

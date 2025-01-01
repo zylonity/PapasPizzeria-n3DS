@@ -120,7 +120,7 @@ void Papas::AnimatedSprite::renderAnim(bool loop)
 
 	end = osGetTime();
 
-	if (start - end >= animTime)
+	if (end - start >= animTime)
 	{
 		if(currentSprite < numOfSprites - 1){
 			currentSprite++;
@@ -155,7 +155,7 @@ void Papas::GuyPeeking::renderAnim(bool loop)
 {
 	end = osGetTime();
 
-	if (start - end >= animTime)
+	if (end - start >= animTime)
 	{
 		if(ranOnce == false){
 			if (currentSprite < numOfSprites - 1)
@@ -214,7 +214,7 @@ void Papas::GuyPeeking::renderAnimBackwards(bool loop)
 
 	end = osGetTime();
 
-	if (start - end >= animTime)
+	if (end - start >= animTime)
 	{
 
 		if (currentSprite > 1)
@@ -239,6 +239,56 @@ void Papas::GuyPeeking::resetAnim()
 {
 	finished = false;
 	currentSprite = 0;
+}
+
+void Papas::GuyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
+{
+	end = osGetTime();
+
+	if (paused == false && end - start >= animTime)
+	{
+		if (currentSprite < numOfSprites - 1)
+		{
+			currentSprite++;
+		}
+		else if (currentSprite == numOfSprites - 1)
+		{
+			if (currentPauses < pauses)
+			{
+				
+				paused = true;
+				currentSprite = 0;
+			}
+			else
+			{
+				finished = true;
+			}
+		}
+
+		start = osGetTime();
+	}
+
+	if (!finished && !paused)
+	{
+		C2D_DrawSprite(&each_sprite[currentSprite]);
+	}
+
+	if (paused)
+	{
+		C2D_DrawSprite(&each_sprite[currentSprite]);
+		size_t currentWait = end - start;
+		if (currentWait >= pauseTime)
+		{
+			paused = false;
+			currentPauses++;
+			start = osGetTime();
+		}
+	}
+
+	if (finished)
+	{
+		C2D_DrawSprite(&each_sprite[currentSprite]);
+	}
 }
 
 void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top)
@@ -301,8 +351,6 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 	C3D_TexSetFilter(receipt_bg.image.tex, GPU_LINEAR, GPU_LINEAR);
 	C2D_SpriteSetDepth(&receipt_bg, currentDepth);
 	hitBox = {receipt_bg.params.pos.x, receipt_bg.params.pos.y, receipt_bg.params.pos.w, receipt_bg.params.pos.h};
-	addTime(7);
-	addCut(8);
 }
 
 void Papas::ReceiptParts::addItem(Coverage size, Toppings top, int Quant)
