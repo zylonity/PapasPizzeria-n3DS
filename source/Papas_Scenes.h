@@ -93,9 +93,6 @@ namespace Papas {
 
 		void SwitchStation(Stations station);
 
-		u64 lastInputTime = 0;		   // Last time input was processed
-		const u64 inputCooldown = 200; // 200ms cooldown
-
 		Papas::SceneManager* p_sceneManager;
 
 		// Receipt system stuff to move later
@@ -104,5 +101,11 @@ namespace Papas {
 		ReceiptManager r_manager;
 
 		touchPosition touch;
+
+		//Taking order stuff
+		bool to_firstRun;
+		int to_currentAction;
+		int to_n_actions;
+		Receipt *to_tempReceipt;
 	};
 }

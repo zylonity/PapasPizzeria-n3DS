@@ -15,7 +15,21 @@ PapasError Papas::ResourceManager::init()
 
     SDL_Init(SDL_INIT_AUDIO);
 
+    rng_type::result_type const seedval = osGetTime();
+    rng.seed(seedval);
+
     return PAPAS_OK;
+}
+
+int Papas::ResourceManager::randomNumber(int small, int big)
+{
+
+
+
+    std::uniform_int_distribution<rng_type::result_type> udist(small, big);
+    rng_type::result_type random_number = udist(rng);
+
+    return random_number;
 }
 
 PapasError Papas::ResourceManager::initMusicPlayer()

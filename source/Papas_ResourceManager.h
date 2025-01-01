@@ -5,6 +5,7 @@
 
 #include "Papas_Constants.h"
 #include <unordered_map>
+#include <random>
 
 //Forward declarations
 typedef struct _Mix_Music Mix_Music;
@@ -25,6 +26,7 @@ namespace Papas
 		PapasError playMusic(const char* name);
 		PapasError stopMusic();
 		PapasError pauseMusic();
+		int randomNumber(int small, int big);
 		PapasError switchMusic(const char *name);
 
 		//===============================================================================
@@ -40,6 +42,9 @@ namespace Papas
 		//===============================================================================
 	private:
 		std::unordered_map<const char*, Mix_Music*> songs;
+
+		typedef std::mt19937 rng_type;
+		rng_type rng;
 		//Mix_Music *music;
 
 		//===============================================================================

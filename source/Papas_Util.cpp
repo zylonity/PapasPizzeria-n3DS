@@ -241,12 +241,16 @@ void Papas::RoyPeeking::resetAnim()
 	currentSprite = 0;
 }
 
-void Papas::RoyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
+bool Papas::RoyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
 {
 	end = osGetTime();
+	pauseTriggered = false;
 
 	if (paused == false && end - start >= animTime)
 	{
+		if(currentSprite == 1){
+			pauseTriggered = true;
+		}
 		if (currentSprite < numOfSprites - 1)
 		{
 			currentSprite++;
@@ -289,6 +293,21 @@ void Papas::RoyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
 	{
 		C2D_DrawSprite(&each_sprite[currentSprite]);
 	}
+	if (pauseTriggered)
+	{
+		pauseTriggered = false; // Reset the flag immediately
+		return true;
+	}
+
+	return false;
+}
+
+void Papas::RoyTakingOrder::resetAnim(){
+	finished = false;
+	pauseTriggered = false;
+	paused = false;
+	currentSprite = 0;
+	currentPauses = 0;
 }
 
 void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top)
@@ -589,6 +608,23 @@ void Papas::Receipt::forceDocking()
 	dockInUse = false;
 }
 
+void Papas::Receipt::addItem(Coverage size, Toppings topping, int Quant)
+{
+	top.addItem(size, topping, Quant);
+	bottom.addItem(size, topping, Quant);
+}
+
+void Papas::Receipt::addTime(int time)
+{
+	top.addTime(time);
+	bottom.addTime(time);
+}
+void Papas::Receipt::addCut(int slices)
+{
+	top.addCut(slices);
+	bottom.addCut(slices);
+}
+
 void Papas::Receipt::terminate()
 {
 	C2D_TextBufDelete(bottom.receipt_Buf);
@@ -633,6 +669,17 @@ void Papas::ReceiptManager::renderReceipt(bool topReceipt)
 	for (size_t i = 0; i < v_receipts.size(); i++)
 	{
 		v_receipts[i]->showReceipt(topReceipt);
+	}
+}
+
+void Papas::ReceiptManager::renderDockedReceipt(bool topReceipt)
+{
+	for (size_t i = 0; i < v_receipts.size(); i++)
+	{
+		if (v_receipts[i]->dockInUse){
+			v_receipts[i]->showReceipt(topReceipt);
+		}
+			
 	}
 }
 
@@ -718,6 +765,17 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 			moveReceiptToBack(activeReceiptIndex);
 			activeReceiptIndex = -1;
 			
+		}
+	}
+}
+
+void Papas::ReceiptManager::getDockedReceipt(Receipt** returnReceipt)
+{
+	for (size_t j = 0; j < v_receipts.size(); j++)
+	{
+		if (v_receipts[j]->dockInUse)
+		{
+			*returnReceipt = v_receipts[j];
 		}
 	}
 }

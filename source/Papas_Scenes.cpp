@@ -270,13 +270,13 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
 
 	r_manager.initManager(&dokyo);
-	r_manager.createReceipt();
 
 	createReceipt.createButton(orderStation, 2, 2, 3, {34, 141});
 
 	SwitchStation(TicketStation);
 
-
+	to_firstRun = false;
+	to_currentAction = 0;
 
 	return PAPAS_OK;
 }
@@ -288,8 +288,10 @@ PapasError Papas::Game::render_top()
 	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0.002f);
 
 	if(!takingOrder){
+
 		C2D_DrawImageAt(ticketsStationImg, 0, 0, 0.001f);
 		C2D_DrawImageAt(currentPopupImg, 0, 214, 0.003f);
+		r_manager.renderReceipt(true);
 		if (currentStation == TicketStation)
 		{
 			Roy.renderAnim(true);
@@ -301,20 +303,66 @@ PapasError Papas::Game::render_top()
 	}
 	else{
 		TakeOrder();
+		r_manager.renderDockedReceipt(true);
 	}
 	
-
-	
-	r_manager.renderReceipt(true);
 
 	return PAPAS_OK;
 }
 
+// Commiting a bullshittery here
 void Papas::Game::TakeOrder()
 {
+
 	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
 	C2D_DrawImageAt(to_counter, 0, 0, 0);
-	Roy2.renderAnimWithPauses(5, 3000);
+	//Roy2.renderAnimWithPauses(5, 2000);
+
+
+	if(to_firstRun == false){
+		to_n_actions = ResourceManager::getInstance().randomNumber(1, 5);
+		r_manager.getDockedReceipt(&to_tempReceipt);
+		to_firstRun = true;
+	}
+
+	//Returns true for one frame on the first frame, and when the animation is paused
+	if (Roy2.renderAnimWithPauses(to_n_actions + 2, 2000))
+	{
+		if (to_currentAction < to_n_actions)
+		{
+			to_tempReceipt->addItem(Half, Pepperoni, 4);
+		}
+
+		if (to_currentAction == to_n_actions)
+		{
+			to_tempReceipt->addTime(2);
+		}
+
+		if (to_currentAction == to_n_actions + 1)
+		{
+			to_tempReceipt->addCut(4);
+		}
+
+		if (to_currentAction == to_n_actions + 2)
+		{
+			to_firstRun = false;
+			to_currentAction = 0;
+			to_n_actions = 0;
+			to_tempReceipt = nullptr;
+			Roy2.resetAnim();
+			takingOrder = false;
+		}
+
+		if(takingOrder == true){
+			to_currentAction++;
+		}
+		
+	}
+
+	// if (currentAction == n_actions + 2)
+	// {
+	// 	tempReceipt->add
+	// }
 }
 
 PapasError Papas::Game::render_bottom()
@@ -326,7 +374,7 @@ PapasError Papas::Game::render_bottom()
 		r_manager.renderReceipt(false);
 	}
 
-	if (currentStation == TicketStation)
+	if (currentStation == TicketStation && takingOrder == false)
 	{
 		if(createReceipt.showButton(touch)){
 			takingOrder = true;
