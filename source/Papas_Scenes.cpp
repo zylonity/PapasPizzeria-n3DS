@@ -469,6 +469,7 @@ PapasError Papas::Game::terminate()
 	Roy2.destroyAnim();
 	r_manager.terminateManager();
 	C2D_SpriteSheetFree(orderStation);
+	C2D_FontFree(dokyo);
 
 	return PAPAS_OK;
 }
