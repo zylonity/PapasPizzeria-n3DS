@@ -1,0 +1,4 @@
+--atlas -f rgba -z auto
+
+./TakingOrder/countertop.png
+./TakingOrder/wallpaper.png

@@ -247,16 +247,25 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 
 	Papas::ResourceManager::getInstance().initMusicPlayer();
-
+	takingOrder = true;
 	s_stations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
 	shee_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
 
 	ticketsStationImg = C2D_SpriteSheetGetImage(s_stations, 8);
 	ticketsHolderImg = C2D_SpriteSheetGetImage(s_stations, 9);
 
+	
+	orderStation = C2D_SpriteSheetLoad("romfs:/gfx/taking_order.t3x");
+	to_counter = C2D_SpriteSheetGetImage(orderStation, 0);
+	to_wallpaper = C2D_SpriteSheetGetImage(orderStation, 1);
+
 	v2 pos = {-24, 45};
 	v2 scl = {0.8f, 0.8f};
 	guy.createAnim("romfs:/gfx/guy_peeking.t3x", 84.0f, pos, scl, 35.0f);
+
+	v2 pos_order = {0, 45};
+	v2 scl_order = {1.0f, 1.0f};
+	guy2.createAnim("romfs:/gfx/guy_takingorder.t3x", 20.0f, pos_order, scl_order, 0.0f);
 
 	// Receipt system stuff to move later
 	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
@@ -268,7 +277,7 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 	SwitchStation(TicketStation);
 
-	takingOrder = true;
+
 
 	return PAPAS_OK;
 }
@@ -291,6 +300,9 @@ PapasError Papas::Game::render_top()
 			guy.renderAnimBackwards(false);
 		}
 	}
+	else{
+		TakeOrder();
+	}
 	
 
 	
@@ -301,8 +313,10 @@ PapasError Papas::Game::render_top()
 
 void Papas::Game::TakeOrder()
 {
-
-	
+	takingOrder = true;
+	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
+	C2D_DrawImageAt(to_counter, 0, 0, 0);
+	guy2.renderAnim(true);
 }
 
 PapasError Papas::Game::render_bottom()
@@ -405,6 +419,7 @@ PapasError Papas::Game::terminate()
 	}
 
 	guy.destroyAnim();
+	guy2.destroyAnim();
 	r_manager.terminateManager();
 	C2D_SpriteSheetFree(shee_buttons);
 
