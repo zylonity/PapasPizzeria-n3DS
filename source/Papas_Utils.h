@@ -96,6 +96,19 @@ namespace Papas {
 		bool ranOnce = false;
 	};
 
+	// class GuyTakingOrder : public AnimatedSprite
+	// {
+	// public:
+	// 	using AnimatedSprite::AnimatedSprite;
+
+	// 	void renderAnim(bool loop) override;
+	// 	void resetAnim();
+	// 	void renderAnimBackwards(bool loop);
+
+	// private:
+	// 	bool ranOnce = false;
+	// };
+
 	enum Toppings{
 		Pepperoni,
 		Meat,
