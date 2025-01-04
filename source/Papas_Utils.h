@@ -120,19 +120,10 @@ namespace Papas {
 		Anochovie
 	};
 
-	enum Coverage
-	{
-		Quarter,
-		Half,
-		Quarters3,
-		Full
-	};
-
-
 	struct ReceiptSubSection
 	{
-		Coverage cover;
-		C2D_Image i_cover;
+		int cover[4];
+		C2D_Image i_cover[4];
 		Toppings topping;
 		C2D_Image i_topping;
 		int Quantity;
@@ -165,7 +156,7 @@ namespace Papas {
 		void setPosReceipt(v2 moveTo);
 		void scaleReceipt(v2 scaleTo);
 		void setScaleReceipt(v2 scaleTo);
-		void addItem(Coverage size, Toppings top, int Quant);
+		void addItem(int size[4], Toppings top, int Quant);
 		void addTime(int time);
 		void addCut(int slices);
 		void renderReceipt();
@@ -189,7 +180,7 @@ namespace Papas {
 		void showReceipt(bool topReceipt);
 		void detectMovement(touchPosition &touch);
 		bool detectTouch(touchPosition &touch);
-		void addItem(Coverage size, Toppings topping, int Quant);
+		void addItem(int size[4], Toppings topping, int Quant);
 		void addTime(int time);
 		void addCut(int slices);
 		void forceDocking();
