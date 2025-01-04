@@ -372,10 +372,15 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 	hitBox = {receipt_bg.params.pos.x, receipt_bg.params.pos.y, receipt_bg.params.pos.w, receipt_bg.params.pos.h};
 }
 
-void Papas::ReceiptParts::addItem(Coverage size, Toppings top, int Quant)
+void Papas::ReceiptParts::addItem(int size[4], Toppings top, int Quant)
 {
-	sections[currentItems].cover = size;
-	sections[currentItems].i_cover = s_quarters[size];
+	for (size_t i = 0; i < 4; i++)
+	{
+		sections[currentItems].cover[i] = size[i];
+		sections[currentItems].i_cover[i] = s_quarters[i];
+	}
+	
+	
 	sections[currentItems].topping = top;
 	sections[currentItems].i_topping = s_topps[top];
 	sections[currentItems].Quantity = Quant;
@@ -467,7 +472,14 @@ void Papas::ReceiptParts::renderReceipt()
 		C2D_DrawImageAt(sections[i].i_topping, ToppPosX, ToppPosY, textDepth, nullptr, scale.x * 0.45f, scale.y * 0.45f);
 
 		float CoveragePosX = pos.x + (10 * scale.x);
-		C2D_DrawImageAt(sections[i].i_cover, CoveragePosX, PosY, textDepth, nullptr, scale.x * 0.15f, scale.y * 0.15f);
+		for (size_t z = 0; z < 4; z++)
+		{
+			if(sections->cover[z] == 1){
+				C2D_DrawImageAt(sections[i].i_cover[z], CoveragePosX, PosY, textDepth+0.01f, nullptr, scale.x * 0.15f, scale.y * 0.15f);
+			}
+		}
+		
+		
 	}
 	// Calculate the needle
 	if (needleDrawn)
@@ -608,7 +620,7 @@ void Papas::Receipt::forceDocking()
 	dockInUse = false;
 }
 
-void Papas::Receipt::addItem(Coverage size, Toppings topping, int Quant)
+void Papas::Receipt::addItem(int size[4], Toppings topping, int Quant)
 {
 	top.addItem(size, topping, Quant);
 	bottom.addItem(size, topping, Quant);
@@ -702,6 +714,8 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 	/*There is a bug where the transparency of a receipt lower in the array isnt processed on top of the transparency of a receipt higher in the array
 	i'm 96% sure its because of the rendering order, since technically the one lower in the array is processed first
 	to fix this i have to reorder the array in terms of depth, which i can't be fucked to do right now, but will do later*/
+
+	/*UPDATE: I kinda fixed it, but it's still a bit odd when you move the receipt lol*/
 	if (touch.px != 0 || touch.py != 0) // Check if the screen is touched
 	{
 		if (activeReceiptIndex == -1) // No receipt is being dragged

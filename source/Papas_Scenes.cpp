@@ -330,7 +330,8 @@ void Papas::Game::TakeOrder()
 	{
 		if (to_currentAction < to_n_actions)
 		{
-			to_tempReceipt->addItem(Half, Pepperoni, 4);
+			int halves[4] = {1, 0, 1, 1};
+			to_tempReceipt->addItem(halves, Pepperoni, 4);
 		}
 
 		if (to_currentAction == to_n_actions)
