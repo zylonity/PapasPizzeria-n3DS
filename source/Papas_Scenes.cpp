@@ -5,6 +5,7 @@
 #include <chrono>
 #include <citro2d.h>
 #include <theoraplayer.h>
+#include "Papas_Customers.h"
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
@@ -313,14 +314,14 @@ PapasError Papas::Game::render_top()
 // Commiting a bullshittery here
 void Papas::Game::TakeOrder()
 {
-
+	int currentCustomer = 6;
 	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
 	C2D_DrawImageAt(to_counter, 0, 0, 0);
 	//Roy2.renderAnimWithPauses(5, 2000);
 
 
 	if(to_firstRun == false){
-		to_n_actions = ResourceManager::getInstance().randomNumber(1, 5);
+		to_n_actions = map_customers[currentCustomer].items.size();
 		r_manager.getDockedReceipt(&to_tempReceipt);
 		to_firstRun = true;
 	}
@@ -330,18 +331,19 @@ void Papas::Game::TakeOrder()
 	{
 		if (to_currentAction < to_n_actions)
 		{
-			int halves[4] = {1, 0, 1, 1};
-			to_tempReceipt->addItem(halves, Pepperoni, 4);
+			to_tempReceipt->addItem(map_customers[currentCustomer].items[to_currentAction].Coverage,
+									map_customers[currentCustomer].items[to_currentAction].Topping,
+									map_customers[currentCustomer].items[to_currentAction].Quantity);
 		}
 
 		if (to_currentAction == to_n_actions)
 		{
-			to_tempReceipt->addTime(2);
+			to_tempReceipt->addTime(map_customers[currentCustomer].time);
 		}
 
 		if (to_currentAction == to_n_actions + 1)
 		{
-			to_tempReceipt->addCut(4);
+			to_tempReceipt->addCut(map_customers[currentCustomer].CutPizzaIn);
 		}
 
 		if (to_currentAction == to_n_actions + 2)
