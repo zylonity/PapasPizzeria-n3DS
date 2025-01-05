@@ -2,7 +2,7 @@
 #include "Papas_Constants.h"
 
 namespace Papas {
-	class SceneManager;
+	class SceneManager; //idek
 
 	class Scene {
 	public:

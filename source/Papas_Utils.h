@@ -120,6 +120,12 @@ namespace Papas {
 		Anochovie
 	};
 
+	struct ItemOrder{
+		int Coverage[4];
+		Toppings Topping;
+		int Quantity;
+	};
+
 	struct ReceiptSubSection
 	{
 		int cover[4];
