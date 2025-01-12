@@ -9,6 +9,7 @@
 
 //Forward declarations
 typedef struct _Mix_Music Mix_Music;
+typedef struct Mix_Chunk;
 
 namespace Papas
 {
@@ -23,7 +24,9 @@ namespace Papas
 		PapasError terminate();
 
 		PapasError loadSong(const char *name, const char *ogg_file);
-		PapasError playMusic(const char* name);
+		PapasError loadSfx(const char *name, const char *wav_file);
+		PapasError playMusic(const char *name);
+		PapasError playSfx(const char *name);
 		PapasError stopMusic();
 		PapasError pauseMusic();
 		int randomNumber(int small, int big);
@@ -42,6 +45,7 @@ namespace Papas
 		//===============================================================================
 	private:
 		std::unordered_map<const char*, Mix_Music*> songs;
+		std::unordered_map<const char *, Mix_Chunk *> sfx;
 
 		typedef std::mt19937 rng_type;
 		rng_type rng;

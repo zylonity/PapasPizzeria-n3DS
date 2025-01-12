@@ -20,6 +20,7 @@ PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 	Papas::ResourceManager::getInstance().loadSong("orders_music", "romfs:/music/orderscreen_music.ogg");
 	Papas::ResourceManager::getInstance().playMusic("topping_music");
 
+
 	// Load the backgrounds
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
 	top_bg = C2D_SpriteSheetGetImage(sheet_bg, 1);
@@ -248,6 +249,8 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 
 	Papas::ResourceManager::getInstance().initMusicPlayer();
+	Papas::ResourceManager::getInstance().loadSfx("writepencil", "romfs:/sfx/writepencil.wav");
+	
 	takingOrder = false;
 	s_stations = C2D_SpriteSheetLoad("romfs:/gfx/stations.t3x");
 
@@ -303,7 +306,7 @@ PapasError Papas::Game::render_top()
 		}
 	}
 	else{
-		TakeOrder();
+		TakeOrder(7);
 		r_manager.renderDockedReceipt(true);
 	}
 	
@@ -312,17 +315,17 @@ PapasError Papas::Game::render_top()
 }
 
 // Commiting a bullshittery here
-void Papas::Game::TakeOrder()
+void Papas::Game::TakeOrder(int customerNum)
 {
-	int currentCustomer = 6;
 	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
 	C2D_DrawImageAt(to_counter, 0, 0, 0);
 	//Roy2.renderAnimWithPauses(5, 2000);
 
 
 	if(to_firstRun == false){
-		to_n_actions = map_customers[currentCustomer].items.size();
+		to_n_actions = map_customers[customerNum].items.size();
 		r_manager.getDockedReceipt(&to_tempReceipt);
+		
 		to_firstRun = true;
 	}
 
@@ -331,19 +334,22 @@ void Papas::Game::TakeOrder()
 	{
 		if (to_currentAction < to_n_actions)
 		{
-			to_tempReceipt->addItem(map_customers[currentCustomer].items[to_currentAction].Coverage,
-									map_customers[currentCustomer].items[to_currentAction].Topping,
-									map_customers[currentCustomer].items[to_currentAction].Quantity);
+			Papas::ResourceManager::getInstance().playSfx("writepencil");
+			to_tempReceipt->addItem(map_customers[customerNum].items[to_currentAction].Coverage,
+									map_customers[customerNum].items[to_currentAction].Topping,
+									map_customers[customerNum].items[to_currentAction].Quantity);
 		}
 
 		if (to_currentAction == to_n_actions)
 		{
-			to_tempReceipt->addTime(map_customers[currentCustomer].time);
+			Papas::ResourceManager::getInstance().playSfx("writepencil");
+			to_tempReceipt->addTime(map_customers[customerNum].time);
 		}
 
 		if (to_currentAction == to_n_actions + 1)
 		{
-			to_tempReceipt->addCut(map_customers[currentCustomer].CutPizzaIn);
+			Papas::ResourceManager::getInstance().playSfx("writepencil");
+			to_tempReceipt->addCut(map_customers[customerNum].CutPizzaIn);
 		}
 
 		if (to_currentAction == to_n_actions + 2)

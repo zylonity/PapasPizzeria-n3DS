@@ -46,6 +46,13 @@ PapasError Papas::ResourceManager::loadSong(const char *name, const char *ogg_fi
     return PAPAS_OK;
 }
 
+PapasError Papas::ResourceManager::loadSfx(const char *name, const char *wav_file)
+{
+    sfx.insert({name, Mix_LoadWAV(wav_file)});
+
+    return PAPAS_OK;
+}
+
 PapasError Papas::ResourceManager::endMusicPlayer()
 {
 
@@ -53,10 +60,18 @@ PapasError Papas::ResourceManager::endMusicPlayer()
     return PAPAS_OK;
 }
 
+PapasError Papas::ResourceManager::playSfx(const char *name)
+{
+
+    Mix_PlayChannel(-1, sfx[name], 0);
+    return PAPAS_OK;
+}
+
 PapasError Papas::ResourceManager::playMusic(const char *name)
 {
 
     Mix_PlayMusic(songs[name], -1);
+
 
     return PAPAS_OK;
 }
@@ -88,6 +103,12 @@ PapasError Papas::ResourceManager::terminate()
     {
         Mix_FreeMusic(it.second);
     }
+
+    for (auto &it : sfx)
+    {
+        Mix_FreeChunk(it.second);
+    }
+
     Mix_CloseAudio();
     SDL_Quit();
 
