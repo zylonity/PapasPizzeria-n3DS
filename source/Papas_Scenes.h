@@ -2,6 +2,7 @@
 #include "Papas_Constants.h"
 #include "Papas_SceneManager.h"
 #include "Papas_Utils.h"
+#include "Papas_Animations.h"
 #include <3ds.h>
 #include <citro2d.h>
 #include <vector>
