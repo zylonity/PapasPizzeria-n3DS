@@ -10,6 +10,56 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
 
+PapasError Papas::AnimationTesting::init(Papas::SceneManager *sceneManager)
+{
+
+	p_sceneManager = sceneManager;
+
+	//sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
+	//skip_bg = C2D_SpriteSheetGetImage(sheet_bg, 3);
+
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::AnimationTesting::update()
+{
+
+	hidScanInput();
+
+	// Respond to user input
+	u32 kDown = hidKeysDown();
+	if (kDown & KEY_START)
+		return PAPAS_NOT_OK; // break in order to return to hbmenu
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::AnimationTesting::render_top()
+{
+
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::AnimationTesting::render_bottom()
+{
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::AnimationTesting::terminate()
+{
+
+	// if (sheet_bg)
+	// {
+	// 	C2D_SpriteSheetFree(sheet_bg);
+	// 	sheet_bg = nullptr;
+	// }
+
+	return PAPAS_OK;
+}
+
 PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 {
 

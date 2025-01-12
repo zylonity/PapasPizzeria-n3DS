@@ -11,6 +11,22 @@
 
 namespace Papas {
 
+	class AnimationTesting : public Scene
+	{
+	public:
+		PapasError init(Papas::SceneManager *sceneManager) override;
+		PapasError update() override;
+		PapasError render_top() override;
+		PapasError render_bottom() override;
+		PapasError terminate() override;
+
+	private:
+		bool startedPlaying;
+		Papas::SceneManager *p_sceneManager;
+		C2D_SpriteSheet sheet_bg;
+		C2D_Image skip_bg;
+	};
+
 	class IntroVid : public Scene
 	{
 	public:
