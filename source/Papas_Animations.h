@@ -68,5 +68,10 @@ namespace Papas {
 		int currentPauses = 0;
 	};
 
-	
+	class Customer_CutOutAnimation{
+		public:
+		void init();
+		private:
+		int temp;
+	};
 }
