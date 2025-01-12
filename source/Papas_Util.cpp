@@ -283,6 +283,7 @@ bool Papas::RoyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
 		size_t currentWait = end - start;
 		if (currentWait >= pauseTime)
 		{
+			
 			paused = false;
 			currentPauses++;
 			start = osGetTime();
