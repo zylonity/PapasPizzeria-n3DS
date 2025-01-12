@@ -474,7 +474,7 @@ void Papas::ReceiptParts::renderReceipt()
 		float CoveragePosX = pos.x + (10 * scale.x);
 		for (size_t z = 0; z < 4; z++)
 		{
-			if(sections->cover[z] == 1){
+			if(sections[i].cover[z] == 1){
 				C2D_DrawImageAt(sections[i].i_cover[z], CoveragePosX, PosY, textDepth+0.01f, nullptr, scale.x * 0.15f, scale.y * 0.15f);
 			}
 		}
