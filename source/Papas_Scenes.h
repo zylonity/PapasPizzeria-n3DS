@@ -23,8 +23,12 @@ namespace Papas {
 	private:
 		bool startedPlaying;
 		Papas::SceneManager *p_sceneManager;
-		C2D_SpriteSheet sheet_bg;
-		C2D_Image skip_bg;
+		C2D_SpriteSheet guy1;
+		C2D_Sprite body;
+		C2D_Sprite neck;
+		C2D_Sprite head;
+		C2D_Sprite hair;
+		C2D_Sprite back_hair;
 	};
 
 	class IntroVid : public Scene

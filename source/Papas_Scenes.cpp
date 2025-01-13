@@ -15,10 +15,9 @@ PapasError Papas::AnimationTesting::init(Papas::SceneManager *sceneManager)
 
 	p_sceneManager = sceneManager;
 
-	//sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
-	//skip_bg = C2D_SpriteSheetGetImage(sheet_bg, 3);
-
-
+	guy1 = C2D_SpriteSheetLoad("romfs:/gfx/customer1.t3x");
+	C2D_SpriteFromSheet(&body, guy1, 1);
+	C2D_SpriteSetPos(&body, 0, 0);
 	return PAPAS_OK;
 }
 
@@ -38,7 +37,7 @@ PapasError Papas::AnimationTesting::update()
 PapasError Papas::AnimationTesting::render_top()
 {
 
-
+	C2D_DrawSprite(&body);
 	return PAPAS_OK;
 }
 
@@ -51,11 +50,11 @@ PapasError Papas::AnimationTesting::render_bottom()
 PapasError Papas::AnimationTesting::terminate()
 {
 
-	// if (sheet_bg)
-	// {
-	// 	C2D_SpriteSheetFree(sheet_bg);
-	// 	sheet_bg = nullptr;
-	// }
+	if (guy1)
+	{
+		C2D_SpriteSheetFree(guy1);
+		guy1 = nullptr;
+	}
 
 	return PAPAS_OK;
 }
