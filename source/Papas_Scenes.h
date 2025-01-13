@@ -23,6 +23,11 @@ namespace Papas {
 	private:
 		bool startedPlaying;
 		Papas::SceneManager *p_sceneManager;
+
+		v2 worldScale;
+		v2 worldPos;
+		
+
 		C2D_SpriteSheet guy1;
 		C2D_Sprite body;
 		C2D_Sprite neck;
