@@ -12,7 +12,7 @@
             "type": "gdb",
             "request": "attach",
             "name": "Debug on 3DS",
-            "executable": "${workspaceRoot}/PapasPizzeria_vsc.elf",
+            "executable": "${workspaceRoot}/PapasPizzeria-n3DS.elf",
             "target": "192.168.1.109:4003",
             "remote": true,
             "cwd": "${workspaceRoot}",
@@ -23,14 +23,14 @@
         {
             "type": "gdb",
             "request": "attach",
-            "name": "Debug on Lime",
-            "executable": "${workspaceRoot}/PapasPizzeria_vsc.elf",
+            "name": "Debug on Azahar",
+            "executable": "${workspaceRoot}/PapasPizzeria-n3DS.elf",
             "target": "localhost:24689",
             "remote": true,
             "cwd": "${workspaceRoot}",
             "gdbpath": "C:/devkitPro/devkitARM/bin/arm-none-eabi-gdb.exe",
-            "preLaunchTask": "Send to Lime",
-            "postDebugTask": "Close Lime",
+            "preLaunchTask": "Send to Azahar",
+            "postDebugTask": "Close Azahar",
             "autorun": ["set substitute-path \"/Users/davem/projects/devkitpro/pacman-packages/citro3d/src/citro3d-1.7.1/source\" \"C:/devkitPro/libctru/source/c3d\"", "set substitute-path \"/Home/fincs/git/pacman-packages/citro2d/src/citro2d-1.6.0/source\" \"C:/devkitPro/libctru/source/c2d\""]
             
         }
