@@ -12,23 +12,23 @@
             "label": "Send to 3DS",
             "type": "shell",
             "command": "C:/devkitPro/tools/bin/3dslink.exe",
-            "args": ["-a", "192.168.1.109", "${workspaceFolder}/PapasPizzeria_vsc.3dsx"],
+            "args": ["-a", "192.168.1.109", "${workspaceFolder}/PapasPizzeria-n3DS.3dsx"],
             "problemMatcher": [],
             "dependsOn": "Run Make"
         },
         {
-            "label": "Send to Lime",
+            "label": "Send to Azahar",
             "type": "shell",
-            "command": "C:/Program Files/Lime3DS/lime3ds.exe",
-            "args": ["${workspaceFolder}/PapasPizzeria_vsc.3dsx"],
+            "command": "C:/Program Files/Azahar/Azahar.exe",
+            "args": ["${workspaceFolder}/PapasPizzeria-n3DS.3dsx"],
             "problemMatcher": [],
             "dependsOn": "Run Make"
         },
         {
-            "label": "Close Lime",
+            "label": "Close Azahar",
             "type": "shell",
             "command": "taskkill",
-            "args": ["/F", "/IM", "lime3ds.exe"],
+            "args": ["/F", "/IM", "Azahar.exe"],
             "problemMatcher": []
         }
     ]
