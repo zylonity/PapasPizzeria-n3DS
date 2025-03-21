@@ -405,3 +405,5 @@ build/
 *.elf
 *.smdh
 *.3dsx
+
+romfs/gfx/
