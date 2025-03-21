@@ -10,6 +10,32 @@
 
 namespace Papas {
 
+	class AnimationTesting : public Scene
+	{
+	public:
+		PapasError init(Papas::SceneManager *sceneManager) override;
+		PapasError update() override;
+		PapasError render_top() override;
+		PapasError render_bottom() override;
+		PapasError terminate() override;
+
+	private:
+		bool startedPlaying;
+		Papas::SceneManager *p_sceneManager;
+
+		v2 worldScale;
+		v2 worldPos;
+		
+
+		C2D_SpriteSheet guy1;
+		C2D_Sprite body;
+		C2D_Sprite neck;
+		C2D_Sprite head;
+		C2D_Sprite hair;
+		C2D_Sprite back_hair;
+	};
+
+
 	class IntroVid : public Scene
 	{
 	public:

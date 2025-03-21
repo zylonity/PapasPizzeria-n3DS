@@ -10,6 +10,111 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
 
+PapasError Papas::AnimationTesting::init(Papas::SceneManager *sceneManager)
+{
+
+	p_sceneManager = sceneManager;
+
+	worldPos = {200, 90};
+	worldScale = {0.8f, 0.8f};
+
+	guy1 = C2D_SpriteSheetLoad("romfs:/gfx/customer1.t3x");
+
+	//Torso
+	C2D_SpriteFromSheet(&body, guy1, 1);
+	C2D_SpriteSetCenterRaw(&body, 1.0f, 0.5f);
+	C2D_SpriteSetPos(&body, worldPos.x, worldPos.y);
+	C2D_SpriteSetScale(&body, worldScale.x, worldScale.y);
+
+	//Neck
+	C2D_SpriteFromSheet(&neck, guy1, 44);
+	//C2D_SpriteSetDepth(&neck, 0.01f);
+	C2D_SpriteSetCenterRaw(&neck, 11, 31);
+	C2D_SpriteSetPos(&neck, worldPos.x + (32 * worldScale.x), worldPos.y + (10 * worldScale.y));
+	C2D_SpriteSetScale(&neck, worldScale.x, worldScale.y);
+	return PAPAS_OK;
+}
+
+PapasError Papas::AnimationTesting::update()
+{
+	//Torso
+	C2D_SpriteSetPos(&body, worldPos.x, worldPos.y);
+	C2D_SpriteSetScale(&body, worldScale.x, worldScale.y);
+
+	//Neck
+	C2D_SpriteSetPos(&neck, worldPos.x + (32 * worldScale.x), worldPos.y + (10 * worldScale.y));
+	C2D_SpriteSetScale(&neck, worldScale.x, worldScale.y);
+
+	hidScanInput();
+
+	// Respond to user input
+	u32 kDown = hidKeysDown();
+	if (kDown & KEY_START)
+		return PAPAS_NOT_OK; // break in order to return to hbmenu
+
+
+	int moveBy = 5;
+	float scaleBy = 0.5f;
+	//Move left
+	if(kDown & KEY_Y){
+		worldPos = {worldPos.x - moveBy, worldPos.y};
+	}
+	// Move right
+	if (kDown & KEY_A)
+	{
+		worldPos = {worldPos.x + moveBy, worldPos.y};
+	}
+	// Move up
+	if (kDown & KEY_X)
+	{
+		worldPos = {worldPos.x, worldPos.y - moveBy};
+	}
+	// Move down
+	if (kDown & KEY_B)
+	{
+		worldPos = {worldPos.x, worldPos.y + moveBy};
+	}
+
+	// Scale up
+	if (kDown & KEY_UP)
+	{
+		worldScale = {worldScale.x + scaleBy, worldScale.y + scaleBy};
+	}
+	// Scale down
+	if (kDown & KEY_DOWN)
+	{
+		worldScale = {worldScale.x - scaleBy, worldScale.y - scaleBy};
+	}
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::AnimationTesting::render_top()
+{
+
+	C2D_DrawSprite(&body);
+	C2D_DrawSprite(&neck);
+	return PAPAS_OK;
+}
+
+PapasError Papas::AnimationTesting::render_bottom()
+{
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::AnimationTesting::terminate()
+{
+
+	if (guy1)
+	{
+		C2D_SpriteSheetFree(guy1);
+		guy1 = nullptr;
+	}
+
+	return PAPAS_OK;
+}
+
 PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 {
 
