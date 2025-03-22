@@ -1,7 +1,6 @@
 #include "Papas_Renderer.h"
 #include "Papas_Scenes.h"
-#include <Math3DHelper.h>
-
+#include <spine/spine.h>
 PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	//PapasError ret;
 
@@ -11,7 +10,6 @@ PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
 	C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
 	C2D_Prepare();
-	
 //Debugging console
 #ifdef DEBUGGING_TOP
 	consoleInit(GFX_TOP, NULL);
@@ -72,7 +70,6 @@ PapasError Papas::Renderer::render(Papas::SceneManager* sceneManager) {
 	C2D_TargetClear(bottomRenderTarget, C2D_Color32(0x00, 0x00, 0x00, 0xff));
 	//C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
 	C2D_SceneBegin(bottomRenderTarget);
-	m3d::
 	//Render the scene's bottom screen
 	sceneManager->render_bottom();
 
