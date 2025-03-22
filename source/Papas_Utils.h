@@ -5,22 +5,23 @@
 #include <citro2d.h>
 #include <vector>
 #include <chrono>
+#include <glm/vec2.hpp>
 
 namespace Papas {
 
-	struct v2 {
-		float x;
-		float y;
+	// struct v2 {
+	// 	float x;
+	// 	float y;
 
-		// Constructor for single value
-		v2(float value) : x(value), y(value) {}
+	// 	// Constructor for single value
+	// 	v2(float value) : x(value), y(value) {}
 
-		// Constructor for two values
-		v2(float _x, float _y) : x(_x), y(_y) {}
+	// 	// Constructor for two values
+	// 	v2(float _x, float _y) : x(_x), y(_y) {}
 
-		// Default constructor
-		v2() : x(0.0f), y(0.0f) {}
-	};
+	// 	// Default constructor
+	// 	v2() : x(0.0f), y(0.0f) {}
+	// };
 
 	struct rect {
 		float left;
@@ -32,10 +33,10 @@ namespace Papas {
 	class Button {
 	public:
 		Button() {};
-		Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position = v2(0));
-		void createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position = v2(0));
+		Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, glm::vec2 position = glm::vec2(0));
+		void createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, glm::vec2 position = glm::vec2(0));
 		bool showButton(touchPosition& touch, bool selected = false, bool* aPressed = nullptr); //Returns true whilst pressed
-		void setPosition(v2 postoSet);
+		void setPosition(glm::vec2 postoSet);
 
 		const rect getRect() const { return hitBox; };
 
@@ -45,7 +46,7 @@ namespace Papas {
 		C2D_Image img_Selected;
 		C2D_Image img_Unpressed;
 
-		v2 pos;
+		glm::vec2 pos;
 		rect hitBox;
 
 		bool wasPressed;
@@ -54,22 +55,22 @@ namespace Papas {
 	class AnimatedSprite {
 	public:
 		AnimatedSprite() {};
-		AnimatedSprite(const char *spriteSheet, float time, v2 position = v2(0), v2 scale = v2(0), float rotation = 0);
-		void createAnim(const char *spriteSheet, float time, v2 position = v2(0), v2 scale = v2(0), float rotation = 0);
+		AnimatedSprite(const char *spriteSheet, float time, glm::vec2 position = glm::vec2(0), glm::vec2 scale = glm::vec2(0), float rotation = 0);
+		void createAnim(const char *spriteSheet, float time, glm::vec2 position = glm::vec2(0), glm::vec2 scale = glm::vec2(0), float rotation = 0);
 		void destroyAnim();
 
 		virtual void renderAnim(bool loop);
 
-		void setPosition(v2 postoSet);
-		void setRotation(v2 postoSet);
+		void setPosition(glm::vec2 postoSet);
+		void setRotation(glm::vec2 postoSet);
 
 	protected:
 		
 		std::vector<C2D_Sprite> each_sprite;
 		C2D_SpriteSheet s_spriteSheet;
 
-		v2 pos;
-		v2 size;
+		glm::vec2 pos;
+		glm::vec2 size;
 		float rot;
 
 		u64 start;
@@ -138,8 +139,8 @@ namespace Papas {
 
 	struct ReceiptParts{
 		C2D_Font *dokyo;
-		v2 pos;
-		v2 scale;
+		glm::vec2  pos;
+		glm::vec2  scale;
 		C2D_Sprite receipt_bg;
 		C2D_Image s_nums_cross;
 		bool needleDrawn;
@@ -157,11 +158,11 @@ namespace Papas {
 		float currentDepth;
 		size_t currentItems;
 		ReceiptSubSection sections[7];
-		void init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top);
-		void moveReceipt(v2 moveTo);
-		void setPosReceipt(v2 moveTo);
-		void scaleReceipt(v2 scaleTo);
-		void setScaleReceipt(v2 scaleTo);
+		void init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet, glm::vec2 posToGive, glm::vec2 scaleToGive, bool top);
+		void moveReceipt(glm::vec2  moveTo);
+		void setPosReceipt(glm::vec2  moveTo);
+		void scaleReceipt(glm::vec2  scaleTo);
+		void setScaleReceipt(glm::vec2  scaleTo);
 		void addItem(int size[4], Toppings top, int Quant);
 		void addTime(int time);
 		void addCut(int slices);
@@ -171,13 +172,13 @@ namespace Papas {
 	struct Receipt{
 		ReceiptParts top, bottom;
 		//Position and scales to dock the ticket screens
-		const v2 snapPosTop = {277.6f, 0.0f};
-		const v2 bigScaleTop = {0.95f, 0.95f};
-		const v2 smallScaleTop = {0.35f, 0.35f};
+		const glm::vec2  snapPosTop = {277.6f, 0.0f};
+		const glm::vec2  bigScaleTop = {0.95f, 0.95f};
+		const glm::vec2  smallScaleTop = {0.35f, 0.35f};
 
-		const v2 snapPosBottom = {198.0f, 40.0f};
-		const v2 bigScaleBottom = {0.85f, 0.85f};
-		const v2 smallScaleBottom = {0.32f, 0.32f};
+		const glm::vec2  snapPosBottom = {198.0f, 40.0f};
+		const glm::vec2  bigScaleBottom = {0.85f, 0.85f};
+		const glm::vec2  smallScaleBottom = {0.32f, 0.32f};
 
 		bool dockInUse;
 

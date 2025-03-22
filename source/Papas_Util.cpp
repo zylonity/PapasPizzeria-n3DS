@@ -8,12 +8,12 @@
 #include <cstdlib> // for rand() and srand()
 #include <vector>
 
-Papas::Button::Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
+Papas::Button::Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, glm::vec2 position) {
 
 	createButton(spriteSheet, unpressed, selected, pressed, position);
 }
 
-void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
+void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, glm::vec2 position) {
 
 	wasPressed = false;
 	// Load the sprites
@@ -70,7 +70,7 @@ bool Papas::Button::showButton(touchPosition& touch, bool selected, bool* aPress
 	return false;
 }
 
-void Papas::Button::setPosition(v2 showPos) {
+void Papas::Button::setPosition(glm::vec2 showPos) {
 
 	pos = showPos;
 	hitBox.left = pos.x;
@@ -80,13 +80,13 @@ void Papas::Button::setPosition(v2 showPos) {
 
 }
 
-Papas::AnimatedSprite::AnimatedSprite(const char *spriteSheet, float time, v2 position, v2 scale, float defaultRotation)
+Papas::AnimatedSprite::AnimatedSprite(const char *spriteSheet, float time, glm::vec2 position, glm::vec2 scale, float defaultRotation)
 {
 
 	createAnim(spriteSheet, time, position, scale, defaultRotation);
 }
 
-void Papas::AnimatedSprite::createAnim(const char *spriteSheet, float time, v2 position, v2 scale, float defaultRotation)
+void Papas::AnimatedSprite::createAnim(const char *spriteSheet, float time, glm::vec2 position, glm::vec2 scale, float defaultRotation)
 {
 
 	s_spriteSheet = C2D_SpriteSheetLoad(spriteSheet);
@@ -311,7 +311,7 @@ void Papas::RoyTakingOrder::resetAnim(){
 	currentPauses = 0;
 }
 
-void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top)
+void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet, glm::vec2 posToGive, glm::vec2 scaleToGive, bool top)
 {
 	dokyo = font;
 
@@ -413,7 +413,7 @@ void Papas::ReceiptParts::addCut(int slices)
 	}
 }
 
-void Papas::ReceiptParts::moveReceipt(v2 moveBy)
+void Papas::ReceiptParts::moveReceipt(glm::vec2 moveBy)
 {
 	C2D_SpriteMove(&receipt_bg, moveBy.x, moveBy.y);
 
@@ -421,7 +421,7 @@ void Papas::ReceiptParts::moveReceipt(v2 moveBy)
 	pos.y = pos.y + moveBy.y;
 }
 
-void Papas::ReceiptParts::setPosReceipt(v2 moveBy)
+void Papas::ReceiptParts::setPosReceipt(glm::vec2 moveBy)
 {
 	C2D_SpriteSetPos(&receipt_bg, moveBy.x, moveBy.y);
 
@@ -429,14 +429,14 @@ void Papas::ReceiptParts::setPosReceipt(v2 moveBy)
 	pos.y = moveBy.y;
 }
 
-void Papas::ReceiptParts::scaleReceipt(v2 scaleBy)
+void Papas::ReceiptParts::scaleReceipt(glm::vec2 scaleBy)
 {
 	C2D_SpriteScale(&receipt_bg, scaleBy.x, scaleBy.y);
 	scale.x = scale.x * scaleBy.x;
 	scale.y = scale.y * scaleBy.y;
 }
 
-void Papas::ReceiptParts::setScaleReceipt(v2 scaleBy)
+void Papas::ReceiptParts::setScaleReceipt(glm::vec2 scaleBy)
 {
 	C2D_SpriteSetScale(&receipt_bg, scaleBy.x, scaleBy.y);
 	scale.x = scaleBy.x;
@@ -551,7 +551,7 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 
 	static bool isDragging = false;
 	static touchPosition prevTouch;
-	static v2 offset;
+	static glm::vec2 offset;
 
 	if (touch.px != 0 || touch.py != 0) // I wanna account for latency, if the receipt is moving but you move outside the hitbox faster than the hitbox can move, it still drags
 	{
@@ -567,18 +567,18 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 
 				if (bottom.pinnedTop)
 				{
-					bottom.setPosReceipt(v2(touch.px - (bottom.hitBox.width * 0.5f), touch.py - (bottom.hitBox.height * 0.3f)));
+					bottom.setPosReceipt(glm::vec2(touch.px - (bottom.hitBox.width * 0.5f), touch.py - (bottom.hitBox.height * 0.3f)));
 				}
 				else
 				{
-					bottom.setPosReceipt(v2(touch.px - bottom.hitBox.width * 0.2f, touch.py - bottom.hitBox.height * 0.1f));
+					bottom.setPosReceipt(glm::vec2(touch.px - bottom.hitBox.width * 0.2f, touch.py - bottom.hitBox.height * 0.1f));
 				}
 
 				isDragging = true;
 			}
 			else
 			{
-				bottom.moveReceipt(v2(touch.px - prevTouch.px, touch.py - prevTouch.py));
+				bottom.moveReceipt(glm::vec2(touch.px - prevTouch.px, touch.py - prevTouch.py));
 			}
 
 			prevTouch = touch;
@@ -589,10 +589,10 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 		if (bottom.pos.y < 30.0f)
 		{
 			dockInUse = false;
-			bottom.setPosReceipt(v2(bottom.pos.x, 5));
+			bottom.setPosReceipt(glm::vec2(bottom.pos.x, 5));
 			bottom.pinnedTop = true;
 			top.setScaleReceipt(smallScaleTop);
-			top.setPosReceipt(v2(bottom.pos.x, -7.0f));
+			top.setPosReceipt(glm::vec2(bottom.pos.x, -7.0f));
 		}
 		else
 		{
@@ -614,10 +614,10 @@ void Papas::Receipt::forceDocking()
 	std::srand(osGetTime());
 	int randomPos = std::rand() % 20 + 1;
 	bottom.setScaleReceipt(smallScaleBottom);
-	bottom.setPosReceipt(v2(randomPos, 5));
+	bottom.setPosReceipt(glm::vec2(randomPos, 5));
 	bottom.pinnedTop = false;
 	top.setScaleReceipt(smallScaleTop);
-	top.setPosReceipt(v2(randomPos, -7.0f));
+	top.setPosReceipt(glm::vec2(randomPos, -7.0f));
 	dockInUse = false;
 }
 

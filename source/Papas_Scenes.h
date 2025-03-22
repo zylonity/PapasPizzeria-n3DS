@@ -23,8 +23,8 @@ namespace Papas {
 		bool startedPlaying;
 		Papas::SceneManager *p_sceneManager;
 
-		v2 worldScale;
-		v2 worldPos;
+		glm::vec2 worldScale;
+		glm::vec2  worldPos;
 		
 
 		C2D_SpriteSheet guy1;

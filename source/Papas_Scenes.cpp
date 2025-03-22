@@ -137,7 +137,7 @@ PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 
 	// Start button
 	Papas::Button b_start(sheet_buttons, 0, 1, 2);
-	Papas::v2 startPos = {(SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), 50.0f};
+	glm::vec2 startPos = {(SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), 50.0f};
 	b_start.setPosition(startPos);
 	v_buttons.push_back(b_start);
 
@@ -145,12 +145,12 @@ PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 	float padding = 10;
 
 	Papas::Button b_help(sheet_buttons, 3, 4, 5);
-	Papas::v2 helpPos = {(SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), startPos.y + buttonheight + padding};
+	glm::vec2 helpPos = {(SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), startPos.y + buttonheight + padding};
 	b_help.setPosition(helpPos);
 	v_buttons.push_back(b_help);
 
 	Papas::Button b_credits(sheet_buttons, 6, 7, 8);
-	Papas::v2 creditsPos = {(SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), helpPos.y + buttonheight + padding};
+	glm::vec2 creditsPos = {(SCREEN_WIDTH_BOTTOM / 2) - (b_start.getRect().width / 2), helpPos.y + buttonheight + padding};
 	b_credits.setPosition(creditsPos);
 	v_buttons.push_back(b_credits);
 
@@ -367,12 +367,12 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	to_counter = C2D_SpriteSheetGetImage(orderStation, 0);
 	to_wallpaper = C2D_SpriteSheetGetImage(orderStation, 1);
 
-	v2 pos = {-24, 45};
-	v2 scl = {0.8f, 0.8f};
+	glm::vec2 pos = {-24, 45};
+	glm::vec2 scl = {0.8f, 0.8f};
 	Roy.createAnim("romfs:/gfx/Roy_peeking.t3x", 0.0f, pos, scl, 35.0f);
 
-	v2 pos_order = {-45, 45};
-	v2 scl_order = {1.0f, 1.0f};
+	glm::vec2 pos_order = {-45, 45};
+	glm::vec2 scl_order = {1.0f, 1.0f};
 	Roy2.createAnim("romfs:/gfx/Roy_takingorder.t3x", 0.0f, pos_order, scl_order, 0.0f);
 
 	// Receipt system stuff to move later
