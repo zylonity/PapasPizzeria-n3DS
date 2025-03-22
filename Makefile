@@ -33,7 +33,7 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source
+SOURCES		:=	$(shell find source -type d)
 DATA		:=	data
 INCLUDES	:=	include
 GRAPHICS	:=	gfx
@@ -64,7 +64,7 @@ LIBS :=  -lSDL_mixer -lSDL -l3ds-libtheoraplayer -ltheora -ltheoradec -lvorbisid
 # include and lib
 #---------------------------------------------------------------------------------
 LIBDIRS	:= $(PORTLIBS) $(CTRULIB)
-
+#SOURCES += 
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
