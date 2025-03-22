@@ -1,5 +1,6 @@
 #include "Papas_Renderer.h"
 #include "Papas_Scenes.h"
+#include <Math3DHelper.h>
 
 PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	//PapasError ret;
@@ -46,7 +47,6 @@ PapasError Papas::Renderer::update(Papas::SceneManager* sceneManager) {
 
 	ret = render(sceneManager);
 	ASSERT(ret == PAPAS_OK, "");
-
 	return PAPAS_OK;
 }
 
@@ -72,7 +72,7 @@ PapasError Papas::Renderer::render(Papas::SceneManager* sceneManager) {
 	C2D_TargetClear(bottomRenderTarget, C2D_Color32(0x00, 0x00, 0x00, 0xff));
 	//C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
 	C2D_SceneBegin(bottomRenderTarget);
-
+	m3d::
 	//Render the scene's bottom screen
 	sceneManager->render_bottom();
 

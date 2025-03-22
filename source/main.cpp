@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
 		if (ret != PAPAS_OK)
 			break;
 	}
-
+	
 	ret = g_framework.terminate();
 	ASSERT(ret == PAPAS_OK, "");
 

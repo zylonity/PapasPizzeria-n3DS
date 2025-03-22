@@ -52,6 +52,8 @@ CFLAGS	:=	-g -Wall -O0 -mword-relocations \
 
 CFLAGS	+=	$(INCLUDE) -D__3DS__
 
+CFLAGS += -I$(CURDIR)/source/spine
+
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
 ASFLAGS	:=	-g $(ARCH)
