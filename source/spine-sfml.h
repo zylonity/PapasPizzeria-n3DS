@@ -32,6 +32,8 @@
 
 #include <spine/spine.h>
 #include <citro3d.h>
+#include "Papas_Utils.h"
+#include <vector>
 
 namespace spine {
 
@@ -48,7 +50,7 @@ namespace spine {
 
 		void update(float deltaTime, Physics physics = Physics_Update);
 
-		virtual void draw(C3D_RenderTarget &target, sf::RenderStates states) const;
+		virtual void draw() const;
 
 		void setUsePremultipliedAlpha(bool usePMA) { usePremultipliedAlpha = usePMA; };
 
@@ -57,7 +59,7 @@ namespace spine {
 	private:
 		bool ownsAnimationStateData;
 		mutable bool usePremultipliedAlpha;
-		sf::VertexArray *vertexArray;
+		std::vector<Papas::Vertex>* vertexArray;
 	};
 
 	class SFMLTextureLoader : public TextureLoader {

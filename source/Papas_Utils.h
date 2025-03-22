@@ -9,19 +9,11 @@
 
 namespace Papas {
 
-	// struct v2 {
-	// 	float x;
-	// 	float y;
-
-	// 	// Constructor for single value
-	// 	v2(float value) : x(value), y(value) {}
-
-	// 	// Constructor for two values
-	// 	v2(float _x, float _y) : x(_x), y(_y) {}
-
-	// 	// Default constructor
-	// 	v2() : x(0.0f), y(0.0f) {}
-	// };
+	struct Vertex{
+		glm::vec2 position;
+		u32 colour;
+		glm::vec2 texCoords;
+	};
 
 	struct rect {
 		float left;
