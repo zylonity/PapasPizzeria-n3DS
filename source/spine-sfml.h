@@ -44,13 +44,13 @@ namespace spine {
 		float timeScale;
 
 		SkeletonDrawable(SkeletonData *skeleton, AnimationStateData *stateData = 0);
-
+		SkeletonDrawable();
 
 		~SkeletonDrawable();
 
 		void update(float deltaTime, Physics physics = Physics_Update);
 
-		virtual void draw() const;
+		virtual void draw();
 
 		void setUsePremultipliedAlpha(bool usePMA) { usePremultipliedAlpha = usePMA; };
 
@@ -59,7 +59,7 @@ namespace spine {
 	private:
 		bool ownsAnimationStateData;
 		mutable bool usePremultipliedAlpha;
-		std::vector<Papas::Vertex>* vertexArray;
+		Papas::Vertex* vertexArray;
 	};
 
 	class SFMLTextureLoader : public TextureLoader {

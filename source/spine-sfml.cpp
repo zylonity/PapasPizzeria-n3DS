@@ -52,15 +52,17 @@ using namespace spine;
 
 SkeletonRenderer *skeletonRenderer = nullptr;
 
-SkeletonDrawable::SkeletonDrawable(SkeletonData *skeletonData, AnimationStateData *stateData) : timeScale(1),
-																								usePremultipliedAlpha(false),
-																								vertexArray(new std::vector<Papas::Vertex>(skeletonData->getBones().size() * 4)) {
-	Bone::setYDown(true);
-	skeleton = new (__FILE__, __LINE__) Skeleton(skeletonData);
-	ownsAnimationStateData = stateData == 0;
-	if (ownsAnimationStateData) stateData = new (__FILE__, __LINE__) AnimationStateData(skeletonData);
-	state = new (__FILE__, __LINE__) AnimationState(stateData);
-}
+// SkeletonDrawable::SkeletonDrawable(SkeletonData *skeletonData, AnimationStateData *stateData) : timeScale(1),
+// 																								usePremultipliedAlpha(false),
+// 																								vertexArray(new std::vector<Papas::Vertex>(skeletonData->getBones().size() * 4)) {
+// 	Bone::setYDown(true);
+// 	skeleton = new (__FILE__, __LINE__) Skeleton(skeletonData);
+// 	ownsAnimationStateData = stateData == 0;
+// 	if (ownsAnimationStateData) stateData = new (__FILE__, __LINE__) AnimationStateData(skeletonData);
+// 	state = new (__FILE__, __LINE__) AnimationState(stateData);
+// }
+
+SkeletonDrawable::SkeletonDrawable(){}
 
 SkeletonDrawable::~SkeletonDrawable() {
 	delete vertexArray;
@@ -83,92 +85,132 @@ void SkeletonDrawable::update(float deltaTime, Physics physics) {
 // 	sfmlColor->b = color & 0xFF;
 // }
 
-void SkeletonDrawable::draw() const {
+void SkeletonDrawable::draw() {
 	//states.texture = NULL;
-	vertexArray->clear();
+	// vertexArray->clear();
 
-	if (!skeletonRenderer) skeletonRenderer = new (__FILE__, __LINE__) SkeletonRenderer();
-	RenderCommand *command = skeletonRenderer->render(*skeleton);
-	while (command) {
-		Papas::Vertex vertex;
-		float *positions = command->positions;
-		float *uvs = command->uvs;
-		uint32_t *colors = command->colors;
-		uint16_t *indices = command->indices;
-		C2D_Image *texture = (C2D_Image*) command->texture;
-		glm::vec2 size = {texture->subtex->width, texture->subtex->height};
-		for (int i = 0, n = command->numIndices; i < n; ++i) {
-			int ii = indices[i];
-			int index = ii << 1;
-			vertex.position.x = positions[index];
-			vertex.position.y = positions[index + 1];
-			vertex.texCoords.x = uvs[index] * size.x;
-			vertex.texCoords.y = uvs[index + 1] * size.y;
-			vertex.colour = colors[ii];
-			//toSFMLColor(colors[ii], &vertex.color);
-			vertexArray->push_back(vertex);
-		}
-		BlendMode blendMode = command->blendMode;
+	// if (!skeletonRenderer) skeletonRenderer = new (__FILE__, __LINE__) SkeletonRenderer();
+	// RenderCommand *command = skeletonRenderer->render(*skeleton);
+	// while (command) {
+	// 	Papas::Vertex vertex;
+	// 	float *positions = command->positions;
+	// 	float *uvs = command->uvs;
+	// 	uint32_t *colors = command->colors;
+	// 	uint16_t *indices = command->indices;
+	// 	C2D_Image *texture = (C2D_Image*) command->texture;
+	// 	glm::vec2 size = {texture->subtex->width, texture->subtex->height};
+	// 	for (int i = 0, n = command->numIndices; i < n; ++i) {
+	// 		int ii = indices[i];
+	// 		int index = ii << 1;
+	// 		vertex.position.x = positions[index];
+	// 		vertex.position.y = positions[index + 1];
+	// 		vertex.texCoords.x = uvs[index] * size.x;
+	// 		vertex.texCoords.y = uvs[index + 1] * size.y;
+	// 		vertex.colour = colors[ii];
+	// 		//toSFMLColor(colors[ii], &vertex.color);
+	// 		vertexArray->push_back(vertex);
+	// 	}
+	// 	BlendMode blendMode = command->blendMode;
 		
-		//C3D_AlphaBlend();
+	// 	//C3D_AlphaBlend();
 
-		//states.blendMode = usePremultipliedAlpha ? blendModesPma[blendMode] : blendModes[blendMode];
-		//states.texture = texture;
-		//target.draw(*vertexArray, states);
+	// 	//states.blendMode = usePremultipliedAlpha ? blendModesPma[blendMode] : blendModes[blendMode];
+	// 	//states.texture = texture;
+	// 	//target.draw(*vertexArray, states);
 
-		// C3D_BufInfo* bufInfo = C3D_GetBufInfo();
-        // BufInfo_Init(bufInfo);
-        // BufInfo_Add(bufInfo, &vertices, sizeof(m3d::Vertex), 2, 0x10);
-        // C3D_DrawArrays(GPU_TRIANGLE_STRIP, 0, 4);
+	// 	// C3D_BufInfo* bufInfo = C3D_GetBufInfo();
+    //     // BufInfo_Init(bufInfo);
+    //     // BufInfo_Add(bufInfo, &vertices, sizeof(m3d::Vertex), 2, 0x10);
+    //     // C3D_DrawArrays(GPU_TRIANGLE_STRIP, 0, 4);
 
-		// vertexArray->clear();
+	// 	// vertexArray->clear();
 
-		 // -- BIND THE TEXTURE --
-        // Citro2D’s C2D_Image has an underlying C3D_Tex in texture->tex
-        // so we bind that to texture unit 0:
-        C3D_TexBind(0, texture->tex);
+	// 	 // -- BIND THE TEXTURE --
+    //     // Citro2D’s C2D_Image has an underlying C3D_Tex in texture->tex
+    //     // so we bind that to texture unit 0:
+    //     C3D_TexBind(0, texture->tex);
 
-        // -- SET UP THE GPU ENV FOR TEXTURING + COLOR --
-        // e.g. multiply texture color by vertex color (GPU_MODULATE).
-        // C3D_TexEnv* env = C3D_GetTexEnv(0);
-        // C3D_TexEnvSrc(env, C3D_Both, GPU_TEXTURE0, GPU_PRIMARY_COLOR, 0);
-        // C3D_TexEnvOpRgb(env, GPU_REPLACE, 0, 0);
-		// C3D_TexEnvOpAlpha(env, GPU_REPLACE, 0, 0);
-        // C3D_TexEnvFunc(env, C3D_Both, GPU_MODULATE);
+    //     //-- SET UP THE GPU ENV FOR TEXTURING + COLOR --
+    //     //e.g. multiply texture color by vertex color (GPU_MODULATE).
+    //     C3D_TexEnv* env = C3D_GetTexEnv(0);
+    //     C3D_TexEnvSrc(env, C3D_Both, GPU_TEXTURE0, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR);
+    //     C3D_TexEnvOpRgb(env, GPU_TEVOP_RGB_SRC_COLOR, GPU_TEVOP_RGB_SRC_COLOR, GPU_TEVOP_RGB_SRC_COLOR);
+	// 	C3D_TexEnvOpAlpha(env, GPU_TEVOP_A_SRC_ALPHA, GPU_TEVOP_A_SRC_ALPHA, GPU_TEVOP_A_SRC_ALPHA);
+    //     C3D_TexEnvFunc(env, C3D_Both, GPU_MODULATE);
 
-        // -- HANDLE BLENDING IF NEEDED (command->blendMode) --
-        // For example:
-        // C3D_AlphaBlend(GPU_BLEND_SRC_ALPHA, GPU_BLEND_ONE_MINUS_SRC_ALPHA, ...);
+    //     // -- HANDLE BLENDING IF NEEDED (command->blendMode) --
+    //     // For example:
+    //     // C3D_AlphaBlend(GPU_BLEND_SRC_ALPHA, GPU_BLEND_ONE_MINUS_SRC_ALPHA, ...);
 
-        // -- SET UP ATTRIBUTES (position, UV, color) --
-        C3D_AttrInfo* attrInfo = C3D_GetAttrInfo();
-        AttrInfo_Init(attrInfo);
-        // location=0 => x,y
-        AttrInfo_AddLoader(attrInfo, 0, GPU_FLOAT, 2);
-        // location=1 => u,v
-        AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2);
-        // location=2 => color
-        AttrInfo_AddLoader(attrInfo, 2, GPU_UNSIGNED_BYTE, 4);
+    //     // -- SET UP ATTRIBUTES (position, UV, color) --
+    //     C3D_AttrInfo* attrInfo = C3D_GetAttrInfo();
+    //     AttrInfo_Init(attrInfo);
+    //     // location=0 => x,y
+    //     AttrInfo_AddLoader(attrInfo, 0, GPU_FLOAT, 2);
+    //     // location=1 => u,v
+    //     AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2);
+    //     // location=2 => color
+    //     AttrInfo_AddLoader(attrInfo, 2, GPU_UNSIGNED_BYTE, 4);
 
-        // -- SET UP BUFFER INFO --
-        C3D_BufInfo* bufInfo = C3D_GetBufInfo();
-        BufInfo_Init(bufInfo);
-        // The 3rd parameter is how many attributes you have (3).
-        // The last param is a bitmask specifying which attribute slots are used (0x210 is typical for 3).
-        // In practice, you may need to experiment or check devkitPro docs.
-        BufInfo_Add(bufInfo, vertexArray->data(), sizeof(Papas::Vertex), 3, 0x210);
+    //     // -- SET UP BUFFER INFO --
+    //     C3D_BufInfo* bufInfo = C3D_GetBufInfo();
+    //     BufInfo_Init(bufInfo);
+    //     // The 3rd parameter is how many attributes you have (3).
+    //     // The last param is a bitmask specifying which attribute slots are used (0x210 is typical for 3).
+    //     // In practice, you may need to experiment or check devkitPro docs.
+    //     BufInfo_Add(bufInfo, vertexArray->data(), sizeof(Papas::Vertex), 3, 0x210);
 
-        // -- DRAW THE VERTICES --
-        // Spine's data is typically triangles, so we use GPU_TRIANGLES.
-        // The number of vertices is indexCount (since each index is one vertex).
-        C3D_DrawArrays(GPU_TRIANGLES, 0, command->numIndices);
+    //     // -- DRAW THE VERTICES --
+    //     // Spine's data is typically triangles, so we use GPU_TRIANGLES.
+    //     // The number of vertices is indexCount (since each index is one vertex).
+    //     C3D_DrawArrays(GPU_TRIANGLES, 0, command->numIndices);
 
-        // Clean up
-        //delete[] vertices;
-		vertexArray->clear();
+    //     // Clean up
+    //     //delete[] vertices;
+	// 	vertexArray->clear();
 
-		command = command->next;
-	}
+	// 	command = command->next;
+	// }
+
+
+	
+
+	//m3d::Vertex* vertices = new Vertex[4];
+
+	//if (vertices == nullptr) return;
+	//vertexArray->push_back();
+
+	vertexArray = new Papas::Vertex[4];
+
+	Papas::Vertex one, two, three, four;
+
+	vertexArray[0].position = glm::vec2(10, 20);
+	vertexArray[1].position = glm::vec2(20, 20);
+	vertexArray[2].position = glm::vec2(10, 10);
+	vertexArray[3].position = glm::vec2(20, 10);
+
+	vertexArray[0].colour = C2D_Color32(1, 1, 1, 1);
+	vertexArray[1].colour = C2D_Color32(1, 1, 1, 1);
+	vertexArray[2].colour = C2D_Color32(1, 1, 1, 1);
+	vertexArray[3].colour = C2D_Color32(1, 1, 1, 1);
+
+
+	C3D_TexEnv* env = C3D_GetTexEnv(0);
+	C3D_TexEnvSrc(env, C3D_Both, GPU_TEXTURE0, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR);
+	C3D_TexEnvOpRgb(env, GPU_TEVOP_RGB_SRC_COLOR, GPU_TEVOP_RGB_SRC_COLOR, GPU_TEVOP_RGB_SRC_COLOR);
+	C3D_TexEnvOpAlpha(env, GPU_TEVOP_A_SRC_ALPHA, GPU_TEVOP_A_SRC_ALPHA, GPU_TEVOP_A_SRC_ALPHA);
+	C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
+
+	C3D_AttrInfo* attrInfo = C3D_GetAttrInfo();
+	AttrInfo_Init(attrInfo);
+	AttrInfo_AddLoader(attrInfo, 0, GPU_FLOAT, 3);
+	AttrInfo_AddLoader(attrInfo, 1, GPU_UNSIGNED_BYTE, 4);
+
+	C3D_BufInfo* bufInfo = C3D_GetBufInfo();
+	BufInfo_Init(bufInfo);
+	BufInfo_Add(bufInfo, &vertexArray, sizeof(Papas::Vertex), 3, 0x210);
+	C3D_DrawArrays(GPU_TRIANGLE_STRIP, 0, 4);
+
 }
 
 void SFMLTextureLoader::load(AtlasPage &page, const String &path) {

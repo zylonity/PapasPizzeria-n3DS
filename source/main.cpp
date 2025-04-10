@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
 	//std::cout << atlas->getPages()[0]->texturePath.buffer() << '\n';
 	spine::SkeletonData* skeletonData = readSkeletonJsonData(json.c_str(), atlas, scale);
 
-	spine::SkeletonDrawable drawable(skeletonData);
+	spine::SkeletonDrawable drawable;
 	drawable.timeScale = 1;
 	drawable.setUsePremultipliedAlpha(true);
 
@@ -69,13 +69,14 @@ drawable.state->setAnimation(0, "swing", true);
 
 		C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
 
-		C2D_TargetClear(topScreen, C2D_Color32(0x00, 0x00, 0x00, 0xff));
-		C2D_SceneBegin(topScreen);
+		//C2D_TargetClear(topScreen, C2D_Color32(0x00, 0x00, 0x00, 0xff));
+		//C2D_SceneBegin(topScreen);
 
-		
+		C3D_FrameDrawOn(topScreen);
 		//C2D_DrawImageAt(top_bg_img, 0, 0, 0, NULL, 1, 1);
-		drawable.update(33.33f);
+		//drawable.update(33.33f);
 		drawable.draw();
+		
 
 		C3D_FrameEnd(0);
 		gspWaitForVBlank();
