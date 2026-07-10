@@ -405,3 +405,13 @@ build/
 *.elf
 *.smdh
 *.3dsx
+
+# CLion / clangd indexing (machine-specific absolute paths; regenerate via gen-compile-commands.sh)
+compile_commands.json
+
+# Tracks whether build/ holds a release (-O2) or debug (-O0) build
+.buildmode
+
+# CLion project dir: keep the shared run configs, ignore machine-specific state
+.idea/*
+!.idea/runConfigurations/
