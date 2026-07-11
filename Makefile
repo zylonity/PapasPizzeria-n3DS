@@ -164,7 +164,7 @@ ifneq ($(ROMFS),)
 	export _3DSXFLAGS += --romfs=$(CURDIR)/$(ROMFS)
 endif
 
-.PHONY: all clean
+.PHONY: all clean cia sideload
 
 #---------------------------------------------------------------------------------
 all: $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES)
@@ -176,9 +176,11 @@ cia: all
 	@makerom -f cia -o $(OUTPUT).cia -DAPP_ENCRYPTED=false -rsf $(CURDIR)/template.rsf -target t -exefslogo -elf $(OUTPUT).elf
 	@echo "Complete!"
 	
+# Press Y in the Homebrew Launcher first (netloader). Auto-discovers the 3DS
+# on the LAN; pass 3DS_IP=x.x.x.x if discovery fails (e.g. across subnets).
 sideload: all
 	@echo "... sideloading ..."
-	@3dslink $(TARGET).3dsx -a <IP>
+	@3dslink $(TARGET).3dsx $(if $(3DS_IP),-a $(3DS_IP))
 	@echo "Sideloading Complete!"
 
 $(BUILD):
