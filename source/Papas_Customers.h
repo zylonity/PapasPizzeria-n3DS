@@ -88,7 +88,7 @@ namespace Papas {
 	class CustomerManager
 	{
 	public:
-		void initManager();
+		void initManager(int rank);
 		void terminateManager();
 
 		void update();               // spawn timer + walking
@@ -105,7 +105,7 @@ namespace Papas {
 		bool allSpawned() const { return totalCustomers >= (int)customerLineup.size(); }
 
 	private:
-		void decideLineup();
+		void decideLineup(int rank);
 		void spawnNext();
 
 		std::vector<int> customerLineup;      // types, in spawn order

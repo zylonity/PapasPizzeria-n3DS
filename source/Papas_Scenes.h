@@ -153,6 +153,12 @@ namespace Papas {
 		u64 dayIntroStartedAt;
 		int dayIntroPick;
 		int currentDay;
+		// Rank progression (EndDayScreen.as): rank-up when total tips cross
+		// lastRankLimit + (rank+1)*500 cents at the end of a day
+		int myRank;
+		int lastRankLimit;
+		void beginDayIntro();
+		void startNextDay();
 		C2D_SpriteSheet startOfDaySheet;
 		C2D_TextBuf dayTextBuf;
 		C2D_Text dayNumText;

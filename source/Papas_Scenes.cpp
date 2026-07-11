@@ -324,19 +324,11 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	// Start-of-day intro: storefront cutscene before the first customer.
 	// The customer manager is initialised when the intro finishes.
 	Papas::ResourceManager::getInstance().loadSfx("startofday", "romfs:/sfx/startofday.wav");
-	startOfDaySheet = C2D_SpriteSheetLoad("romfs:/gfx/startofday.t3x");
-	for (size_t i = 0; i < C2D_SpriteSheetCount(startOfDaySheet); i++)
-		C3D_TexSetFilter(C2D_SpriteSheetGetImage(startOfDaySheet, i).tex, GPU_LINEAR, GPU_LINEAR);
 	currentDay = 1;
+	myRank = 1;
+	lastRankLimit = 0;
 	dayTextBuf = C2D_TextBufNew(16);
-	char dayStr[8];
-	std::snprintf(dayStr, sizeof(dayStr), "%d", currentDay);
-	C2D_TextFontParse(&dayNumText, dokyo, dayTextBuf, dayStr);
-	C2D_TextOptimize(&dayNumText);
-	showingDayIntro = true;
-	dayIntroStartedAt = osGetTime();
-	dayIntroPick = 0;
-	Papas::ResourceManager::getInstance().playSfx("startofday");
+	beginDayIntro();
 
 	SwitchStation(TicketStation);
 
@@ -519,6 +511,25 @@ void Papas::Game::renderDayIntro()
 		DAY_TEXT_SCALE, DAY_TEXT_SCALE, C2D_Color32(58, 58, 58, 255));
 }
 
+void Papas::Game::beginDayIntro()
+{
+	if (startOfDaySheet == nullptr)
+	{
+		startOfDaySheet = C2D_SpriteSheetLoad("romfs:/gfx/startofday.t3x");
+		for (size_t i = 0; i < C2D_SpriteSheetCount(startOfDaySheet); i++)
+			C3D_TexSetFilter(C2D_SpriteSheetGetImage(startOfDaySheet, i).tex, GPU_LINEAR, GPU_LINEAR);
+	}
+	C2D_TextBufClear(dayTextBuf);
+	char dayStr[8];
+	std::snprintf(dayStr, sizeof(dayStr), "%d", currentDay);
+	C2D_TextFontParse(&dayNumText, dokyo, dayTextBuf, dayStr);
+	C2D_TextOptimize(&dayNumText);
+	showingDayIntro = true;
+	dayIntroStartedAt = osGetTime();
+	dayIntroPick = 0;
+	Papas::ResourceManager::getInstance().playSfx("startofday");
+}
+
 void Papas::Game::endDayIntro()
 {
 	showingDayIntro = false;
@@ -529,7 +540,21 @@ void Papas::Game::endDayIntro()
 	}
 	Papas::ResourceManager::getInstance().switchMusic("orders_music");
 	// Spawn today's customers (loads the rig + per-type atlases on demand)
-	c_manager.initManager();
+	c_manager.initManager(myRank);
+}
+
+void Papas::Game::startNextDay()
+{
+	// EndDayScreen.as: one rank per day when total tips pass the next limit
+	int nextLimit = lastRankLimit + (myRank + 1) * 500;
+	if (totalTipsCents > nextLimit)
+	{
+		myRank++;
+		lastRankLimit += myRank * 500;
+	}
+	currentDay++;
+	Papas::ResourceManager::getInstance().stopMusic();
+	beginDayIntro();
 }
 
 void Papas::Game::loadGiveOrderSheets()
@@ -1069,6 +1094,10 @@ PapasError Papas::Game::update()
 			showingResult = false;
 			resultTouchHeld = false;
 			freeGiveOrderSheets();
+			// Last order of the day served: rank check + next day's intro
+			// (before SwitchStation so its music switch stays gated)
+			if (c_manager.dayIsOver())
+				startNextDay();
 			SwitchStation(TicketStation);
 		}
 		return PAPAS_OK;

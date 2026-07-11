@@ -37,7 +37,6 @@
 
 #define WALK_SPEED          81.0f	// px/s: 4px per 33ms on the original stage * 0.667
 
-#define CUSTOMERS_PER_DAY   4		// numberOfCustomers[rank 0] in CustomerManager.as
 #define TIME_PER_DAY        90.0f	// seconds; spawnSpeed = day / (customers - 1)
 
 //===============================================================================
@@ -215,12 +214,12 @@ void Papas::Customer::playPresentation(const char* segment)
 // CustomerManager
 //===============================================================================
 
-void Papas::CustomerManager::initManager()
+void Papas::CustomerManager::initManager(int rank)
 {
 	Papas::CustomerRig::getInstance().load();
 
 	totalCustomers = 0;
-	decideLineup();
+	decideLineup(rank);
 
 	// setupSpawn(): first customer right away, the rest spread over the day
 	spawnSpeed = TIME_PER_DAY / (customerLineup.size() - 1);
@@ -241,16 +240,30 @@ void Papas::CustomerManager::terminateManager()
 	customerLineup.clear();
 }
 
-void Papas::CustomerManager::decideLineup()
+void Papas::CustomerManager::decideLineup(int rank)
 {
-	// decideLineup(), minus the rank/unlock system for now: random distinct types
+	// CustomerManager.as decideLineup(): the unlock pool is the 6 starters
+	// plus one more type per rank past 1, capped at 35. The newest unlock is
+	// guaranteed to lead the day's lineup; the rest are random and distinct.
+	// PAPA LOUIE! (36) needs the star/badge progression (3 gold seals on all
+	// 35 customers at rank 31+), which is not ported yet.
+	static const int customersPerRank[11] = {4, 4, 5, 5, 6, 7, 7, 8, 8, 9, 10};
+	int count = customersPerRank[rank < 10 ? rank : 10];
+	int unlocked = 6 + (rank - 1);
+	if (unlocked > 35) unlocked = 35;
+
 	customerLineup.clear();
 	std::vector<int> pool;
-	for (int t = 1; t <= 36; t++)
+	for (int t = 1; t <= unlocked; t++)
 	{
 		pool.push_back(t);
 	}
-	for (int i = 0; i < CUSTOMERS_PER_DAY && !pool.empty(); i++)
+	if (rank >= 2)
+	{
+		customerLineup.push_back(unlocked);
+		pool.erase(pool.begin() + (unlocked - 1));
+	}
+	while ((int)customerLineup.size() < count && !pool.empty())
 	{
 		int pick = Papas::ResourceManager::getInstance().randomNumber(0, pool.size() - 1);
 		customerLineup.push_back(pool[pick]);
