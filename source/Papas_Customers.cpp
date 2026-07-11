@@ -31,9 +31,9 @@
 #define LEAVELINE_Y         77.0f	// 145 * 0.533
 #define LEAVELINE_SCALE     0.32f	// 0.6 * 0.533
 
-#define TAKEORDER_X         150.0f	// stands behind the counter, right of Roy
-#define TAKEORDER_Y         -8.0f	// lower body hidden by the countertop
-#define TAKEORDER_SCALE     0.65f
+#define TAKEORDER_X         115.0f	// stands behind the counter, right of Roy
+#define TAKEORDER_Y         18.0f	// lower body hidden by the countertop
+#define TAKEORDER_SCALE     0.55f
 
 #define WALK_SPEED          81.0f	// px/s: 4px per 33ms on the original stage * 0.667
 
