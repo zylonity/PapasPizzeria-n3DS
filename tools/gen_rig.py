@@ -286,7 +286,7 @@ for t in TYPES:
 # ---------------- segments ----------------
 lab=sorted(labels.items())
 SEGMENTS=[]
-LOOPING={"walk","stand"}
+LOOPING={"walk","stand","takeorder"}
 for i,(f,name) in enumerate(lab):
     end=lab[i+1][0] if i+1<len(lab) else NUMFRAMES
     SEGMENTS.append((name,f,end-f,1 if name in LOOPING else 0))

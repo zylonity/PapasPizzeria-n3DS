@@ -1,0 +1,19 @@
+--atlas -f rgba -z auto
+
+./Results/tip_jar.png
+./Results/tip_fill_0.png
+./Results/tip_fill_1.png
+./Results/tip_fill_2.png
+./Results/tip_fill_3.png
+./Results/tip_fill_4.png
+./Results/tip_fill_5.png
+./Results/tip_fill_6.png
+./Results/tip_fill_7.png
+./Results/tip_fill_8.png
+./Results/tip_fill_9.png
+./Results/coin_0.png
+./Results/coin_1.png
+./Results/coin_2.png
+./Results/coin_3.png
+./Results/coin_4.png
+./Results/coin_5.png

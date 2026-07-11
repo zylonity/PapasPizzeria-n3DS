@@ -271,6 +271,12 @@ Papas::Pizza *Papas::PizzaManager::consumeServedPizza()
 	return served;
 }
 
+void Papas::PizzaManager::renderPizzaForResult(int pizzaId, v2 centre, float scale, float depth)
+{
+	Pizza *pizza = pizzaById(pizzaId);
+	if (pizza != nullptr) drawPizza(*pizza, centre, scale, depth);
+}
+
 void Papas::PizzaManager::drawTopping(Toppings type, int stage, v2 pos, float rotation, float scale, float depth)
 {
 	int look = LOOK_BASE[type] + std::min(stage, LOOK_COUNT[type] - 1);

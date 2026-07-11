@@ -60,6 +60,7 @@ namespace Papas {
 		void renderBaking();
 		void renderCutting(touchPosition &touch);
 		Pizza *consumeServedPizza();
+		void renderPizzaForResult(int pizzaId, v2 centre, float scale, float depth);
 
 	private:
 		struct Cup {

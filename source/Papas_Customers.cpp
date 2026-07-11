@@ -190,12 +190,25 @@ void Papas::Customer::renderOrdering(float depth)
 		Papas::CustomerRig::getInstance().loadType(type, atlasOrder);
 	}
 
-	// drawCustomerOrdering(): stand large on the take-order screen
-	int segStand = Papas::CustomerRig::getInstance().segmentIndex("stand");
-	int frame = Papas::CustomerRig::getInstance().frameForTime(segStand, animSeconds());
+	int segment = presentationSeg;
+	float seconds;
+	if (segment >= 0)
+		seconds = std::chrono::duration<float>(std::chrono::steady_clock::now() - presentationStart).count();
+	else
+	{
+		segment = Papas::CustomerRig::getInstance().segmentIndex("stand");
+		seconds = animSeconds();
+	}
+	int frame = Papas::CustomerRig::getInstance().frameForTime(segment, seconds);
 	Papas::CustomerRig::getInstance().draw(atlasOrder, type, frame,
 										   TAKEORDER_X, TAKEORDER_Y,
 										   TAKEORDER_SCALE, TAKEORDER_SCALE, depth);
+}
+
+void Papas::Customer::playPresentation(const char* segment)
+{
+	presentationSeg = Papas::CustomerRig::getInstance().segmentIndex(segment);
+	presentationStart = std::chrono::steady_clock::now();
 }
 
 //===============================================================================

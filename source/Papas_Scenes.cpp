@@ -11,6 +11,8 @@
 #include <citro3d.h>
 #include <theoraplayer.h>
 #include "Papas_Customers.h"
+#include "Papas_GiveOrderFrames.h"
+#include "Papas_StartOfDayFrames.h"
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
@@ -261,11 +263,22 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 	ticketsStationImg = C2D_SpriteSheetGetImage(s_stations, 8);
 	ticketsHolderImg = C2D_SpriteSheetGetImage(s_stations, 9);
+	signOpenImg = C2D_SpriteSheetGetImage(s_stations, 10);
+	signClosedImg = C2D_SpriteSheetGetImage(s_stations, 11);
 
 	
 	orderStation = C2D_SpriteSheetLoad("romfs:/gfx/taking_order.t3x");
 	to_counter = C2D_SpriteSheetGetImage(orderStation, 0);
 	to_wallpaper = C2D_SpriteSheetGetImage(orderStation, 1);
+	orderBubbleSheet = C2D_SpriteSheetLoad("romfs:/gfx/order_bubble.t3x");
+	orderBubbleBase = C2D_SpriteSheetGetImage(orderBubbleSheet, 0);
+	for (int i = 0; i < 7; i++) orderBubbleToppings[i] = C2D_SpriteSheetGetImage(orderBubbleSheet, i + 1);
+	for (int i = 0; i < 16; i++) orderBubbleCoverage[i] = C2D_SpriteSheetGetImage(orderBubbleSheet, i + 8);
+	for (int i = 0; i < 8; i++) orderBubbleClocks[i] = C2D_SpriteSheetGetImage(orderBubbleSheet, i + 24);
+	for (int i = 0; i < 3; i++) orderBubbleCuts[i] = C2D_SpriteSheetGetImage(orderBubbleSheet, i + 32);
+	for (int i = 0; i < 15; i++) orderBubbleOpening[i] = C2D_SpriteSheetGetImage(orderBubbleSheet, i + 35);
+	for (size_t i = 0; i < C2D_SpriteSheetCount(orderBubbleSheet); i++)
+		C3D_TexSetFilter(C2D_SpriteSheetGetImage(orderBubbleSheet, i).tex, GPU_LINEAR, GPU_LINEAR);
 
 	v2 pos = {-24, 45};
 	v2 scl = {0.8f, 0.8f};
@@ -278,23 +291,58 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	// Receipt system stuff to move later
 	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
 	resultTextBuf = C2D_TextBufNew(256);
+	orderBubbleTextBuf = C2D_TextBufNew(32);
+	resultSheet = C2D_SpriteSheetLoad("romfs:/gfx/results.t3x");
+	resultJar = C2D_SpriteSheetGetImage(resultSheet, 0);
+	for (int i = 0; i < 10; i++) resultCoinPiles[i] = C2D_SpriteSheetGetImage(resultSheet, i + 1);
+	for (int i = 0; i < 6; i++) resultCoinSpin[i] = C2D_SpriteSheetGetImage(resultSheet, i + 11);
+	for (size_t i = 0; i < C2D_SpriteSheetCount(resultSheet); i++)
+		C3D_TexSetFilter(C2D_SpriteSheetGetImage(resultSheet, i).tex, GPU_LINEAR, GPU_LINEAR);
+	Papas::ResourceManager::getInstance().loadSfx("customer_decent", "romfs:/sfx/customer_decent.wav");
+	Papas::ResourceManager::getInstance().loadSfx("customer_happy", "romfs:/sfx/customer_happy.wav");
+	Papas::ResourceManager::getInstance().loadSfx("customer_overjoyed", "romfs:/sfx/customer_overjoyed.wav");
+	Papas::ResourceManager::getInstance().loadSfx("customer_pissed", "romfs:/sfx/customer_pissed.wav");
+	Papas::ResourceManager::getInstance().loadSfx("customer_upset", "romfs:/sfx/customer_upset.wav");
+	Papas::ResourceManager::getInstance().loadSfx("customer_worried", "romfs:/sfx/customer_worried.wav");
+	Papas::ResourceManager::getInstance().loadSfx("giveorder_drumroll", "romfs:/sfx/giveorder_drumroll.wav");
+	Papas::ResourceManager::getInstance().loadSfx("singlecoin", "romfs:/sfx/singlecoin.wav");
+	Papas::ResourceManager::getInstance().loadSfx("multicoin", "romfs:/sfx/multicoin.wav");
+	Papas::ResourceManager::getInstance().loadSfx("talkbubble", "romfs:/sfx/talkbubble.wav");
 	showingResult = false;
 	resultTouchHeld = false;
 	totalScore = 0;
 	totalTipsCents = 0;
 	resultCustomerNumber = 0;
+	giveOrderLoaded = false;
+	giveOrderPick = 0;
+	for (int i = 0; i < GIVEORDER_SHEET_COUNT; i++) giveOrderSheets[i] = nullptr;
 
 	r_manager.initManager(&dokyo);
 
 	createReceipt.createButton(orderStation, 2, 2, 3, {34, 141});
 
+	// Start-of-day intro: storefront cutscene before the first customer.
+	// The customer manager is initialised when the intro finishes.
+	Papas::ResourceManager::getInstance().loadSfx("startofday", "romfs:/sfx/startofday.wav");
+	startOfDaySheet = C2D_SpriteSheetLoad("romfs:/gfx/startofday.t3x");
+	for (size_t i = 0; i < C2D_SpriteSheetCount(startOfDaySheet); i++)
+		C3D_TexSetFilter(C2D_SpriteSheetGetImage(startOfDaySheet, i).tex, GPU_LINEAR, GPU_LINEAR);
+	currentDay = 1;
+	dayTextBuf = C2D_TextBufNew(16);
+	char dayStr[8];
+	std::snprintf(dayStr, sizeof(dayStr), "%d", currentDay);
+	C2D_TextFontParse(&dayNumText, dokyo, dayTextBuf, dayStr);
+	C2D_TextOptimize(&dayNumText);
+	showingDayIntro = true;
+	dayIntroStartedAt = osGetTime();
+	dayIntroPick = 0;
+	Papas::ResourceManager::getInstance().playSfx("startofday");
+
 	SwitchStation(TicketStation);
 
 	to_firstRun = false;
 	to_currentAction = 0;
-
-	// Spawn today's customers (loads the rig + per-type atlases on demand)
-	c_manager.initManager();
+	to_bubbleKind = BubbleHidden;
 
 	// Pizza making at the topping station
 	pz_manager.initManager();
@@ -430,6 +478,126 @@ int Papas::Game::scoreCutting(const Pizza &pizza, const CustomerData &order) con
 	return std::min(100, std::max(0, score));
 }
 
+void Papas::Game::renderDayIntro()
+{
+	static const float SOD_X = 38.0f; // centre the 323px scene on the top screen
+	// The original clip plays on the plain white stage
+	C2D_DrawRectSolid(0.0f, 0.0f, 0.0f, 400.0f, 240.0f, C2D_Color32(255, 255, 255, 255));
+	s64 elapsed = (s64)(osGetTime() - dayIntroStartedAt);
+	if (elapsed < 0) elapsed = 0;
+	float srcFrame = 1.0f + (float)elapsed * STARTOFDAY_FPS / 1000.0f;
+	if (srcFrame > (float)STARTOFDAY_SRC_FRAMES) srcFrame = (float)STARTOFDAY_SRC_FRAMES;
+
+	C2D_DrawImageAt(C2D_SpriteSheetGetImage(startOfDaySheet, 0), SOD_X, 0.0f, 0.10f);
+	while (dayIntroPick + 1 < STARTOFDAY_PATCH_COUNT &&
+	       (float)STARTOFDAY_PATCHES[dayIntroPick + 1].srcFrame <= srcFrame)
+		dayIntroPick++;
+	const StartOfDayPatch &patch = STARTOFDAY_PATCHES[dayIntroPick];
+	C2D_DrawImageAt(C2D_SpriteSheetGetImage(startOfDaySheet, patch.index),
+		SOD_X + patch.ox, (float)patch.oy, 0.20f);
+
+	// Day plate slides on its per-frame track; lerp between source frames
+	int fi = (int)srcFrame;
+	if (fi < 1) fi = 1;
+	if (fi > STARTOFDAY_SRC_FRAMES) fi = STARTOFDAY_SRC_FRAMES;
+	float y0 = STARTOFDAY_PLATE_TRACK[fi - 1];
+	float y1 = fi < STARTOFDAY_SRC_FRAMES ? STARTOFDAY_PLATE_TRACK[fi] : y0;
+	float plateY = y0 + (y1 - y0) * (srcFrame - (float)fi);
+	C2D_Image plate = C2D_SpriteSheetGetImage(startOfDaySheet, 1);
+	C2D_DrawImageAt(plate, SOD_X + STARTOFDAY_PLATE_X, plateY, 0.30f);
+
+	// The real day number over the blanked area, shadow first like the original
+	static const float DAY_TEXT_SCALE = 2.0f;
+	static const float DAY_TEXT_Y_OFFSET = 9.0f;
+	float tw = 0.0f, th = 0.0f;
+	C2D_TextGetDimensions(&dayNumText, DAY_TEXT_SCALE, DAY_TEXT_SCALE, &tw, &th);
+	float tx = SOD_X + STARTOFDAY_PLATE_X + plate.subtex->width * 0.5f - tw * 0.5f;
+	float ty = plateY + STARTOFDAY_DIGIT_Y - th * 0.5f + DAY_TEXT_Y_OFFSET;
+	C2D_DrawText(&dayNumText, C2D_WithColor, tx + 2.0f, ty + 2.0f, 0.34f,
+		DAY_TEXT_SCALE, DAY_TEXT_SCALE, C2D_Color32(178, 178, 172, 255));
+	C2D_DrawText(&dayNumText, C2D_WithColor, tx, ty, 0.35f,
+		DAY_TEXT_SCALE, DAY_TEXT_SCALE, C2D_Color32(58, 58, 58, 255));
+}
+
+void Papas::Game::endDayIntro()
+{
+	showingDayIntro = false;
+	if (startOfDaySheet != nullptr)
+	{
+		C2D_SpriteSheetFree(startOfDaySheet);
+		startOfDaySheet = nullptr;
+	}
+	Papas::ResourceManager::getInstance().switchMusic("orders_music");
+	// Spawn today's customers (loads the rig + per-type atlases on demand)
+	c_manager.initManager();
+}
+
+void Papas::Game::loadGiveOrderSheets()
+{
+	static_assert(GIVEORDER_SHEET_COUNT <= 8, "grow Game::giveOrderSheets");
+	if (giveOrderLoaded) return;
+	bool ok = true;
+	for (int i = 0; i < GIVEORDER_SHEET_COUNT; i++)
+	{
+		char path[48];
+		std::snprintf(path, sizeof(path), "romfs:/gfx/giveorder_roy%d.t3x", i + 1);
+		giveOrderSheets[i] = C2D_SpriteSheetLoad(path);
+		if (giveOrderSheets[i] == nullptr) { ok = false; break; }
+		for (size_t j = 0; j < C2D_SpriteSheetCount(giveOrderSheets[i]); j++)
+			C3D_TexSetFilter(C2D_SpriteSheetGetImage(giveOrderSheets[i], j).tex, GPU_LINEAR, GPU_LINEAR);
+	}
+	if (!ok) freeGiveOrderSheets();
+	else giveOrderLoaded = true;
+}
+
+void Papas::Game::freeGiveOrderSheets()
+{
+	for (int i = 0; i < GIVEORDER_SHEET_COUNT; i++)
+	{
+		if (giveOrderSheets[i] != nullptr) C2D_SpriteSheetFree(giveOrderSheets[i]);
+		giveOrderSheets[i] = nullptr;
+	}
+	giveOrderLoaded = false;
+}
+
+void Papas::Game::renderGiveOrderRoy()
+{
+	// Placement of the scaled 339x249 clip canvas on the top screen
+	static const float ROY_X = -55.0f;
+	static const float ROY_Y = 20.0f;
+	// The original carry frames tilt/jiggle the box, so the entrance is a
+	// procedural ease-out glide of the steady hold pose (table entry 0)
+	// along the original path instead: frame 1's content offset -> the hold
+	// pose's own offset, over the original 17-frame carry duration.
+	static const float SLIDE_FROM_X = 10.0f;
+	static const float SLIDE_FROM_Y = 42.0f;
+	static const float SLIDE_END_FRAME = 18.0f;
+	// Signed guard + advance-only pick: osGetTime() is wall-clock based, and
+	// a read below the captured start would otherwise underflow the u64 math
+	// and snap the clip between its first and last frame.
+	s64 elapsed = (s64)(osGetTime() - resultStartedAt);
+	if (elapsed < 0) elapsed = 0;
+	float srcFrame = 1.0f + (float)elapsed * GIVEORDER_FPS / 1000.0f;
+	if (srcFrame > (float)GIVEORDER_SRC_FRAMES) srcFrame = (float)GIVEORDER_SRC_FRAMES;
+	if (srcFrame < SLIDE_END_FRAME)
+	{
+		float t = (srcFrame - 1.0f) / (SLIDE_END_FRAME - 1.0f);
+		float ease = 1.0f - (1.0f - t) * (1.0f - t);
+		const GiveOrderFrame &hold = GIVEORDER_FRAMES[0];
+		float x = SLIDE_FROM_X + ((float)hold.ox - SLIDE_FROM_X) * ease;
+		float y = SLIDE_FROM_Y + ((float)hold.oy - SLIDE_FROM_Y) * ease;
+		C2D_Image img = C2D_SpriteSheetGetImage(giveOrderSheets[hold.sheet], hold.index);
+		C2D_DrawImageAt(img, ROY_X + x, ROY_Y + y, 0.70f);
+		return;
+	}
+	while (giveOrderPick + 1 < GIVEORDER_FRAME_COUNT &&
+	       (float)GIVEORDER_FRAMES[giveOrderPick + 1].srcFrame <= srcFrame)
+		giveOrderPick++;
+	const GiveOrderFrame &frame = GIVEORDER_FRAMES[giveOrderPick];
+	C2D_Image img = C2D_SpriteSheetGetImage(giveOrderSheets[frame.sheet], frame.index);
+	C2D_DrawImageAt(img, ROY_X + frame.ox, ROY_Y + frame.oy, 0.70f);
+}
+
 void Papas::Game::completeServedPizza(Pizza &pizza)
 {
 	Receipt *ticket = pizza.ticket;
@@ -445,15 +613,69 @@ void Papas::Game::completeServedPizza(Pizza &pizza)
 	result.overall = (result.waiting + result.topping + result.baking + result.cutting) / 4;
 	result.tipCents = std::max(0, (int)std::round((result.overall * 2.0f - 100.0f) * 3.0f));
 	result.customerName = order.name;
+	if (result.overall >= 90) resultReaction = "overjoyed";
+	else if (result.overall >= 80) resultReaction = "happy";
+	else if (result.overall >= 70) resultReaction = "decent";
+	else if (result.overall >= 60) resultReaction = "worried";
+	else if (result.overall >= 50) resultReaction = "upset";
+	else resultReaction = "pissed";
 	totalScore += result.overall;
 	totalTipsCents += result.tipCents;
 
 	int customerNumber = ticket->customerNumber;
 	resultCustomerNumber = customerNumber;
+	resultPizzaId = pizza.id;
 	pizza.ticket = nullptr;
 	r_manager.removeReceipt(ticket);
 	prepareResultText();
+	Customer *customer = c_manager.getCustomer(resultCustomerNumber);
+	if (customer != nullptr) customer->playPresentation("stand");
+	loadGiveOrderSheets();
+	giveOrderPick = 0;
+	resultPhase = ResultDrumroll;
+	resultPhaseStarted = osGetTime();
+	resultStartedAt = osGetTime();
+	Papas::ResourceManager::getInstance().playSfx("giveorder_drumroll");
 	showingResult = true;
+}
+
+void Papas::Game::updateResult()
+{
+	u64 elapsed = osGetTime() - resultPhaseStarted;
+	Customer *customer = c_manager.getCustomer(resultCustomerNumber);
+	if (resultPhase == ResultDrumroll && elapsed >= 1980)
+	{
+		if (customer != nullptr) customer->playPresentation("look");
+		resultPhase = ResultLook;
+		resultPhaseStarted = osGetTime();
+	}
+	else if (resultPhase == ResultLook && elapsed >= 1485)
+	{
+		if (customer != nullptr) customer->playPresentation(resultReaction.c_str());
+		if (resultReaction == "overjoyed") Papas::ResourceManager::getInstance().playSfx("customer_overjoyed");
+		else if (resultReaction == "happy") Papas::ResourceManager::getInstance().playSfx("customer_happy");
+		else if (resultReaction == "decent") Papas::ResourceManager::getInstance().playSfx("customer_decent");
+		else if (resultReaction == "worried") Papas::ResourceManager::getInstance().playSfx("customer_worried");
+		else if (resultReaction == "upset") Papas::ResourceManager::getInstance().playSfx("customer_upset");
+		else Papas::ResourceManager::getInstance().playSfx("customer_pissed");
+		resultPhase = ResultReaction;
+		resultPhaseStarted = osGetTime();
+	}
+	else if (resultPhase == ResultReaction && elapsed >= 1300)
+	{
+		if (result.tipCents > 0)
+		{
+			if (result.overall < 70) Papas::ResourceManager::getInstance().playSfx("singlecoin");
+			else Papas::ResourceManager::getInstance().playSfx("multicoin");
+		}
+		resultPhase = ResultTip;
+		resultPhaseStarted = osGetTime();
+	}
+	else if (resultPhase == ResultTip && elapsed >= 3300)
+	{
+		resultPhase = ResultReady;
+		resultPhaseStarted = osGetTime();
+	}
 }
 
 void Papas::Game::prepareResultText()
@@ -490,19 +712,58 @@ void Papas::Game::renderResult()
 	drawCenteredText(resultText[1], 55.0f, 0.68f, C2D_Color32(170, 63, 24, 255));
 	for (int i = 2; i <= 6; i++)
 		drawCenteredText(resultText[i], 82.0f + (i - 2) * 22.0f, 0.52f, C2D_Color32(39, 42, 35, 255));
-	C2D_DrawRectSolid(100.0f, 198.0f, 0.92f, 120.0f, 30.0f, C2D_Color32(36, 105, 4, 255));
-	C2D_DrawRectSolid(103.0f, 201.0f, 0.93f, 114.0f, 24.0f, C2D_Color32(76, 190, 16, 255));
-	drawCenteredText(resultText[7], 204.0f, 0.50f, C2D_Color32(11, 33, 0, 255));
+	if (resultPhase == ResultReady)
+	{
+		C2D_DrawRectSolid(100.0f, 198.0f, 0.92f, 120.0f, 30.0f, C2D_Color32(36, 105, 4, 255));
+		C2D_DrawRectSolid(103.0f, 201.0f, 0.93f, 114.0f, 24.0f, C2D_Color32(76, 190, 16, 255));
+		drawCenteredText(resultText[7], 204.0f, 0.50f, C2D_Color32(11, 33, 0, 255));
+	}
+}
+
+void Papas::Game::renderTipJar()
+{
+	const float jarX = 304.0f;
+	const float jarY = 137.0f;
+	int shownTips = totalTipsCents;
+	if (resultPhase < ResultTip || (resultPhase == ResultTip && osGetTime() - resultPhaseStarted < 900))
+		shownTips -= result.tipCents;
+	int jarFrame = 1;
+	if (shownTips > 0)
+	{
+		jarFrame = (int)std::ceil(std::min(1.0f, shownTips / 3000.0f) * 10.0f);
+		jarFrame = std::max(2, std::min(10, jarFrame));
+	}
+	C2D_DrawImageAt(resultCoinPiles[jarFrame - 1], jarX + 3.0f, jarY + 23.0f, 0.82f);
+	C2D_DrawImageAt(resultJar, jarX, jarY, 0.84f);
+	if (resultPhase == ResultTip && result.tipCents > 0)
+	{
+		float elapsed = (float)(osGetTime() - resultPhaseStarted);
+		float progress = std::min(1.0f, elapsed / 950.0f);
+		int frame = ((int)(elapsed / 70.0f)) % 6;
+		C2D_Image coin = resultCoinSpin[frame];
+		C2D_DrawImageAt(coin, jarX + 28.0f, 55.0f + progress * 92.0f, 0.86f, nullptr, 0.45f, 0.45f);
+	}
 }
 
 PapasError Papas::Game::render_top()
 {
+	if (showingDayIntro)
+	{
+		renderDayIntro();
+		return PAPAS_OK;
+	}
+
 	if (showingResult)
 	{
 		C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
 		Customer *customer = c_manager.getCustomer(resultCustomerNumber);
 		if (customer != nullptr) customer->renderOrdering(0.0f);
-		C2D_DrawImageAt(to_counter, 0, 0, 0);
+		C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
+		// Roy boxes the pizza and flips the lid open toward the viewer; as in
+		// the original, the pizza itself stays hidden and only the glow shows.
+		if (giveOrderLoaded) renderGiveOrderRoy();
+		else pz_manager.renderPizzaForResult(resultPizzaId, {211.0f, 125.0f}, 0.34f, 0.72f);
+		renderTipJar();
 		return PAPAS_OK;
 	}
 
@@ -514,6 +775,9 @@ PapasError Papas::Game::render_top()
 		C2D_DrawImageAt(currentPopupImg, 0, 214, 0.003f);
 		// Customers in the lobby sit between the station art and the popup
 		c_manager.renderLines(0.0015f);
+		// Door sign: flips to CLOSED once the day's last customer has walked in
+		C2D_DrawImageAt(c_manager.allSpawned() ? signClosedImg : signOpenImg,
+			53.0f, 10.0f, 0.0018f);
 		r_manager.renderReceipt(true);
 		if (currentStation == TicketStation)
 		{
@@ -534,6 +798,85 @@ PapasError Papas::Game::render_top()
 }
 
 // Commiting a bullshittery here
+void Papas::Game::setToppingBubble(const ItemOrder &item)
+{
+	to_bubbleKind = BubbleTopping;
+	to_bubbleItem = item;
+	C2D_TextBufClear(orderBubbleTextBuf);
+	C2D_TextFontParse(&orderBubbleX, dokyo, orderBubbleTextBuf, "x");
+	char quantity[8];
+	std::snprintf(quantity, sizeof(quantity), "%d", item.Quantity);
+	C2D_TextFontParse(&orderBubbleQuantity, dokyo, orderBubbleTextBuf, quantity);
+	C2D_TextOptimize(&orderBubbleX);
+	C2D_TextOptimize(&orderBubbleQuantity);
+}
+
+static void drawOrderBubbleImage(C2D_Image image, float x, float y, float scale, float depth)
+{
+	C2D_Sprite sprite;
+	C2D_SpriteFromImage(&sprite, image);
+	C2D_SpriteSetCenter(&sprite, 0.5f, 0.5f);
+	C2D_SpriteSetPos(&sprite, x, y);
+	C2D_SpriteSetScale(&sprite, scale, scale);
+	C2D_SpriteSetDepth(&sprite, depth);
+	C2D_DrawSprite(&sprite);
+}
+
+void Papas::Game::renderOrderBubble()
+{
+	static const float BUBBLE_X = 15.0f;
+	static const float BUBBLE_Y = 28.0f;
+	static const float BUBBLE_SCALE = 0.65f;
+	// Balloon ellipse centre in unscaled bubble.png coordinates (tail excluded)
+	static const float BUBBLE_CX = 71.5f;
+	if (to_bubbleKind == BubbleHidden) return;
+	if (to_bubbleKind == BubbleOpening)
+	{
+		float progress = std::min(1.0f, (float)(osGetTime() - to_orderStartedAt) / 700.0f);
+		float bounce = progress < 0.7f ? progress / 0.7f * 1.08f : 1.08f - (progress - 0.7f) / 0.3f * 0.08f;
+		float scale = BUBBLE_SCALE * bounce;
+		drawOrderBubbleImage(orderBubbleBase,
+			BUBBLE_X + orderBubbleBase.subtex->width * BUBBLE_SCALE * 0.5f,
+			BUBBLE_Y + orderBubbleBase.subtex->height * BUBBLE_SCALE * 0.5f,
+			scale, 0.80f);
+		return;
+	}
+
+	C2D_DrawImageAt(orderBubbleBase, BUBBLE_X, BUBBLE_Y, 0.80f, nullptr, BUBBLE_SCALE, BUBBLE_SCALE);
+	if (to_bubbleKind == BubbleTopping)
+	{
+		int coverage = 0;
+		for (int q = 0; q < 4; q++) if (to_bubbleItem.Coverage[q]) coverage |= 1 << q;
+		float coverageW = orderBubbleCoverage[coverage].subtex->width;
+		C2D_DrawImageAt(orderBubbleCoverage[coverage], BUBBLE_X + (BUBBLE_CX - coverageW * 0.5f) * BUBBLE_SCALE,
+			BUBBLE_Y + 12.0f * BUBBLE_SCALE, 0.82f, nullptr, BUBBLE_SCALE, BUBBLE_SCALE);
+		// "icon xN" row: centre the whole group on the ellipse axis
+		C2D_Image topping = orderBubbleToppings[to_bubbleItem.Topping];
+		drawOrderBubbleImage(topping, BUBBLE_X + (BUBBLE_CX - 21.5f) * BUBBLE_SCALE,
+			BUBBLE_Y + 90.0f * BUBBLE_SCALE, BUBBLE_SCALE, 0.82f);
+		C2D_DrawText(&orderBubbleX, C2D_WithColor, BUBBLE_X + (BUBBLE_CX + 3.5f) * BUBBLE_SCALE,
+			BUBBLE_Y + 76.0f * BUBBLE_SCALE, 0.83f, 0.65f * BUBBLE_SCALE,
+			0.65f * BUBBLE_SCALE, C2D_Color32(130, 130, 130, 255));
+		C2D_DrawText(&orderBubbleQuantity, C2D_WithColor, BUBBLE_X + (BUBBLE_CX + 28.5f) * BUBBLE_SCALE,
+			BUBBLE_Y + 70.0f * BUBBLE_SCALE, 0.83f, 1.10f * BUBBLE_SCALE,
+			1.10f * BUBBLE_SCALE, C2D_Color32(227, 42, 34, 255));
+	}
+	else if (to_bubbleKind == BubbleTime)
+	{
+		int frame = std::max(0, std::min(7, to_bubbleTime));
+		float clockW = orderBubbleClocks[frame].subtex->width;
+		C2D_DrawImageAt(orderBubbleClocks[frame], BUBBLE_X + (BUBBLE_CX - clockW * 0.5f) * BUBBLE_SCALE,
+			BUBBLE_Y + 18.0f * BUBBLE_SCALE, 0.82f, nullptr, BUBBLE_SCALE, BUBBLE_SCALE);
+	}
+	else if (to_bubbleKind == BubbleCut)
+	{
+		int frame = to_bubbleCuts == 4 ? 0 : (to_bubbleCuts == 6 ? 1 : 2);
+		float cutW = orderBubbleCuts[frame].subtex->width;
+		C2D_DrawImageAt(orderBubbleCuts[frame], BUBBLE_X + (BUBBLE_CX - cutW * 0.5f) * BUBBLE_SCALE,
+			BUBBLE_Y + 18.0f * BUBBLE_SCALE, 0.82f, nullptr, BUBBLE_SCALE, BUBBLE_SCALE);
+	}
+}
+
 void Papas::Game::TakeOrder(Customer* customer)
 {
 	if (customer == nullptr)
@@ -549,7 +892,6 @@ void Papas::Game::TakeOrder(Customer* customer)
 	// this screen, so layering by depth alone doesn't work here).
 	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
 	customer->renderOrdering(0.0f);
-	C2D_DrawImageAt(to_counter, 0, 0, 0);
 	//Roy2.renderAnimWithPauses(5, 2000);
 
 	if(to_firstRun == false){
@@ -557,16 +899,34 @@ void Papas::Game::TakeOrder(Customer* customer)
 		r_manager.getDockedReceipt(&to_tempReceipt);
 		to_tempReceipt->customerType = customerNum;
 		to_tempReceipt->customerNumber = customer->getNumber();
+		to_orderStartedAt = osGetTime();
+		to_bubbleKind = BubbleOpening;
+		customer->playPresentation("stand");
 
 		to_firstRun = true;
 	}
 
+	if (to_bubbleKind == BubbleOpening && osGetTime() - to_orderStartedAt < 700)
+	{
+		C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
+		renderOrderBubble();
+		return;
+	}
+	if (to_bubbleKind == BubbleOpening)
+	{
+		to_bubbleKind = BubbleHidden;
+		customer->playPresentation("takeorder");
+	}
+
+	C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
 	//Returns true for one frame on the first frame, and when the animation is paused
 	if (Roy2.renderAnimWithPauses(to_n_actions + 2, 2000))
 	{
 		if (to_currentAction < to_n_actions)
 		{
 			Papas::ResourceManager::getInstance().playSfx("writepencil");
+			Papas::ResourceManager::getInstance().playSfx("talkbubble");
+			setToppingBubble(map_customers[customerNum].items[to_currentAction]);
 			to_tempReceipt->addItem(map_customers[customerNum].items[to_currentAction].Coverage,
 									map_customers[customerNum].items[to_currentAction].Topping,
 									map_customers[customerNum].items[to_currentAction].Quantity);
@@ -575,17 +935,25 @@ void Papas::Game::TakeOrder(Customer* customer)
 		if (to_currentAction == to_n_actions)
 		{
 			Papas::ResourceManager::getInstance().playSfx("writepencil");
+			Papas::ResourceManager::getInstance().playSfx("talkbubble");
+			to_bubbleKind = BubbleTime;
+			to_bubbleTime = map_customers[customerNum].time;
 			to_tempReceipt->addTime(map_customers[customerNum].time);
 		}
 
 		if (to_currentAction == to_n_actions + 1)
 		{
 			Papas::ResourceManager::getInstance().playSfx("writepencil");
+			Papas::ResourceManager::getInstance().playSfx("talkbubble");
+			to_bubbleKind = BubbleCut;
+			to_bubbleCuts = map_customers[customerNum].CutPizzaIn;
 			to_tempReceipt->addCut(map_customers[customerNum].CutPizzaIn);
 		}
 
 		if (to_currentAction == to_n_actions + 2)
 		{
+			to_bubbleKind = BubbleHidden;
+			customer->playPresentation("stand");
 			to_tempReceipt->orderStartedAt = osGetTime();
 			to_firstRun = false;
 			to_currentAction = 0;
@@ -603,6 +971,8 @@ void Papas::Game::TakeOrder(Customer* customer)
 		
 	}
 
+	renderOrderBubble();
+
 	// if (currentAction == n_actions + 2)
 	// {
 	// 	tempReceipt->add
@@ -613,6 +983,11 @@ PapasError Papas::Game::render_bottom()
 {
 
 	C2D_DrawImageAt(currentStationImg, 0, 0, 0.01f);
+	if (showingDayIntro)
+	{
+		// Station art only; no buttons while the intro plays
+		return PAPAS_OK;
+	}
 	if (showingResult)
 	{
 		renderResult();
@@ -670,18 +1045,30 @@ PapasError Papas::Game::update()
 	if (kDown & KEY_START)
 		return PAPAS_NOT_OK; // break in order to return to hbmenu
 
+	if (showingDayIntro)
+	{
+		u64 elapsed = osGetTime() - dayIntroStartedAt;
+		u64 duration = (u64)((float)STARTOFDAY_SRC_FRAMES * 1000.0f / STARTOFDAY_FPS) + 400;
+		bool skip = elapsed > 400 && ((kDown & KEY_A) || touch.px != 0 || touch.py != 0);
+		if (elapsed >= duration || skip)
+			endDayIntro();
+		return PAPAS_OK;
+	}
+
 	if (showingResult)
 	{
+		updateResult();
 		bool touching = touch.px != 0 || touch.py != 0;
 		bool onContinue = touch.px >= 100 && touch.px <= 220 && touch.py >= 198 && touch.py <= 232;
-		if (touching && onContinue)
+		if (resultPhase == ResultReady && touching && onContinue)
 			resultTouchHeld = true;
-		if ((!touching && resultTouchHeld) || (kDown & KEY_A))
+		if (resultPhase == ResultReady && ((!touching && resultTouchHeld) || (kDown & KEY_A)))
 		{
 			c_manager.completeOrder(resultCustomerNumber);
 			resultCustomerNumber = 0;
 			showingResult = false;
 			resultTouchHeld = false;
+			freeGiveOrderSheets();
 			SwitchStation(TicketStation);
 		}
 		return PAPAS_OK;
@@ -743,7 +1130,8 @@ void Papas::Game::SwitchStation(Stations station)
 	switch (station)
 	{
 	case TicketStation:
-		Papas::ResourceManager::getInstance().switchMusic("orders_music");
+		// During the day intro the music starts when the intro ends
+		if (!showingDayIntro) Papas::ResourceManager::getInstance().switchMusic("orders_music");
 		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 0);
 		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 1);
 		currentStation = station;
@@ -784,6 +1172,16 @@ PapasError Papas::Game::terminate()
 	c_manager.terminateManager();
 	pz_manager.terminateManager();
 	C2D_SpriteSheetFree(orderStation);
+	C2D_SpriteSheetFree(orderBubbleSheet);
+	C2D_SpriteSheetFree(resultSheet);
+	freeGiveOrderSheets();
+	if (startOfDaySheet != nullptr)
+	{
+		C2D_SpriteSheetFree(startOfDaySheet);
+		startOfDaySheet = nullptr;
+	}
+	C2D_TextBufDelete(dayTextBuf);
+	C2D_TextBufDelete(orderBubbleTextBuf);
 	C2D_TextBufDelete(resultTextBuf);
 	C2D_FontFree(dokyo);
 

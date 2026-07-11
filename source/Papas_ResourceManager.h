@@ -6,6 +6,7 @@
 #include "Papas_Constants.h"
 #include <unordered_map>
 #include <random>
+#include <string>
 
 //Forward declarations
 typedef struct _Mix_Music Mix_Music;
@@ -46,8 +47,8 @@ namespace Papas
 		void operator=(ResourceManager const&)			= delete;	// Assignment Operator
 		//===============================================================================
 	private:
-		std::unordered_map<const char*, Mix_Music*> songs;
-		std::unordered_map<const char *, Mix_Chunk *> sfx;
+		std::unordered_map<std::string, Mix_Music*> songs;
+		std::unordered_map<std::string, Mix_Chunk*> sfx;
 
 		typedef std::mt19937 rng_type;
 		rng_type rng;

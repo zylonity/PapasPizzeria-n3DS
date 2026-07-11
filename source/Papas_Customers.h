@@ -49,6 +49,7 @@ namespace Papas {
 		void update(float deltaSeconds);
 		void render(float depth);         // draw in the lobby (order/wait line)
 		void renderOrdering(float depth); // draw large on the take-order screen
+		void playPresentation(const char* segment);
 
 		void moveOrderDone();                  // -> Leaving
 		void moveToWaitLine(int lineIndex);    // -> EnteringWaitLine
@@ -79,6 +80,8 @@ namespace Papas {
 
 		int currentSeg = -1;     // rig segment being played
 		std::chrono::steady_clock::time_point segStart;
+		int presentationSeg = -1;
+		std::chrono::steady_clock::time_point presentationStart;
 	};
 
 	// Spawns the day's lineup and runs the order/wait lines (CustomerManager.as)
@@ -98,6 +101,8 @@ namespace Papas {
 		void completeOrder(int customerNumber); // remove a served customer from the wait line
 
 		bool dayIsOver() const;
+		// True once the day's whole lineup has walked in (flips the door sign)
+		bool allSpawned() const { return totalCustomers >= (int)customerLineup.size(); }
 
 	private:
 		void decideLineup();
