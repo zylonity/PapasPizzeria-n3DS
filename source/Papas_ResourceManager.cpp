@@ -67,6 +67,20 @@ PapasError Papas::ResourceManager::playSfx(const char *name)
     return PAPAS_OK;
 }
 
+int Papas::ResourceManager::playSfxLoop(const char *name)
+{
+    return Mix_PlayChannel(-1, sfx[name], -1);
+}
+
+PapasError Papas::ResourceManager::stopSfxChannel(int channel)
+{
+    if (channel >= 0)
+    {
+        Mix_HaltChannel(channel);
+    }
+    return PAPAS_OK;
+}
+
 PapasError Papas::ResourceManager::playMusic(const char *name)
 {
 

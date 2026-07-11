@@ -3,6 +3,7 @@
 #include "Papas_SceneManager.h"
 #include "Papas_Utils.h"
 #include "Papas_Customers.h"
+#include "Papas_Pizza.h"
 #include <3ds.h>
 #include <citro2d.h>
 #include <vector>
@@ -113,5 +114,36 @@ namespace Papas {
 
 		// Customers in the lobby (order/wait lines, take-order screen)
 		CustomerManager c_manager;
+
+		// Pizzas being topped at the topping station
+		PizzaManager pz_manager;
+		Receipt *dockedReceipt();
+
+		struct OrderResult
+		{
+			int waiting;
+			int topping;
+			int baking;
+			int cutting;
+			int overall;
+			int tipCents;
+			std::string customerName;
+		};
+
+		bool showingResult;
+		bool resultTouchHeld;
+		OrderResult result;
+		int totalScore;
+		int totalTipsCents;
+		int resultCustomerNumber;
+		C2D_TextBuf resultTextBuf;
+		C2D_Text resultText[8];
+		void completeServedPizza(Pizza &pizza);
+		void prepareResultText();
+		void renderResult();
+		int scoreWaiting(const Pizza &pizza, const CustomerData &order) const;
+		int scoreToppings(const Pizza &pizza, const CustomerData &order) const;
+		int scoreBaking(const Pizza &pizza, const CustomerData &order) const;
+		int scoreCutting(const Pizza &pizza, const CustomerData &order) const;
 	};
 }

@@ -16,6 +16,7 @@ Papas::Button::Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected,
 void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
 
 	wasPressed = false;
+	lastTouch = {0, 0};
 	// Load the sprites
 	img_Unpressed = C2D_SpriteSheetGetImage(spriteSheet, selected);
 	img_Selected = C2D_SpriteSheetGetImage(spriteSheet, unpressed);
@@ -30,8 +31,6 @@ void Papas::Button::createButton(C2D_SpriteSheet& spriteSheet, int unpressed, in
 
 bool Papas::Button::showButton(touchPosition& touch, bool selected, bool* aPressed) {
 
-	static touchPosition lastTouch;
-
 	hitBox.left = pos.x;
 	hitBox.top = pos.y;
 	hitBox.height = img_Pressed.subtex->height;
@@ -45,7 +44,8 @@ bool Papas::Button::showButton(touchPosition& touch, bool selected, bool* aPress
 
 		if (!wasPressed)
 		{
-			wasPressed = true; 
+			wasPressed = true;
+			lastTouch = {0, 0}; // consume the release so the press only fires once
 			return true;
 		}
 	}
@@ -791,6 +791,21 @@ void Papas::ReceiptManager::getDockedReceipt(Receipt** returnReceipt)
 		if (v_receipts[j]->dockInUse)
 		{
 			*returnReceipt = v_receipts[j];
+		}
+	}
+}
+
+void Papas::ReceiptManager::removeReceipt(Receipt* receipt)
+{
+	for (size_t i = 0; i < v_receipts.size(); i++)
+	{
+		if (v_receipts[i] == receipt)
+		{
+			v_receipts[i]->terminate();
+			delete v_receipts[i];
+			v_receipts.erase(v_receipts.begin() + i);
+			activeReceiptIndex = -1;
+			return;
 		}
 	}
 }

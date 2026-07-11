@@ -93,7 +93,9 @@ namespace Papas {
 
 		// Take-order flow: the customer at the front of the order line.
 		Customer* getOrderingCustomer();     // nullptr if none has arrived yet
+		Customer* getCustomer(int customerNumber);
 		void orderTaken();                   // front customer leaves -> wait line
+		void completeOrder(int customerNumber); // remove a served customer from the wait line
 
 		bool dayIsOver() const;
 

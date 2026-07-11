@@ -49,6 +49,7 @@ namespace Papas {
 		rect hitBox;
 
 		bool wasPressed;
+		touchPosition lastTouch;
 	};
 
 	class AnimatedSprite {
@@ -170,6 +171,9 @@ namespace Papas {
 
 	struct Receipt{
 		ReceiptParts top, bottom;
+		int customerType = 0;
+		int customerNumber = 0;
+		u64 orderStartedAt = 0;
 		//Position and scales to dock the ticket screens
 		const v2 snapPosTop = {277.6f, 0.0f};
 		const v2 bigScaleTop = {0.95f, 0.95f};
@@ -210,6 +214,7 @@ namespace Papas {
 		void moveReceiptToBack(int indexToMove);
 
 		void getDockedReceipt(Receipt** returnReceipt);
+		void removeReceipt(Receipt* receipt);
 		
 
 	private:

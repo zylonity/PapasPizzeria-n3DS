@@ -305,6 +305,13 @@ Papas::Customer* Papas::CustomerManager::getOrderingCustomer()
 	return orderline[0];
 }
 
+Papas::Customer* Papas::CustomerManager::getCustomer(int customerNumber)
+{
+	for (size_t i = 0; i < v_customers.size(); i++)
+		if (v_customers[i]->getNumber() == customerNumber) return v_customers[i];
+	return nullptr;
+}
+
 void Papas::CustomerManager::orderTaken()
 {
 	if (orderline.empty())
@@ -318,6 +325,39 @@ void Papas::CustomerManager::orderTaken()
 	for (size_t i = 0; i < orderline.size(); i++)
 	{
 		orderline[i]->shiftOrderLine(i);
+	}
+}
+
+void Papas::CustomerManager::completeOrder(int customerNumber)
+{
+	Customer* completed = nullptr;
+	for (size_t i = 0; i < v_customers.size(); i++)
+	{
+		if (v_customers[i]->getNumber() == customerNumber)
+		{
+			completed = v_customers[i];
+			break;
+		}
+	}
+	if (completed == nullptr)
+		return;
+
+	waitline.erase(std::remove(waitline.begin(), waitline.end(), completed), waitline.end());
+	orderline.erase(std::remove(orderline.begin(), orderline.end(), completed), orderline.end());
+	for (size_t i = 0; i < waitline.size(); i++)
+		waitline[i]->shiftWaitLine(i);
+	for (size_t i = 0; i < orderline.size(); i++)
+		orderline[i]->shiftOrderLine(i);
+
+	for (size_t i = 0; i < v_customers.size(); i++)
+	{
+		if (v_customers[i] == completed)
+		{
+			completed->despawnCustomer();
+			delete completed;
+			v_customers.erase(v_customers.begin() + i);
+			break;
+		}
 	}
 }
 

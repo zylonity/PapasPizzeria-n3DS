@@ -27,6 +27,8 @@ namespace Papas
 		PapasError loadSfx(const char *name, const char *wav_file);
 		PapasError playMusic(const char *name);
 		PapasError playSfx(const char *name);
+		int playSfxLoop(const char *name);
+		PapasError stopSfxChannel(int channel);
 		PapasError stopMusic();
 		PapasError pauseMusic();
 		int randomNumber(int small, int big);
@@ -60,4 +62,3 @@ namespace Papas
 	};
 }
 //===============================================================================
-
