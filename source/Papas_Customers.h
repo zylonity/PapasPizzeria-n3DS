@@ -1,73 +1,115 @@
 #pragma once
-#include <string>
+//===============================================================================
+// name: Papas_Customers.h
+// desc: Customer data (orders) + the live customer/line system, ported from
+//       the original game's Customer.as / CustomerManager.as. Customers are
+//       drawn with the shared skeletal rig (Papas_CustomerRig.*); each live
+//       customer lazy-loads its own type's limb atlas so only on-screen
+//       types cost VRAM.
+//===============================================================================
+
+#include "Papas_Constants.h"
 #include "Papas_Utils.h"
+#include "Papas_CustomerRig.h"
+#include <string>
+#include <vector>
 #include <unordered_map>
-namespace Papas{
+#include <chrono>
 
-    struct CustomerData
-    {
-        std::string name;
-        std::vector<ItemOrder> items;
-        int time;
-        int CutPizzaIn;
-    };
+namespace Papas {
 
-    class Customer{
-        public:
-        //Example functions for later's animations
-        void SpawnCustomer();
-        void AnimateCustomer();
-    };
+	struct CustomerData
+	{
+		std::string name;
+		std::vector<ItemOrder> items;
+		int time;
+		int CutPizzaIn;
+	};
 
-    std::unordered_map<int, CustomerData> map_customers = {
-        {1,                               // Index
-         {"Cooper",                       // Name
-          {{{0, 0, 1, 1}, Pepperoni, 4}}, // Vector/array of items the customer wants (Coverage, Topping, Ammount)
-          1,                              // Time (notch timer)
-          4}},                            // Slices
-        {2, {"Wally", {{{1, 1, 1, 1}, Anochovie, 8}}, 2, 8}},
-        {3, {"Rita", {{{0, 1, 1, 0}, Mushroom, 6}}, 4, 4}},
-        {4, {"Marty", {{{1, 1, 0, 0}, Olive, 6}}, 3, 4}},
-        {5, {"Kingsley", {{{0, 0, 1, 1}, Pepperoni, 8}}, 4, 4}},
-        {6, {"Timm", {{{0, 0, 1, 1}, Pepper, 4}}, 4, 6}},
-        {7, {"Big Pauly", {{{1, 1, 0, 0}, Meat, 4}, {{0, 0, 1, 1}, Onion, 4}}, 3, 8}},
-        {8, {"Penny", {{{1, 1, 1, 1}, Meat, 8}, {{1, 0, 0, 0}, Mushroom, 2}}, 2, 6}},
-        {9, {"Maggie", {{{0, 0, 1, 1}, Pepper, 4}, {{1, 1, 0, 0}, Olive, 6}}, 2, 4}},
-        {10, {"Taylor", {{{1, 1, 0, 0}, Pepper, 2}, {{1, 1, 0, 0}, Onion, 6}}, 3, 4}},
-        {11, {"Sue", {{{1, 0, 0, 1}, Pepperoni, 6}, {{0, 1, 1, 0}, Mushroom, 6}}, 3, 6}},
-        {12, {"Allan", {{{1, 0, 0, 1}, Pepperoni, 4}, {{0, 1, 1, 0}, Meat, 4}}, 4, 6}},
-        {13, {"Mindy", {{{1, 0, 0, 0}, Mushroom, 4}, {{1, 1, 0, 0}, Anochovie, 6}}, 5, 8}},
-        {14, {"Chuck", {{{1, 1, 1, 1}, Pepperoni, 8}, {{0, 1, 1, 0}, Meat, 4}}, 2, 6}},
-        {15, {"Greg", {{{0, 1, 1, 1}, Pepperoni, 6}, {{0, 0, 1, 0}, Mushroom, 4}}, 4, 4}},
-        {16, {"Robby", {{{0, 1, 1, 1}, Mushroom, 6}, {{0, 0, 1, 1}, Pepper, 6}}, 4, 6}},
-        {17, {"Mary", {{{1, 1, 1, 1}, Pepperoni, 8}}, 2, 4}},
-        {18, {"Mitch", {{{1, 1, 0, 0}, Pepperoni, 4}, {{1, 0, 0, 0}, Olive, 2}, {{1, 1, 0, 0}, Anochovie, 4}}, 2, 4}},
-        {19, {"Prudence", {{{1, 0, 0, 0}, Mushroom, 5}, {{0, 1, 0, 0}, Onion, 3}}, 2, 6}},
-        {20, {"James", {{{1, 1, 0, 0}, Meat, 4}, {{0, 1, 1, 0}, Olive, 8}}, 2, 4}},
-        {21, {"Cecilia", {{{1, 1, 1, 6}, Mushroom, 4}, {{0, 1, 1, 1}, Pepper, 3}, {{1, 1, 0, 1}, Onion, 3}}, 2, 8}},
-        {22, {"Mandi", {{{1, 1, 0, 0}, Pepperoni, 4}, {{1, 0, 1, 1}, Mushroom, 6}}, 4, 8}},
-        {23, {"Sasha", {{{0, 1, 0, 0}, Pepper, 4}, {{1, 1, 1, 1}, Olive, 8}}, 4, 8}},
-        {24, {"Olga", {{{1, 1, 1, 0}, Meat, 6}, {{0, 0, 1, 0}, Mushroom, 4}, {{0, 0, 1, 0}, Pepper, 2}}, 6, 4}},
-        {25, {"Franco", {{{1, 1, 1, 1}, Pepperoni, 8}, {{1, 0, 1, 1}, Olive, 3}}, 4, 8}},
-        {26, {"Tohru", {{{0, 0, 1, 1}, Mushroom, 6}, {{1, 1, 1, 1}, Anochovie, 8}}, 2, 8}},
-        {27, {"Clair", {{{1, 1, 1, 1}, Pepperoni, 4}, {{0, 0, 1, 1}, Mushroom, 6}, {{0, 1, 0, 0}, Pepper, 4}}, 4, 4}},
-        {28, {"Clover", {{{1, 1, 1, 1}, Pepperoni, 8}}, 4, 8}},
-        {29, {"Hugo", {{{1, 1, 0, 0}, Meat, 4}, {{0, 1, 0, 0}, Pepper, 4}}, 4, 6}},
-        {30, {"Peggy", {{{1, 1, 1, 1}, Onion, 4}, {{1, 1, 1, 0}, Olive, 6}}, 3, 8}},
-        {31, {"Carlo Romano", {{{1, 1, 0, 0}, Meat, 4}, {{0, 0, 1, 1}, Mushroom, 6}, {{0, 1, 0, 0}, Pepper, 4}}, 4, 8}},
-        {32, {"Little Edoardo", {{{1, 1, 1, 1}, Onion, 4}, {{1, 1, 1, 1}, Olive, 4}, {{1, 1, 1, 1}, Anochovie, 4}}, 5, 8}},
-        {33, {"Gino Romano", {{{1, 1, 1, 1}, Pepperoni, 8}, {{1, 1, 1, 1}, Onion, 4}, {{1, 1, 1, 1}, Olive, 4}}, 4, 8}},
-        {34, {"Bruna Romano", {{{1, 0, 0, 0}, Pepperoni, 2}, {{1, 1, 1, 1}, Meat, 4}, {{1, 1, 1, 1}, Olive, 4}}, 5, 4}},
-        {35, {"SargeFan!", {{{1, 1, 1, 1}, Onion, 12}}, 5, 6}},
-        // Fat fuck
-        {36, {"PAPA LOUIE!", {{{1, 0, 0, 0}, Pepperoni, 2},
-                              {{0, 1, 0, 0}, Meat, 2},
-                              {{0, 0, 1, 0}, Mushroom, 2},
-                              {{0, 0, 0, 1}, Pepper, 2},
-                              {{1, 0, 0, 0}, Onion, 2},
-                              {{0, 1, 0, 0}, Olive, 2},
-                              {{0, 0, 1, 0}, Anochovie, 2}}, 4, 4}}
-        
+	// Index -> order data for all 36 customer types (defined in Papas_Customers.cpp)
+	extern std::unordered_map<int, CustomerData> map_customers;
 
-    };
+	// A live customer somewhere in the lobby (Customer.as). The manager owns
+	// these and moves them between lines; the customer just walks/stands/draws.
+	class Customer
+	{
+	public:
+		enum State
+		{
+			EnteringOrderLine,	// walking in from the right to the order carpet
+			AtOrderLine,		// standing in the order line
+			Leaving,			// order taken: walking off to the right (flipped)
+			EnteringWaitLine,	// walking back in to the pick-up carpet
+			AtWaitLine			// standing in the wait line
+		};
+
+		void spawnCustomer(int typeId, int number, int lineIndex); // loads the type atlas
+		void despawnCustomer();                                    // frees the type atlas
+
+		void update(float deltaSeconds);
+		void render(float depth);         // draw in the lobby (order/wait line)
+		void renderOrdering(float depth); // draw large on the take-order screen
+
+		void moveOrderDone();                  // -> Leaving
+		void moveToWaitLine(int lineIndex);    // -> EnteringWaitLine
+		void shiftOrderLine(int lineIndex);    // someone ahead left; new target
+		void shiftWaitLine(int lineIndex);
+
+		State getState() const { return state; }
+		int   getType() const { return type; }
+		int   getNumber() const { return number; }
+		bool  isWalking() const { return walking; }
+
+	private:
+		void startSegment(const char* name);
+		float animSeconds() const;
+
+		RigTypeAtlas atlasLine;   // lobby-sized art, held while spawned
+		RigTypeAtlas atlasOrder;  // take-order-sized art, held only while ordering
+		int type = 1;
+		int number = 0;
+
+		State state = EnteringOrderLine;
+		float x = 0;
+		float y = 0;
+		float targetX = 0;
+		int   walkDir = -1;      // -1 = walking left (entering), 1 = right (leaving)
+		bool  walking = false;
+		bool  flipped = false;   // leaving customers face right (negative scaleX)
+
+		int currentSeg = -1;     // rig segment being played
+		std::chrono::steady_clock::time_point segStart;
+	};
+
+	// Spawns the day's lineup and runs the order/wait lines (CustomerManager.as)
+	class CustomerManager
+	{
+	public:
+		void initManager();
+		void terminateManager();
+
+		void update();               // spawn timer + walking
+		void renderLines(float depth); // lobby customers on the top screen
+
+		// Take-order flow: the customer at the front of the order line.
+		Customer* getOrderingCustomer();     // nullptr if none has arrived yet
+		void orderTaken();                   // front customer leaves -> wait line
+
+		bool dayIsOver() const;
+
+	private:
+		void decideLineup();
+		void spawnNext();
+
+		std::vector<int> customerLineup;      // types, in spawn order
+		std::vector<Customer*> v_customers;   // owns every spawned customer
+		std::vector<Customer*> orderline;
+		std::vector<Customer*> waitline;
+
+		int totalCustomers = 0;
+		float spawnSpeed = 0;                 // seconds between spawns
+		std::chrono::steady_clock::time_point lastSpawnTime;
+		std::chrono::steady_clock::time_point lastUpdate;
+	};
 }
+//===============================================================================

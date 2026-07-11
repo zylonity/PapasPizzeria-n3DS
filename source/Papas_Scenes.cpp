@@ -12,60 +12,6 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
 
-// ===========================================================================
-// RigTest: isolated harness for the customer rig on a blank background.
-// Four experiments across the top screen tell us exactly where drawing breaks.
-// ===========================================================================
-PapasError Papas::RigTest::init(Papas::SceneManager* sceneManager)
-{
-	p_sceneManager = sceneManager;
-	Papas::CustomerRig::shared().load();
-	Papas::CustomerRig::shared().loadType(1, rigAtlas);
-	rigSeg = Papas::CustomerRig::shared().segmentIndex("walk"); // start walking
-	rigType = 1;
-	rigStart = std::chrono::steady_clock::now();
-	return PAPAS_OK;
-}
-
-PapasError Papas::RigTest::update()
-{
-	hidScanInput();
-	u32 kDown = hidKeysDown();
-	if (kDown & KEY_START)
-		return PAPAS_NOT_OK; // exit to hbmenu
-
-	// A / B cycle through every animation segment (walk, stand, reactions...).
-	int nSeg = Papas::CustomerRig::shared().header()->numSegments;
-	if (kDown & KEY_A) { rigSeg = (rigSeg + 1) % nSeg;        rigStart = std::chrono::steady_clock::now(); }
-	if (kDown & KEY_B) { rigSeg = (rigSeg + nSeg - 1) % nSeg; rigStart = std::chrono::steady_clock::now(); }
-	return PAPAS_OK;
-}
-
-PapasError Papas::RigTest::render_top()
-{
-	// Dark background so we know this scene is live.
-	C2D_DrawRectSolid(0, 0, 0.0f, 400, 240, C2D_Color32(20, 20, 60, 255));
-	if (!rigAtlas.sheet) return PAPAS_OK;
-
-	auto& rig = Papas::CustomerRig::shared();
-	float secs = std::chrono::duration<float>(
-		std::chrono::steady_clock::now() - rigStart).count();
-	int frame = rig.frameForTime(rigSeg, secs);
-	rig.draw(rigAtlas, rigType, frame, 160.0f, 25.0f, 0.6f, 0.6f, 0.5f);
-	return PAPAS_OK;
-}
-
-PapasError Papas::RigTest::render_bottom()
-{
-	return PAPAS_OK;
-}
-
-PapasError Papas::RigTest::terminate()
-{
-	Papas::CustomerRig::shared().freeType(rigAtlas);
-	return PAPAS_OK;
-}
-
 PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 {
 
@@ -338,11 +284,8 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	to_firstRun = false;
 	to_currentAction = 0;
 
-	// Customer skeletal rig: load shared animation data + one type's limb atlas.
-	Papas::CustomerRig::shared().load();
-	Papas::CustomerRig::shared().loadType(1, rigAtlas);
-	rigSeg = Papas::CustomerRig::shared().segmentIndex("stand");
-	rigStart = std::chrono::steady_clock::now();
+	// Spawn today's customers (loads the rig + per-type atlases on demand)
+	c_manager.initManager();
 
 	return PAPAS_OK;
 }
@@ -356,6 +299,8 @@ PapasError Papas::Game::render_top()
 
 		C2D_DrawImageAt(ticketsStationImg, 0, 0, 0.001f);
 		C2D_DrawImageAt(currentPopupImg, 0, 214, 0.003f);
+		// Customers in the lobby sit between the station art and the popup
+		c_manager.renderLines(0.0015f);
 		r_manager.renderReceipt(true);
 		if (currentStation == TicketStation)
 		{
@@ -367,7 +312,7 @@ PapasError Papas::Game::render_top()
 		}
 	}
 	else{
-		TakeOrder(7);
+		TakeOrder(c_manager.getOrderingCustomer());
 		r_manager.renderDockedReceipt(true);
 	}
 	
@@ -376,27 +321,28 @@ PapasError Papas::Game::render_top()
 }
 
 // Commiting a bullshittery here
-void Papas::Game::TakeOrder(int customerNum)
+void Papas::Game::TakeOrder(Customer* customer)
 {
+	if (customer == nullptr)
+	{
+		// The customer left mid-order somehow; bail out of the flow.
+		takingOrder = false;
+		return;
+	}
+	int customerNum = customer->getType();
+
+	// Painter's order: wallpaper -> customer -> counter, so the customer
+	// stands behind the countertop (transparent pixels still write depth on
+	// this screen, so layering by depth alone doesn't work here).
 	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
+	customer->renderOrdering(0.0f);
 	C2D_DrawImageAt(to_counter, 0, 0, 0);
 	//Roy2.renderAnimWithPauses(5, 2000);
-
-	// --- Customer rig test render (type 1, looping "stand") ---
-	{
-		auto& rig = Papas::CustomerRig::shared();
-		float secs = std::chrono::duration<float>(
-			std::chrono::steady_clock::now() - rigStart).count();
-		int frame = rig.frameForTime(rigSeg, secs);
-		rig.draw(rigAtlas, 1, frame, /*x*/200.0f, /*y*/12.0f,
-				 /*scaleX*/0.6f, /*scaleY*/0.6f, /*depth*/0.5f);
-	}
-
 
 	if(to_firstRun == false){
 		to_n_actions = map_customers[customerNum].items.size();
 		r_manager.getDockedReceipt(&to_tempReceipt);
-		
+
 		to_firstRun = true;
 	}
 
@@ -431,6 +377,8 @@ void Papas::Game::TakeOrder(int customerNum)
 			to_tempReceipt = nullptr;
 			Roy2.resetAnim();
 			takingOrder = false;
+			// Order's on the ticket: customer walks off to the wait line
+			c_manager.orderTaken();
 		}
 
 		if(takingOrder == true){
@@ -456,7 +404,8 @@ PapasError Papas::Game::render_bottom()
 
 	if (currentStation == TicketStation && takingOrder == false)
 	{
-		if(createReceipt.showButton(touch)){
+		// Only take an order once a customer has reached the counter
+		if(createReceipt.showButton(touch) && c_manager.getOrderingCustomer() != nullptr){
 			takingOrder = true;
 			r_manager.createReceipt();
 		}
@@ -497,6 +446,10 @@ PapasError Papas::Game::update()
 	if (!takingOrder){
 		r_manager.detectMovement(touch);
 	}
+
+	// Customers keep walking/spawning whatever screen we're on
+	c_manager.update();
+
 	return PAPAS_OK;
 }
 
@@ -548,10 +501,9 @@ PapasError Papas::Game::terminate()
 	Roy.destroyAnim();
 	Roy2.destroyAnim();
 	r_manager.terminateManager();
+	c_manager.terminateManager();
 	C2D_SpriteSheetFree(orderStation);
 	C2D_FontFree(dokyo);
-
-	Papas::CustomerRig::shared().freeType(rigAtlas);
 
 	return PAPAS_OK;
 }
