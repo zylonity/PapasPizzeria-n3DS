@@ -2,6 +2,7 @@
 #include "Papas_Constants.h"
 #include "Papas_SceneManager.h"
 #include "Papas_Utils.h"
+#include "Papas_CustomerRig.h"
 #include <3ds.h>
 #include <citro2d.h>
 #include <vector>
@@ -24,6 +25,23 @@ namespace Papas {
 		Papas::SceneManager *p_sceneManager;
 		C2D_SpriteSheet sheet_bg;
 		C2D_Image skip_bg;
+	};
+
+	// Isolation harness for the customer skeletal rig (blank background).
+	class RigTest : public Scene
+	{
+	public:
+		PapasError init(Papas::SceneManager* sceneManager) override;
+		PapasError update() override;
+		PapasError render_top() override;
+		PapasError render_bottom() override;
+		PapasError terminate() override;
+	private:
+		Papas::SceneManager* p_sceneManager;
+		RigTypeAtlas rigAtlas;
+		int rigSeg = -1;
+		int rigType = 1;
+		std::chrono::steady_clock::time_point rigStart;
 	};
 
 	class MainMenu : public Scene {
@@ -109,5 +127,10 @@ namespace Papas {
 		int to_currentAction;
 		int to_n_actions;
 		Receipt *to_tempReceipt;
+
+		// Customer skeletal rig (see Papas_CustomerRig.*) - first-pass test render
+		RigTypeAtlas rigAtlas;
+		int rigSeg = -1;
+		std::chrono::steady_clock::time_point rigStart;
 	};
 }

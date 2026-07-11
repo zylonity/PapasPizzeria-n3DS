@@ -32,7 +32,8 @@ PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	
 
 	//Init the first scene
-	sceneManager->changeScene(new Papas::MainMenu());
+	//sceneManager->changeScene(new Papas::MainMenu());
+	sceneManager->changeScene(new Papas::RigTest()); // TEMP: rig isolation harness
 
 
 	return PAPAS_OK;

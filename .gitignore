@@ -415,3 +415,7 @@ compile_commands.json
 # CLion project dir: keep the shared run configs, ignore machine-specific state
 .idea/*
 !.idea/runConfigurations/
+
+# JPEXS decompile of the SWF (338MB) - regenerate locally from papaspizzeria_v2.swf.
+# Needed by tools/gen_rig.py and the customer*.t3s atlases at build time.
+papas_extract/

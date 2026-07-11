@@ -3,12 +3,68 @@
 #include "Papas_ResourceManager.h"
 #include <string>
 #include <chrono>
+#include <cstring>
 #include <citro2d.h>
+#include <citro3d.h>
 #include <theoraplayer.h>
 #include "Papas_Customers.h"
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
+
+// ===========================================================================
+// RigTest: isolated harness for the customer rig on a blank background.
+// Four experiments across the top screen tell us exactly where drawing breaks.
+// ===========================================================================
+PapasError Papas::RigTest::init(Papas::SceneManager* sceneManager)
+{
+	p_sceneManager = sceneManager;
+	Papas::CustomerRig::shared().load();
+	Papas::CustomerRig::shared().loadType(1, rigAtlas);
+	rigSeg = Papas::CustomerRig::shared().segmentIndex("walk"); // start walking
+	rigType = 1;
+	rigStart = std::chrono::steady_clock::now();
+	return PAPAS_OK;
+}
+
+PapasError Papas::RigTest::update()
+{
+	hidScanInput();
+	u32 kDown = hidKeysDown();
+	if (kDown & KEY_START)
+		return PAPAS_NOT_OK; // exit to hbmenu
+
+	// A / B cycle through every animation segment (walk, stand, reactions...).
+	int nSeg = Papas::CustomerRig::shared().header()->numSegments;
+	if (kDown & KEY_A) { rigSeg = (rigSeg + 1) % nSeg;        rigStart = std::chrono::steady_clock::now(); }
+	if (kDown & KEY_B) { rigSeg = (rigSeg + nSeg - 1) % nSeg; rigStart = std::chrono::steady_clock::now(); }
+	return PAPAS_OK;
+}
+
+PapasError Papas::RigTest::render_top()
+{
+	// Dark background so we know this scene is live.
+	C2D_DrawRectSolid(0, 0, 0.0f, 400, 240, C2D_Color32(20, 20, 60, 255));
+	if (!rigAtlas.sheet) return PAPAS_OK;
+
+	auto& rig = Papas::CustomerRig::shared();
+	float secs = std::chrono::duration<float>(
+		std::chrono::steady_clock::now() - rigStart).count();
+	int frame = rig.frameForTime(rigSeg, secs);
+	rig.draw(rigAtlas, rigType, frame, 160.0f, 25.0f, 0.6f, 0.6f, 0.5f);
+	return PAPAS_OK;
+}
+
+PapasError Papas::RigTest::render_bottom()
+{
+	return PAPAS_OK;
+}
+
+PapasError Papas::RigTest::terminate()
+{
+	Papas::CustomerRig::shared().freeType(rigAtlas);
+	return PAPAS_OK;
+}
 
 PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 {
@@ -282,13 +338,18 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	to_firstRun = false;
 	to_currentAction = 0;
 
+	// Customer skeletal rig: load shared animation data + one type's limb atlas.
+	Papas::CustomerRig::shared().load();
+	Papas::CustomerRig::shared().loadType(1, rigAtlas);
+	rigSeg = Papas::CustomerRig::shared().segmentIndex("stand");
+	rigStart = std::chrono::steady_clock::now();
+
 	return PAPAS_OK;
 }
 
 PapasError Papas::Game::render_top()
 {
 
-	
 	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0.002f);
 
 	if(!takingOrder){
@@ -320,6 +381,16 @@ void Papas::Game::TakeOrder(int customerNum)
 	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
 	C2D_DrawImageAt(to_counter, 0, 0, 0);
 	//Roy2.renderAnimWithPauses(5, 2000);
+
+	// --- Customer rig test render (type 1, looping "stand") ---
+	{
+		auto& rig = Papas::CustomerRig::shared();
+		float secs = std::chrono::duration<float>(
+			std::chrono::steady_clock::now() - rigStart).count();
+		int frame = rig.frameForTime(rigSeg, secs);
+		rig.draw(rigAtlas, 1, frame, /*x*/200.0f, /*y*/12.0f,
+				 /*scaleX*/0.6f, /*scaleY*/0.6f, /*depth*/0.5f);
+	}
 
 
 	if(to_firstRun == false){
@@ -479,6 +550,8 @@ PapasError Papas::Game::terminate()
 	r_manager.terminateManager();
 	C2D_SpriteSheetFree(orderStation);
 	C2D_FontFree(dokyo);
+
+	Papas::CustomerRig::shared().freeType(rigAtlas);
 
 	return PAPAS_OK;
 }
