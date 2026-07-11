@@ -8,6 +8,7 @@
 
 namespace Papas {
 
+	// Basic 2d vector for positions and scales
 	struct v2 {
 		float x;
 		float y;
@@ -29,6 +30,7 @@ namespace Papas {
 		float height;
 	};
 
+	// Touchscreen button with unpressed/selected/pressed art from a sheet
 	class Button {
 	public:
 		Button() {};
@@ -49,9 +51,12 @@ namespace Papas {
 		rect hitBox;
 
 		bool wasPressed;
+		// Per-button and consumed on activation; a shared static here made
+		// overlapping buttons fire off each other's stale releases
 		touchPosition lastTouch;
 	};
 
+	// Frame-by-frame animation from a spritesheet, one image per frame
 	class AnimatedSprite {
 	public:
 		AnimatedSprite() {};
@@ -84,6 +89,7 @@ namespace Papas {
 
 	};
 
+	// Roy popping up from behind the till at the ticket station
 	class RoyPeeking : public AnimatedSprite
 	{
 	public:
@@ -91,12 +97,13 @@ namespace Papas {
 
 		void renderAnim(bool loop) override;
 		void resetAnim();
-		void renderAnimBackwards(bool loop);
+		void renderAnimBackwards(bool loop);	// ducks back down when you leave
 
 	private:
 		bool ranOnce = false;
 	};
 
+	// Roy scribbling on the notepad, pauses between each order line
 	class RoyTakingOrder : public AnimatedSprite
 	{
 	public:
@@ -111,6 +118,7 @@ namespace Papas {
 		int currentPauses = 0;
 	};
 
+	// Same order as the original's chooseTopping(1..7)
 	enum Toppings{
 		Pepperoni,
 		Meat,
@@ -121,12 +129,14 @@ namespace Papas {
 		Anochovie
 	};
 
+	// One line of an order: which topping, how many, which quadrants
 	struct ItemOrder{
 		int Coverage[4];
 		Toppings Topping;
 		int Quantity;
 	};
 
+	// One printed line on the receipt (topping icon, quantity, quadrants)
 	struct ReceiptSubSection
 	{
 		int cover[4];
@@ -137,6 +147,7 @@ namespace Papas {
 		C2D_Image i_Quantity;
 	};
 
+	// The drawable half of a receipt; every receipt has one per screen
 	struct ReceiptParts{
 		C2D_Font *dokyo;
 		v2 pos;
@@ -169,11 +180,12 @@ namespace Papas {
 		void renderReceipt();
 	};
 
+	// A whole order ticket, draggable and dockable on both screens
 	struct Receipt{
 		ReceiptParts top, bottom;
 		int customerType = 0;
 		int customerNumber = 0;
-		u64 orderStartedAt = 0;
+		u64 orderStartedAt = 0;		// for the waiting score
 		//Position and scales to dock the ticket screens
 		const v2 snapPosTop = {277.6f, 0.0f};
 		const v2 bigScaleTop = {0.95f, 0.95f};
@@ -198,6 +210,7 @@ namespace Papas {
 	};
 	
 
+	// Owns every receipt in play plus which one is docked/being dragged
 	class ReceiptManager{
 		public:
 		ReceiptManager() {};

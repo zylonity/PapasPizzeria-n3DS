@@ -12,6 +12,7 @@
 
 namespace Papas {
 
+	// Plays the ready.ogv intro video, B skips it
 	class IntroVid : public Scene
 	{
 	public:
@@ -57,6 +58,7 @@ namespace Papas {
 
 	
 
+	// The actual game: all four stations, customers, pizzas, the whole day
 	class Game : public Scene
 	{
 	public:
@@ -68,6 +70,7 @@ namespace Papas {
 		void TakeOrder(Customer* customer);
 
 	private:
+		// The bottom screen workstations, L/R shoulder buttons move between them
 		enum Stations
 		{
 			TicketStation,
@@ -80,13 +83,15 @@ namespace Papas {
 		Stations currentStation;
 		C2D_SpriteSheet s_stations;
 
+		// Roy peeking over the till / writing down orders
 		RoyPeeking Roy;
 		RoyTakingOrder Roy2;
 
 		C2D_Image ticketsStationImg;
 		C2D_Image ticketsHolderImg;
 		Button createReceipt;
-		
+
+		// Take-order top screen art (wallpaper behind, counter in front)
 		C2D_SpriteSheet orderStation;
 		bool takingOrder;
 		C2D_Image to_wallpaper;
@@ -108,9 +113,10 @@ namespace Papas {
 
 		//Taking order stuff
 		bool to_firstRun;
-		int to_currentAction;
+		int to_currentAction;		// which line of the order we're up to
 		int to_n_actions;
 		Receipt *to_tempReceipt;
+		// The speech balloon over the customer's head, one kind per order line
 		enum OrderBubbleKind { BubbleOpening, BubbleTopping, BubbleTime, BubbleCut, BubbleHidden };
 		OrderBubbleKind to_bubbleKind;
 		u64 to_orderStartedAt;
@@ -120,10 +126,10 @@ namespace Papas {
 		C2D_SpriteSheet orderBubbleSheet;
 		C2D_Image orderBubbleBase;
 		C2D_Image orderBubbleToppings[7];
-		C2D_Image orderBubbleCoverage[16];
+		C2D_Image orderBubbleCoverage[16];	// all 16 quadrant combos
 		C2D_Image orderBubbleClocks[8];
-		C2D_Image orderBubbleCuts[3];
-		C2D_Image orderBubbleOpening[15];
+		C2D_Image orderBubbleCuts[3];		// 4/6/8 slice diagrams
+		C2D_Image orderBubbleOpening[15];	// unused, procedural bounce instead
 		C2D_TextBuf orderBubbleTextBuf;
 		C2D_Text orderBubbleX;
 		C2D_Text orderBubbleQuantity;
@@ -137,6 +143,7 @@ namespace Papas {
 		PizzaManager pz_manager;
 		Receipt *dockedReceipt();
 
+		// The four category scores plus tip for a served order
 		struct OrderResult
 		{
 			int waiting;
@@ -167,12 +174,13 @@ namespace Papas {
 		void renderDayIntro();
 		void endDayIntro();
 
+		// Serving results: drumroll -> customer looks -> reacts -> tip -> Continue
 		bool showingResult;
 		bool resultTouchHeld;
 		enum ResultPhase { ResultDrumroll, ResultLook, ResultReaction, ResultTip, ResultReady };
 		ResultPhase resultPhase;
-		u64 resultPhaseStarted;
-		u64 resultStartedAt;
+		u64 resultPhaseStarted;		// resets on every phase change
+		u64 resultStartedAt;		// fixed, drives Roy's animation
 		// Roy give-order clip: ~5 MB of atlases, loaded only while a result
 		// shows (capacity checked against GIVEORDER_SHEET_COUNT in the .cpp)
 		C2D_SpriteSheet giveOrderSheets[8];
@@ -180,14 +188,14 @@ namespace Papas {
 		int giveOrderPick;
 		OrderResult result;
 		int totalScore;
-		int totalTipsCents;
+		int totalTipsCents;			// whole session, also drives the rank-ups
 		int resultCustomerNumber;
 		int resultPizzaId;
-		std::string resultReaction;
+		std::string resultReaction;	// which rig segment/sound plays
 		C2D_SpriteSheet resultSheet;
 		C2D_Image resultJar;
-		C2D_Image resultCoinPiles[10];
-		C2D_Image resultCoinSpin[6];
+		C2D_Image resultCoinPiles[10];	// jar fill levels
+		C2D_Image resultCoinSpin[6];	// the coin flipping into the jar
 		C2D_TextBuf resultTextBuf;
 		C2D_Text resultText[8];
 		void completeServedPizza(Pizza &pizza);

@@ -1,4 +1,5 @@
 #pragma once
+// Error code every framework/scene call passes back up
 typedef int PapasError;
 
 #include <stdio.h>
@@ -6,6 +7,7 @@ typedef int PapasError;
 #include <cstring>
 #include <3ds.h>
 
+// Print + debug log, then bail out; gives you time to read the console
 #define ASSERT(condition, message)                                           \
     do {                                                                     \
         if (!(condition)) {                                                  \

@@ -3,19 +3,21 @@
 #include <algorithm>
 #include <cmath>
 
+// Layout/tuning values, mostly traced off the station art
 static const float PIZZA_SCALE = 0.7f;
-static const Papas::v2 COUNTER_POS = {148.0f, 118.0f};
-static const Papas::v2 BOARD_POS = {170.0f, 118.0f};
-static const float PIZZA_RADIUS = 137.0f;
-static const float PIZZA_DROP_RADIUS = 88.0f;
-static const float CUP_RADIUS = 24.0f;
-static const float GRAB_RADIUS = 16.0f;
-static const float SLIDE_STEPS = 3.0f;
+static const Papas::v2 COUNTER_POS = {148.0f, 118.0f};	// pizza centre at the topping station
+static const Papas::v2 BOARD_POS = {170.0f, 118.0f};	// pizza centre on the cutting board
+static const float PIZZA_RADIUS = 137.0f;		// unscaled, for cut detection
+static const float PIZZA_DROP_RADIUS = 88.0f;	// how close a topping drop has to be to count
+static const float CUP_RADIUS = 24.0f;			// grab area of the topping cups
+static const float GRAB_RADIUS = 16.0f;			// grab area of a topping already on the pizza
+static const float SLIDE_STEPS = 3.0f;			// pizzas ease in/out by 1/3 of the distance per frame
 static const float OVEN_SCALE = 0.35f;
 static const float OVEN_TOUCH_RADIUS = 48.0f;
-static const float MS_PER_DEGREE = 500.0f;
+static const float MS_PER_DEGREE = 500.0f;		// oven timer speed, 360 degrees = 3 minutes
 static const Papas::v2 OVEN_SLOTS[4] = {{105.0f, 72.0f}, {215.0f, 72.0f}, {105.0f, 178.0f}, {215.0f, 178.0f}};
 static const Papas::v2 TIMER_POS[4] = {{19.0f, 76.0f}, {301.5f, 76.0f}, {19.0f, 182.0f}, {301.0f, 182.0f}};
+// Each topping has cooked-look variants in the sheet; base index + how many
 static const int LOOK_BASE[7] = {0, 4, 9, 14, 19, 24, 28};
 static const int LOOK_COUNT[7] = {4, 5, 5, 5, 5, 4, 5};
 
@@ -78,6 +80,7 @@ void Papas::PizzaManager::initManager()
 	movingBack = false;
 }
 
+// Every pizza belongs to a receipt; served ones don't count anymore
 Papas::Pizza *Papas::PizzaManager::pizzaForTicket(Receipt *ticket)
 {
 	for (size_t i = 0; i < v_pizzas.size(); i++)
@@ -92,12 +95,14 @@ Papas::Pizza *Papas::PizzaManager::pizzaById(int id)
 	return nullptr;
 }
 
+// The pizza the docked receipt is working on at the topping station
 Papas::Pizza *Papas::PizzaManager::activePizza(Receipt *ticket)
 {
 	Pizza *p = ticket == nullptr ? nullptr : pizzaForTicket(ticket);
 	return p != nullptr && (p->loc == Pizza::SlidingIn || p->loc == Pizza::OnCounter || p->loc == Pizza::SlidingOutToOven) ? p : nullptr;
 }
 
+// Front of the cutting queue, cut pizzas in the order they left the oven
 Papas::Pizza *Papas::PizzaManager::boardPizza()
 {
 	if (cuttingQueue.empty()) return nullptr;
@@ -114,6 +119,7 @@ void Papas::PizzaManager::startNextCuttingPizza()
 	}
 }
 
+// Slide animations for every pizza in transit (counter, ovens, board)
 void Papas::PizzaManager::movePizzas()
 {
 	for (size_t i = 0; i < v_pizzas.size(); i++) {
@@ -143,6 +149,7 @@ void Papas::PizzaManager::movePizzas()
 	}
 }
 
+// Runs every frame no matter the station, so ovens keep cooking off-screen
 void Papas::PizzaManager::updateTimers()
 {
 	movePizzas();
@@ -155,10 +162,12 @@ void Papas::PizzaManager::updateTimers()
 	}
 }
 
+// Topping station touch handling: grab from cups, drag, drop on the pizza
 void Papas::PizzaManager::update(touchPosition &touch, Receipt *dockedReceipt)
 {
 	droppedThisFrame = false;
 	Pizza *active = activePizza(dockedReceipt);
+	// A failed drop flies back to wherever it came from
 	if (movingBack) {
 		float dx = (origin.x - dragPos.x) / 2.0f, dy = (origin.y - dragPos.y) / 2.0f;
 		if (std::abs(dx) < 1.0f && std::abs(dy) < 1.0f) {
@@ -173,6 +182,7 @@ void Papas::PizzaManager::update(touchPosition &touch, Receipt *dockedReceipt)
 	bool touching = touchDown(touch);
 	if (touching && !wasTouching && !dragging && active != nullptr && active->loc == Pizza::OnCounter) {
 		v2 t = {(float)touch.px, (float)touch.py};
+		// Toppings already on the pizza grab first, newest on top
 		for (size_t i = active->toppings.size(); i-- > 0;) {
 			v2 at = {active->pos.x + active->toppings[i].pos.x * PIZZA_SCALE, active->pos.y + active->toppings[i].pos.y * PIZZA_SCALE};
 			if (distance(t, at) < GRAB_RADIUS) {
@@ -181,6 +191,7 @@ void Papas::PizzaManager::update(touchPosition &touch, Receipt *dockedReceipt)
 				ResourceManager::getInstance().playSfx("grabtopping"); break;
 			}
 		}
+		// Otherwise try the cups for a fresh topping
 		if (!dragging) for (size_t i = 0; i < 7; i++) if (distance(t, cups[i].centre) < CUP_RADIUS) {
 			dragged.type = cups[i].type; dragged.rotDegrees = (float)ResourceManager::getInstance().randomNumber(0, 359);
 			fromPizza = false; origin = cups[i].centre; dragPos = t; dragging = true;
@@ -188,6 +199,7 @@ void Papas::PizzaManager::update(touchPosition &touch, Receipt *dockedReceipt)
 		}
 	} else if (touching && dragging) dragPos = {(float)touch.px, (float)touch.py};
 	else if (!touching && wasTouching && dragging) {
+		// Released: land on the pizza, discard into a matching cup, or fly back
 		droppedThisFrame = true;
 		if (active != nullptr && active->loc == Pizza::OnCounter && distance(dragPos, active->pos) < PIZZA_DROP_RADIUS) {
 			dragged.pos = {(dragPos.x - active->pos.x) / PIZZA_SCALE, (dragPos.y - active->pos.y) / PIZZA_SCALE};
@@ -202,6 +214,7 @@ void Papas::PizzaManager::update(touchPosition &touch, Receipt *dockedReceipt)
 	wasTouching = touching;
 }
 
+// Tap a cooking pizza to pull it out of the oven
 void Papas::PizzaManager::updateBaking(touchPosition &touch)
 {
 	bool touching = touchDown(touch);
@@ -218,6 +231,7 @@ void Papas::PizzaManager::updateBaking(touchPosition &touch)
 	bakingWasTouching = touching;
 }
 
+// Cutting station: drag a line across the pizza, full crossings become cuts
 void Papas::PizzaManager::updateCutting(touchPosition &touch)
 {
 	Pizza *p = boardPizza();
@@ -232,6 +246,8 @@ void Papas::PizzaManager::updateCutting(touchPosition &touch)
 		else if (!touching && cuttingWasTouching && cuttingDrag) {
 			ResourceManager::getInstance().stopSfxChannel(dottedLineChannel);
 			dottedLineChannel = -1;
+			// Line vs circle intersection; the cut only counts if both
+			// crossing points sit inside the dragged segment
 			v2 d = {cutEnd.x - cutStart.x, cutEnd.y - cutStart.y};
 			v2 f = {cutStart.x - BOARD_POS.x, cutStart.y - BOARD_POS.y};
 			float radius = PIZZA_RADIUS * PIZZA_SCALE;
@@ -255,6 +271,7 @@ void Papas::PizzaManager::updateCutting(touchPosition &touch)
 	cuttingWasTouching = touching;
 }
 
+// Kill the drag + its looping sound when leaving the station mid-cut
 void Papas::PizzaManager::cancelCutting()
 {
 	ResourceManager::getInstance().stopSfxChannel(dottedLineChannel);
@@ -263,6 +280,7 @@ void Papas::PizzaManager::cancelCutting()
 	cuttingWasTouching = false;
 }
 
+// Hand the just-served pizza to the game once; returns nullptr after that
 Papas::Pizza *Papas::PizzaManager::consumeServedPizza()
 {
 	if (servedPizzaId < 0) return nullptr;
@@ -279,12 +297,14 @@ void Papas::PizzaManager::renderPizzaForResult(int pizzaId, v2 centre, float sca
 
 void Papas::PizzaManager::drawTopping(Toppings type, int stage, v2 pos, float rotation, float scale, float depth)
 {
+	// Pick the cooked-look variant for how far along the pizza is
 	int look = LOOK_BASE[type] + std::min(stage, LOOK_COUNT[type] - 1);
 	C2D_Sprite spr; C2D_SpriteFromImage(&spr, toppingImgs[look]); C2D_SpriteSetCenter(&spr, 0.5f, 0.5f);
 	C2D_SpriteSetPos(&spr, pos.x, pos.y); C2D_SpriteSetScale(&spr, scale, scale);
 	C2D_SpriteSetRotationDegrees(&spr, rotation); C2D_SpriteSetDepth(&spr, depth); C2D_DrawSprite(&spr);
 }
 
+// Shell + every topping, toppings stacked in the order they were placed
 void Papas::PizzaManager::drawPizza(Pizza &p, v2 centre, float scale, float depth)
 {
 	C2D_Image shell = shellImgs[std::min(8, p.cookStage)];
@@ -295,6 +315,7 @@ void Papas::PizzaManager::drawPizza(Pizza &p, v2 centre, float scale, float dept
 	}
 }
 
+// Stretch + rotate a 1px-ish line texture between two points
 void Papas::PizzaManager::drawLineImage(C2D_Image image, v2 start, v2 end, float scaleY, float depth)
 {
 	float dx = end.x - start.x, dy = end.y - start.y;
@@ -305,6 +326,7 @@ void Papas::PizzaManager::drawLineImage(C2D_Image image, v2 start, v2 end, float
 	C2D_SpriteSetRotation(&spr, std::atan2(dy, dx)); C2D_SpriteSetDepth(&spr, depth); C2D_DrawSprite(&spr);
 }
 
+// First oven slot nobody's using, -1 when all four are busy
 int Papas::PizzaManager::freeOvenSlot()
 {
 	for (int slot = 0; slot < 4; slot++) {
@@ -322,6 +344,7 @@ void Papas::PizzaManager::renderBaking()
 		Pizza &p = v_pizzas[i];
 		if ((p.loc == Pizza::InOven || p.loc == Pizza::SlidingOutOfOven) && p.ovenSlot >= 0) drawPizza(p, p.pos.x == OVEN_SLOTS[p.ovenSlot].x || p.loc == Pizza::InOven ? OVEN_SLOTS[p.ovenSlot] : p.pos, OVEN_SCALE, 0.02f);
 	}
+	// Timer needles, one dial per oven slot
 	for (int slot = 0; slot < 4; slot++) {
 		float degrees = 0.0f;
 		for (size_t i = 0; i < v_pizzas.size(); i++) if (v_pizzas[i].ovenSlot == slot && v_pizzas[i].loc == Pizza::InOven) degrees = v_pizzas[i].cookDegrees;
@@ -346,12 +369,15 @@ void Papas::PizzaManager::renderCutting(touchPosition &touch)
 		drawLineImage(cutLineImg, start, end, 1.0f, 0.85f);
 	}
 	if (cuttingDrag) drawLineImage(dottedLineImg, cutStart, cutEnd, 1.0f, 0.9f);
+	// Serve hands this pizza over for scoring and pulls in the next one
 	if (!cuttingDrag && serveBtn.showButton(touch)) {
 		p->loc = Pizza::Served; servedPizzaId = p->id;
 		cuttingQueue.erase(cuttingQueue.begin()); startNextCuttingPizza();
 	}
 }
 
+// Topping station: the pizza on the counter, the dragged topping, and the
+// Make Pizza / To Oven buttons depending on where the order's at
 void Papas::PizzaManager::renderBottom(touchPosition &touch, Receipt *ticket)
 {
 	Pizza *active = activePizza(ticket);

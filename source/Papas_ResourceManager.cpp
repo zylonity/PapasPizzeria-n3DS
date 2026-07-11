@@ -21,6 +21,7 @@ PapasError Papas::ResourceManager::init()
     return PAPAS_OK;
 }
 
+// Random int between small and big, both ends included
 int Papas::ResourceManager::randomNumber(int small, int big)
 {
 
@@ -67,6 +68,7 @@ PapasError Papas::ResourceManager::playSfx(const char *name)
     return PAPAS_OK;
 }
 
+// Loops forever until you stop the channel it hands back
 int Papas::ResourceManager::playSfxLoop(const char *name)
 {
     return Mix_PlayChannel(-1, sfx[name], -1);
@@ -103,6 +105,7 @@ PapasError Papas::ResourceManager::stopMusic()
     return PAPAS_OK;
 }
 
+// Fades the new song in over a second, used when changing stations
 PapasError Papas::ResourceManager::switchMusic(const char *name)
 {
 

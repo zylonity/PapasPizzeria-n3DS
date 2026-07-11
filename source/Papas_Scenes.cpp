@@ -350,6 +350,8 @@ Papas::Receipt *Papas::Game::dockedReceipt()
 	return docked;
 }
 
+// Original docks 0.3% per late second; ideal wait here is the requested bake
+// time plus a 30 second prep allowance (line-entry time isn't tracked yet)
 int Papas::Game::scoreWaiting(const Pizza &pizza, const CustomerData &order) const
 {
 	if (pizza.ticket == nullptr || pizza.ticket->orderStartedAt == 0) return 100;
@@ -359,14 +361,18 @@ int Papas::Game::scoreWaiting(const Pizza &pizza, const CustomerData &order) con
 	return std::max(0, (int)std::floor(100.0f - lateSeconds * 0.3f));
 }
 
+// How close the dial got to the ticket's notch, 90 degrees off = 0
 int Papas::Game::scoreBaking(const Pizza &pizza, const CustomerData &order) const
 {
 	float difference = std::abs(order.time * 45.0f - pizza.cookDegrees);
 	return std::max(0, (int)std::floor(100.0f - difference / 90.0f * 100.0f));
 }
 
+// Port of checkToppingAccuracy: quantity, right quadrants, even spread,
+// and a penalty for anything the customer never asked for
 int Papas::Game::scoreToppings(const Pizza &pizza, const CustomerData &order) const
 {
+	// What the receipt wants, folded down per topping type
 	int targetQuantity[7] = {};
 	int targetCoverage[7][4] = {};
 	for (size_t i = 0; i < order.items.size(); i++)
@@ -377,6 +383,7 @@ int Papas::Game::scoreToppings(const Pizza &pizza, const CustomerData &order) co
 			targetCoverage[type][q] = std::max(targetCoverage[type][q], order.items[i].Coverage[q]);
 	}
 
+	// What's actually on the pizza, counted per quadrant
 	int actual[7][4] = {};
 	int unwanted = 0;
 	for (size_t i = 0; i < pizza.toppings.size(); i++)
@@ -396,6 +403,7 @@ int Papas::Game::scoreToppings(const Pizza &pizza, const CustomerData &order) co
 		actual[type][quadrant]++;
 	}
 
+	// Score each wanted topping, then average and knock off for extras
 	float scoreTotal = 0.0f;
 	int scoredTypes = 0;
 	for (int type = 0; type < 7; type++)
@@ -424,14 +432,17 @@ int Papas::Game::scoreToppings(const Pizza &pizza, const CustomerData &order) co
 	return std::max(0, (int)std::floor(average));
 }
 
+// Port of checkCuttingAccuracy: cut count, how close each cut's angle is
+// to the ideal spread, and whether the cuts go all the way across
 int Papas::Game::scoreCutting(const Pizza &pizza, const CustomerData &order) const
 {
-	int expectedCuts = order.CutPizzaIn / 2;
+	int expectedCuts = order.CutPizzaIn / 2;	// 4/6/8 slices = 2/3/4 full cuts
 	if (expectedCuts <= 0) return pizza.cuts.empty() ? 100 : 0;
 	std::vector<float> idealAngles;
 	for (int i = 0; i < expectedCuts; i++)
 		idealAngles.push_back(i * (180.0f / expectedCuts));
 
+	// Greedily match each ideal angle to the closest unused cut
 	std::vector<bool> used(pizza.cuts.size(), false);
 	float angleError = 0.0f;
 	for (size_t target = 0; target < idealAngles.size(); target++)
@@ -455,6 +466,7 @@ int Papas::Game::scoreCutting(const Pizza &pizza, const CustomerData &order) con
 	}
 	float angleScore = std::max(0.0f, 100.0f - angleError / (45.0f * expectedCuts) * 100.0f);
 
+	// Short chords score badly, full-diameter cuts score 100
 	float lengthTotal = 0.0f;
 	for (size_t i = 0; i < pizza.cuts.size(); i++)
 	{
@@ -623,6 +635,7 @@ void Papas::Game::renderGiveOrderRoy()
 	C2D_DrawImageAt(img, ROY_X + frame.ox, ROY_Y + frame.oy, 0.70f);
 }
 
+// A pizza got served: score it, pick the reaction, kick off the result screen
 void Papas::Game::completeServedPizza(Pizza &pizza)
 {
 	Receipt *ticket = pizza.ticket;
@@ -664,6 +677,8 @@ void Papas::Game::completeServedPizza(Pizza &pizza)
 	showingResult = true;
 }
 
+// Walks the result phases on the original's timings, playing the customer's
+// reaction and the tip sounds along the way
 void Papas::Game::updateResult()
 {
 	u64 elapsed = osGetTime() - resultPhaseStarted;
@@ -703,6 +718,7 @@ void Papas::Game::updateResult()
 	}
 }
 
+// Bake all the score panel lines into text once per serve
 void Papas::Game::prepareResultText()
 {
 	C2D_TextBufClear(resultTextBuf);
@@ -729,6 +745,7 @@ static void drawCenteredText(const C2D_Text &text, float y, float scale, u32 col
 	C2D_DrawText(&text, C2D_WithColor, (SCREEN_WIDTH_BOTTOM - width) * 0.5f, y, 0.94f, scale, scale, color);
 }
 
+// The score panel on the bottom screen, Continue only once the show's over
 void Papas::Game::renderResult()
 {
 	C2D_DrawRectSolid(18.0f, 12.0f, 0.90f, 284.0f, 220.0f, C2D_Color32(35, 42, 37, 245));
@@ -745,6 +762,7 @@ void Papas::Game::renderResult()
 	}
 }
 
+// Tip jar on the top screen; the coin drops in and the fill level bumps up
 void Papas::Game::renderTipJar()
 {
 	const float jarX = 304.0f;
@@ -857,6 +875,7 @@ void Papas::Game::renderOrderBubble()
 	if (to_bubbleKind == BubbleHidden) return;
 	if (to_bubbleKind == BubbleOpening)
 	{
+		// Bounce the balloon open, overshoot a little then settle
 		float progress = std::min(1.0f, (float)(osGetTime() - to_orderStartedAt) / 700.0f);
 		float bounce = progress < 0.7f ? progress / 0.7f * 1.08f : 1.08f - (progress - 0.7f) / 0.3f * 0.08f;
 		float scale = BUBBLE_SCALE * bounce;
@@ -919,6 +938,8 @@ void Papas::Game::TakeOrder(Customer* customer)
 	customer->renderOrdering(0.0f);
 	//Roy2.renderAnimWithPauses(5, 2000);
 
+	// First frame of the order: bind the receipt to this customer and
+	// start the balloon opening
 	if(to_firstRun == false){
 		to_n_actions = map_customers[customerNum].items.size();
 		r_manager.getDockedReceipt(&to_tempReceipt);

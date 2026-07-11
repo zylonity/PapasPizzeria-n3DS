@@ -115,6 +115,7 @@ void Papas::AnimatedSprite::createAnim(const char *spriteSheet, float time, v2 p
 	currentSprite = 0;
 }
 
+// Advance a frame whenever animTime ms have passed, then draw
 void Papas::AnimatedSprite::renderAnim(bool loop)
 {
 
@@ -241,6 +242,8 @@ void Papas::RoyPeeking::resetAnim()
 	currentSprite = 0;
 }
 
+// Loops the scribble anim with a wait between runs; returns true at the
+// start of each run so the game knows to move to the next order line
 bool Papas::RoyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
 {
 	end = osGetTime();
@@ -311,6 +314,7 @@ void Papas::RoyTakingOrder::resetAnim(){
 	currentPauses = 0;
 }
 
+// Grab all the receipt art out of the sheet and set up the blank ticket
 void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_SpriteSheet &receipt_spriteSheet, v2 posToGive, v2 scaleToGive, bool top)
 {
 	dokyo = font;
@@ -373,6 +377,7 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 	hitBox = {receipt_bg.params.pos.x, receipt_bg.params.pos.y, receipt_bg.params.pos.w, receipt_bg.params.pos.h};
 }
 
+// Print a topping line onto the receipt
 void Papas::ReceiptParts::addItem(int size[4], Toppings top, int Quant)
 {
 	for (size_t i = 0; i < 4; i++)
@@ -389,6 +394,7 @@ void Papas::ReceiptParts::addItem(int size[4], Toppings top, int Quant)
 	currentItems++;
 }
 
+// Requested bake time, drawn as a needle on the little dial (45 deg/notch)
 void Papas::ReceiptParts::addTime(int time)
 {
 	needleDrawn = true;
@@ -443,6 +449,7 @@ void Papas::ReceiptParts::setScaleReceipt(v2 scaleBy)
 	scale.y = scaleBy.y;
 }
 
+// Background, ticket number, every order line, then the dial and slices
 void Papas::ReceiptParts::renderReceipt()
 {
 	C2D_SpriteSetDepth(&receipt_bg, currentDepth);
@@ -609,6 +616,7 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 	}
 }
 
+// Kick a receipt out of the dock and pin it up top at a random spot
 void Papas::Receipt::forceDocking()
 {
 	std::srand(osGetTime());
@@ -661,7 +669,7 @@ void Papas::ReceiptManager::initManager(C2D_Font *font)
 
 void Papas::ReceiptManager::createReceipt()
 {
-
+	// New ticket takes the dock, whoever was there gets pinned up top
 	for (size_t i = v_receipts.size(); i-- > 0;)
 	{
 		if (v_receipts[i]->dockInUse){
@@ -685,6 +693,7 @@ void Papas::ReceiptManager::renderReceipt(bool topReceipt)
 	}
 }
 
+// Only the docked ticket, for screens where the pinned ones would be in the way
 void Papas::ReceiptManager::renderDockedReceipt(bool topReceipt)
 {
 	for (size_t i = 0; i < v_receipts.size(); i++)
@@ -692,7 +701,7 @@ void Papas::ReceiptManager::renderDockedReceipt(bool topReceipt)
 		if (v_receipts[i]->dockInUse){
 			v_receipts[i]->showReceipt(topReceipt);
 		}
-			
+
 	}
 }
 
@@ -784,6 +793,7 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 	}
 }
 
+// The docked ticket is the active order everything else works from
 void Papas::ReceiptManager::getDockedReceipt(Receipt** returnReceipt)
 {
 	for (size_t j = 0; j < v_receipts.size(); j++)

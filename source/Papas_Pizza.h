@@ -8,12 +8,14 @@
 
 namespace Papas {
 
+	// One topping sitting on a pizza, pos is relative to the pizza centre
 	struct PlacedTopping {
 		Toppings type;
 		v2 pos;
 		float rotDegrees;
 	};
 
+	// A finished cut across the pizza, animates in over 250ms
 	struct PizzaCut {
 		v2 start;
 		v2 end;
@@ -21,6 +23,7 @@ namespace Papas {
 	};
 
 	struct Pizza {
+		// Where the pizza is in its journey through the shop
 		enum Location {
 			SlidingIn,
 			OnCounter,
@@ -33,36 +36,39 @@ namespace Papas {
 			Served
 		};
 
-		int id;
-		Receipt *ticket;
+		int id;						// stable id, safe to keep around after serving
+		Receipt *ticket;			// the order this pizza is for
 		Location loc;
 		v2 pos;
-		int ovenSlot = -1;
+		int ovenSlot = -1;			// which of the 4 ovens, -1 when not in one
 		u64 ovenStartedAt = 0;
-		float cookDegrees = 0.0f;
-		int cookStage = 0;
+		float cookDegrees = 0.0f;	// timer dial position, caps at 360
+		int cookStage = 0;			// doneness look, changes every 45 degrees
 		std::vector<PlacedTopping> toppings;
 		std::vector<PizzaCut> cuts;
 	};
 
+	// Owns every pizza from Make Pizza to Serve: topping drags, oven timers,
+	// the cutting queue and handing the served pizza over for scoring
 	class PizzaManager {
 	public:
 		PizzaManager() {};
 
 		void initManager();
 		void terminateManager();
-		void update(touchPosition &touch, Receipt *dockedReceipt);
-		void updateTimers();
+		void update(touchPosition &touch, Receipt *dockedReceipt);	// topping station touches
+		void updateTimers();				// every frame, ovens cook off-screen too
 		void updateBaking(touchPosition &touch);
 		void updateCutting(touchPosition &touch);
-		void cancelCutting();
+		void cancelCutting();				// leaving the station mid-drag
 		void renderBottom(touchPosition &touch, Receipt *dockedReceipt);
 		void renderBaking();
 		void renderCutting(touchPosition &touch);
-		Pizza *consumeServedPizza();
+		Pizza *consumeServedPizza();		// one-shot, nullptr once taken
 		void renderPizzaForResult(int pizzaId, v2 centre, float scale, float depth);
 
 	private:
+		// A topping cup around the edges of the topping station
 		struct Cup {
 			Toppings type;
 			v2 centre;
@@ -92,24 +98,25 @@ namespace Papas {
 		Button serveBtn;
 
 		std::vector<Pizza> v_pizzas;
-		std::vector<int> cuttingQueue;
+		std::vector<int> cuttingQueue;		// pizza ids, first out of the oven cuts first
 		Cup cups[7];
 		int nextPizzaId;
-		int servedPizzaId;
+		int servedPizzaId;					// set on Serve, cleared by consumeServedPizza
 
+		// Topping drag state
 		bool dragging;
 		bool wasTouching;
 		bool bakingWasTouching;
 		bool cuttingWasTouching;
 		bool cuttingDrag;
-		int dottedLineChannel;
-		bool droppedThisFrame;
+		int dottedLineChannel;				// looping cut sound whilst dragging
+		bool droppedThisFrame;				// stops a drop also pressing a button
 		PlacedTopping dragged;
 		v2 dragPos;
 		v2 cutStart;
 		v2 cutEnd;
-		bool fromPizza;
-		v2 origin;
+		bool fromPizza;						// picked off the pizza rather than a cup
+		v2 origin;							// where a failed drop flies back to
 		v2 originRel;
 		bool movingBack;
 	};
