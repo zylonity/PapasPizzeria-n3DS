@@ -42,6 +42,10 @@ PapasError Papas::ResourceManager::initMusicPlayer()
 
 PapasError Papas::ResourceManager::loadSong(const char *name, const char *ogg_file)
 {
+    // Scenes reload their tracks on every init; a repeat insert would no-op
+    // and leak the freshly loaded music
+    if (songs.find(name) != songs.end())
+        return PAPAS_OK;
     songs.insert({name, Mix_LoadMUS(ogg_file)});
 
     return PAPAS_OK;
@@ -49,6 +53,8 @@ PapasError Papas::ResourceManager::loadSong(const char *name, const char *ogg_fi
 
 PapasError Papas::ResourceManager::loadSfx(const char *name, const char *wav_file)
 {
+    if (sfx.find(name) != sfx.end())
+        return PAPAS_OK;
     sfx.insert({name, Mix_LoadWAV(wav_file)});
 
     return PAPAS_OK;

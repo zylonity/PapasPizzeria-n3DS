@@ -59,7 +59,49 @@ namespace Papas {
 
 	};
 
-	
+	// Save-slot picker between the main menu and the game: three files on
+	// the bottom screen. An empty slot starts a new game (intro cutscene
+	// first); a used slot loads straight into the day. B backs out, X twice
+	// deletes the selected file.
+	class SaveSelect : public Scene
+	{
+	public:
+		PapasError init(Papas::SceneManager *sceneManager) override;
+		PapasError update() override;
+		PapasError render_top() override;
+		PapasError render_bottom() override;
+		PapasError terminate() override;
+
+	private:
+		void refreshSlotText();
+		PapasError activateSlot(int slot); // changeScene: caller must return immediately
+
+		Papas::SceneManager *p_sceneManager;
+		C2D_SpriteSheet sheet_bg;
+		C2D_Image top_bg;
+		C2D_Image bottom_bg;
+		C2D_Image logo;
+
+		// One receipt per slot on the top screen; the selected one pops up
+		C2D_SpriteSheet sheet_receipt;
+		C2D_Image receiptImg;
+		float popAmount[3];	// 0 = tucked behind the counter, 1 = popped up
+
+		C2D_Font dokyo;
+		C2D_TextBuf textBuf;
+		C2D_Text headerText;
+		C2D_Text hintText;
+		C2D_Text deleteText;
+		C2D_Text slotTitleText[3];
+		C2D_Text slotInfoText[3];
+		C2D_Text receiptDayText[3];		// "Day N", or "New Game" on a blank ticket
+		C2D_Text receiptRankText[3];	// "Rank N", used slots only
+
+		bool slotUsed[3];
+		int selected;
+		int deleteArmed;	// slot waiting for the confirming X press, -1 = none
+		touchPosition touch;
+	};
 
 	// The actual game: all four stations, customers, pizzas, the whole day
 	class Game : public Scene
@@ -201,6 +243,27 @@ namespace Papas {
 		C2D_Image resultCoinSpin[6];	// the coin flipping into the jar
 		C2D_TextBuf resultTextBuf;
 		C2D_Text resultText[8];
+		// Star-customer system (GiveOrderScreen.as): each customer type earns
+		// a star for a >=80 order, loses them all under 60; five stars mint a
+		// gold seal (max 3) that raises their max tip by $1 each
+		C2D_SpriteSheet starsSheet;
+		C2D_Image starEmptyImg;
+		C2D_Image starFilledImg;
+		C2D_Image starFlashImg;
+		C2D_Image sealImg;
+		int resultCustomerType;
+		int resultStarsBefore;
+		int resultSealsBefore;
+		int resultStarEarned;	// 1..5 = which star lights up, 0 = none
+		bool resultStarsLost;
+		bool resultSealEarned;
+		bool resultStarSfxPlayed;
+		C2D_TextBuf nameTextBuf;
+		C2D_Text takeOrderNameText;
+		void renderStarRow(float centerX, float y, int stars, int seals, float depth);
+		void renderResultStars();
+		void renderTakeOrderStars(int customerType);
+
 		void completeServedPizza(Pizza &pizza);
 		void prepareResultText();
 		void renderResult();

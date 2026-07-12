@@ -14,6 +14,7 @@
 #include "Papas_StartOfDayFrames.h"
 #include "Papas_IntroFrames.h"
 #include "Papas_Stereo.h"
+#include "Papas_Save.h"
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
@@ -144,10 +145,9 @@ PapasError Papas::MainMenu::render_bottom()
 		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed))
 		{
 			if(i == 0){
-				// Stop the menu music BEFORE the switch: the cutscene's init
-				// starts its own track, and we'd silence it otherwise.
-				ResourceManager::getInstance().stopMusic();
-				p_sceneManager->changeScene(new Papas::IntroCutscene());
+				// Menu music keeps playing under the file picker; SaveSelect
+				// stops it itself right before launching the game/cutscene
+				p_sceneManager->changeScene(new Papas::SaveSelect());
 				return PAPAS_OK; // changeScene deleted us; touch nothing else
 			}
 
@@ -171,6 +171,298 @@ PapasError Papas::MainMenu::terminate()
 		sheet_buttons = nullptr;
 	}
 
+
+	return PAPAS_OK;
+}
+
+// Save-slot panel layout on the bottom screen
+static const float SLOT_X = 20.0f;
+static const float SLOT_W = 280.0f;
+static const float SLOT_H = 52.0f;
+static float slotY(int i) { return 34.0f + i * 60.0f; }
+
+// The top-screen receipts: three tickets standing along the bottom edge,
+// the selected one pops up out of the row
+static const float RCPT_SCALE = 0.85f;
+static const float RCPT_PEEK = 65.0f;	// px of ticket visible while tucked
+
+static void drawTextCentered(const C2D_Text *text, float centerX, float y, float z, float scale, u32 color)
+{
+	float tw = 0.0f, th = 0.0f;
+	C2D_TextGetDimensions(text, scale, scale, &tw, &th);
+	C2D_DrawText(text, C2D_WithColor, centerX - tw / 2.0f, y, z, scale, scale, color);
+}
+
+PapasError Papas::SaveSelect::init(Papas::SceneManager *sceneManager)
+{
+	p_sceneManager = sceneManager;
+
+	// Same backdrop as the main menu so the transition reads as one screen
+	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
+	top_bg = C2D_SpriteSheetGetImage(sheet_bg, 1);
+	bottom_bg = C2D_SpriteSheetGetImage(sheet_bg, 0);
+	logo = C2D_SpriteSheetGetImage(sheet_bg, 2);
+
+	// The blank order ticket doubles as the save-file card on the top screen
+	sheet_receipt = C2D_SpriteSheetLoad("romfs:/gfx/receipt.t3x");
+	receiptImg = C2D_SpriteSheetGetImage(sheet_receipt, 0);
+	C3D_TexSetFilter(receiptImg.tex, GPU_LINEAR, GPU_LINEAR);
+	for (int i = 0; i < SaveManager::SLOT_COUNT; i++)
+		popAmount[i] = 0.0f;
+
+	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
+	textBuf = C2D_TextBufNew(512);
+
+	selected = 0;
+	deleteArmed = -1;
+	refreshSlotText();
+
+	return PAPAS_OK;
+}
+
+// (Re)build every label: called on init and after a delete
+void Papas::SaveSelect::refreshSlotText()
+{
+	C2D_TextBufClear(textBuf);
+
+	C2D_TextFontParse(&headerText, dokyo, textBuf, "Choose a File");
+	C2D_TextOptimize(&headerText);
+	C2D_TextFontParse(&hintText, dokyo, textBuf, "A Select    B Back    X Delete");
+	C2D_TextOptimize(&hintText);
+	C2D_TextFontParse(&deleteText, dokyo, textBuf, "Delete? Press X again!");
+	C2D_TextOptimize(&deleteText);
+
+	for (int i = 0; i < SaveManager::SLOT_COUNT; i++)
+	{
+		char title[16];
+		std::snprintf(title, sizeof(title), "File %d", i + 1);
+		C2D_TextFontParse(&slotTitleText[i], dokyo, textBuf, title);
+		C2D_TextOptimize(&slotTitleText[i]);
+
+		SaveData peeked;
+		slotUsed[i] = SaveManager::getInstance().peekSlot(i, peeked);
+		char info[48];
+		if (slotUsed[i])
+			std::snprintf(info, sizeof(info), "Day %ld  -  Rank %ld", (long)peeked.day, (long)peeked.rank);
+		else
+			std::snprintf(info, sizeof(info), "New Game");
+		C2D_TextFontParse(&slotInfoText[i], dokyo, textBuf, info);
+		C2D_TextOptimize(&slotInfoText[i]);
+
+		// What the ticket says: day and rank stamped on the stripes, or
+		// "New Game" alone on blank paper
+		char line[16];
+		if (slotUsed[i])
+		{
+			std::snprintf(line, sizeof(line), "Day %ld", (long)peeked.day);
+			C2D_TextFontParse(&receiptDayText[i], dokyo, textBuf, line);
+			std::snprintf(line, sizeof(line), "Rank %ld", (long)peeked.rank);
+			C2D_TextFontParse(&receiptRankText[i], dokyo, textBuf, line);
+			C2D_TextOptimize(&receiptRankText[i]);
+		}
+		else
+		{
+			C2D_TextFontParse(&receiptDayText[i], dokyo, textBuf, "New Game");
+		}
+		C2D_TextOptimize(&receiptDayText[i]);
+	}
+}
+
+// Load or start the chosen file. changeScene deletes us, so every caller
+// must return straight away without touching members.
+PapasError Papas::SaveSelect::activateSlot(int slot)
+{
+	// Both destinations start their own track (the cutscene its music, the
+	// game the day-intro flow), so the menu music ends here
+	ResourceManager::getInstance().stopMusic();
+	if (slotUsed[slot] && SaveManager::getInstance().loadSlot(slot))
+	{
+		// Returning player: skip the intro, straight into the saved day
+		p_sceneManager->changeScene(new Papas::Game());
+	}
+	else
+	{
+		SaveManager::getInstance().startNewGame(slot);
+		p_sceneManager->changeScene(new Papas::IntroCutscene());
+	}
+	return PAPAS_OK;
+}
+
+PapasError Papas::SaveSelect::update()
+{
+	hidScanInput();
+	hidTouchRead(&touch);
+	u32 kDown = hidKeysDown();
+
+	if (kDown & KEY_B)
+	{
+		p_sceneManager->changeScene(new Papas::MainMenu());
+		return PAPAS_OK; // changeScene deleted us; touch nothing else
+	}
+
+	if (kDown & KEY_DDOWN)
+	{
+		selected = (selected + 1) % SaveManager::SLOT_COUNT;
+		deleteArmed = -1;
+	}
+	if (kDown & KEY_DUP)
+	{
+		selected = (selected + SaveManager::SLOT_COUNT - 1) % SaveManager::SLOT_COUNT;
+		deleteArmed = -1;
+	}
+
+	if (kDown & KEY_A)
+		return activateSlot(selected);
+
+	if (kDown & KEY_TOUCH)
+	{
+		for (int i = 0; i < SaveManager::SLOT_COUNT; i++)
+		{
+			if (touch.px >= SLOT_X && touch.px <= SLOT_X + SLOT_W &&
+			    touch.py >= slotY(i) && touch.py <= slotY(i) + SLOT_H)
+			{
+				selected = i;
+				return activateSlot(i);
+			}
+		}
+		deleteArmed = -1;
+	}
+
+	// Deleting takes two X presses on the same slot; anything else disarms
+	if (kDown & KEY_X)
+	{
+		if (slotUsed[selected])
+		{
+			if (deleteArmed == selected)
+			{
+				SaveManager::getInstance().eraseSlot(selected);
+				deleteArmed = -1;
+				refreshSlotText();
+			}
+			else
+			{
+				deleteArmed = selected;
+			}
+		}
+	}
+
+	// Ease each ticket toward its spot. Animated here and not in
+	// render_top: with 3D on, that runs twice a frame (once per eye) and
+	// the eyes must see the ticket at the same height.
+	for (int i = 0; i < SaveManager::SLOT_COUNT; i++)
+	{
+		float target = (i == selected) ? 1.0f : 0.0f;
+		popAmount[i] += (target - popAmount[i]) * 0.22f;
+	}
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::SaveSelect::render_top()
+{
+	Papas::Stereo::plane(0.8f);
+	C2D_DrawImageAt(top_bg, 0, 0, 0, NULL, 1, 1);
+
+	// Logo shrunk up top so the tickets have room to rise over it
+	Papas::Stereo::plane(0.3f);
+	float scaling = 0.45f;
+	float xmiddle = (SCREEN_WIDTH_TOP / 2) - ((logo.subtex->width * scaling) / 2);
+	C2D_DrawImageAt(logo, xmiddle, 6.0f, 0.2f, NULL, scaling, scaling);
+
+	const u32 colInk = C2D_Color32(58, 58, 58, 255);
+	const u32 colInkSoft = C2D_Color32(155, 125, 105, 255);
+
+	float w = receiptImg.subtex->width * RCPT_SCALE;
+	float h = receiptImg.subtex->height * RCPT_SCALE;
+	float gap = (SCREEN_WIDTH_TOP - SaveManager::SLOT_COUNT * w) / (SaveManager::SLOT_COUNT + 1);
+
+	for (int i = 0; i < SaveManager::SLOT_COUNT; i++)
+	{
+		float x = gap + i * (w + gap);
+		float yTucked = SCREEN_HEIGHT_TOP - RCPT_PEEK;	// header + hole showing
+		float yPopped = SCREEN_HEIGHT_TOP - h + 4.0f;	// whole ticket in view
+		float y = yTucked + (yPopped - yTucked) * popAmount[i];
+
+		// The ticket floats toward the player as it rises
+		Papas::Stereo::plane(0.5f - 0.45f * popAmount[i]);
+		C2D_DrawImageAt(receiptImg, x, y, 0.4f, NULL, RCPT_SCALE, RCPT_SCALE);
+
+		// Offsets are receipt-art pixels scaled to screen; the file line sits
+		// just under the printed header so it reads even while tucked
+		float cx = x + w / 2.0f;
+		drawTextCentered(&slotTitleText[i], cx, y + 47.0f * RCPT_SCALE, 0.5f, 0.55f, colInk);
+		if (slotUsed[i])
+		{
+			drawTextCentered(&receiptDayText[i], cx, y + 100.0f * RCPT_SCALE, 0.5f, 0.5f, colInk);
+			drawTextCentered(&receiptRankText[i], cx, y + 135.0f * RCPT_SCALE, 0.5f, 0.5f, colInk);
+		}
+		else
+		{
+			drawTextCentered(&receiptDayText[i], cx, y + 110.0f * RCPT_SCALE, 0.5f, 0.42f, colInkSoft);
+		}
+	}
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::SaveSelect::render_bottom()
+{
+	C2D_DrawImageAt(bottom_bg, 0, 0, 0, NULL, 1, 1);
+
+	const u32 colCream    = C2D_Color32(255, 248, 231, 255);
+	const u32 colBrown    = C2D_Color32(139, 98, 62, 255);
+	const u32 colOrange   = C2D_Color32(236, 121, 42, 255);
+	const u32 colRed      = C2D_Color32(205, 60, 50, 255);
+	const u32 colText     = C2D_Color32(58, 58, 58, 255);
+	const u32 colTextSoft = C2D_Color32(120, 105, 90, 255);
+
+	float tw = 0.0f, th = 0.0f;
+	C2D_TextGetDimensions(&headerText, 0.7f, 0.7f, &tw, &th);
+	C2D_DrawText(&headerText, C2D_WithColor, (SCREEN_WIDTH_BOTTOM - tw) / 2.0f, 6.0f, 0.5f, 0.7f, 0.7f, colText);
+
+	for (int i = 0; i < SaveManager::SLOT_COUNT; i++)
+	{
+		float y = slotY(i);
+		u32 border = (deleteArmed == i) ? colRed : (selected == i) ? colOrange : colBrown;
+		// Border is just a bigger rect underneath the cream panel
+		C2D_DrawRectSolid(SLOT_X - 3.0f, y - 3.0f, 0.1f, SLOT_W + 6.0f, SLOT_H + 6.0f, border);
+		C2D_DrawRectSolid(SLOT_X, y, 0.2f, SLOT_W, SLOT_H, colCream);
+
+		C2D_DrawText(&slotTitleText[i], C2D_WithColor, SLOT_X + 14.0f, y + 6.0f, 0.5f, 0.55f, 0.55f, colText);
+		if (deleteArmed == i)
+			C2D_DrawText(&deleteText, C2D_WithColor, SLOT_X + 14.0f, y + 28.0f, 0.5f, 0.45f, 0.45f, colRed);
+		else
+			C2D_DrawText(&slotInfoText[i], C2D_WithColor, SLOT_X + 14.0f, y + 28.0f, 0.5f, 0.45f, 0.45f, colTextSoft);
+	}
+
+	C2D_TextGetDimensions(&hintText, 0.45f, 0.45f, &tw, &th);
+	C2D_DrawText(&hintText, C2D_WithColor, (SCREEN_WIDTH_BOTTOM - tw) / 2.0f, 218.0f, 0.5f, 0.45f, 0.45f, colTextSoft);
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::SaveSelect::terminate()
+{
+	if (sheet_bg)
+	{
+		C2D_SpriteSheetFree(sheet_bg);
+		sheet_bg = nullptr;
+	}
+	if (sheet_receipt)
+	{
+		C2D_SpriteSheetFree(sheet_receipt);
+		sheet_receipt = nullptr;
+	}
+	if (textBuf)
+	{
+		C2D_TextBufDelete(textBuf);
+		textBuf = nullptr;
+	}
+	if (dokyo)
+	{
+		C2D_FontFree(dokyo);
+		dokyo = nullptr;
+	}
 
 	return PAPAS_OK;
 }
@@ -453,10 +745,27 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	Papas::ResourceManager::getInstance().loadSfx("singlecoin", "romfs:/sfx/singlecoin.wav");
 	Papas::ResourceManager::getInstance().loadSfx("multicoin", "romfs:/sfx/multicoin.wav");
 	Papas::ResourceManager::getInstance().loadSfx("talkbubble", "romfs:/sfx/talkbubble.wav");
+	// Star-customer art + sound (star row on the take-order/result counters)
+	starsSheet = C2D_SpriteSheetLoad("romfs:/gfx/stars.t3x");
+	starEmptyImg = C2D_SpriteSheetGetImage(starsSheet, 0);
+	starFilledImg = C2D_SpriteSheetGetImage(starsSheet, 1);
+	starFlashImg = C2D_SpriteSheetGetImage(starsSheet, 2);
+	sealImg = C2D_SpriteSheetGetImage(starsSheet, 3);
+	for (size_t i = 0; i < C2D_SpriteSheetCount(starsSheet); i++)
+		C3D_TexSetFilter(C2D_SpriteSheetGetImage(starsSheet, i).tex, GPU_LINEAR, GPU_LINEAR);
+	Papas::ResourceManager::getInstance().loadSfx("getstar", "romfs:/sfx/getstar.wav");
+	nameTextBuf = C2D_TextBufNew(32);
+	resultCustomerType = 0;
+	resultStarsBefore = 0;
+	resultSealsBefore = 0;
+	resultStarEarned = 0;
+	resultStarsLost = false;
+	resultSealEarned = false;
+	resultStarSfxPlayed = false;
+
 	showingResult = false;
 	resultTouchHeld = false;
 	totalScore = 0;
-	totalTipsCents = 0;
 	resultCustomerNumber = 0;
 	giveOrderLoaded = false;
 	giveOrderPick = 0;
@@ -469,9 +778,13 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	// Start-of-day intro: storefront cutscene before the first customer.
 	// The customer manager is initialised when the intro finishes.
 	Papas::ResourceManager::getInstance().loadSfx("startofday", "romfs:/sfx/startofday.wav");
-	currentDay = 1;
-	myRank = 1;
-	lastRankLimit = 0;
+	// Resume from the active save slot; a fresh slot holds day-1 defaults,
+	// so a new game falls out of the same path
+	const SaveData &saved = SaveManager::getInstance().data;
+	currentDay = saved.day;
+	myRank = saved.rank;
+	lastRankLimit = saved.lastRankLimit;
+	totalTipsCents = saved.totalTipsCents;
 	dayTextBuf = C2D_TextBufNew(16);
 	beginDayIntro();
 
@@ -710,6 +1023,15 @@ void Papas::Game::startNextDay()
 		lastRankLimit += myRank * 500;
 	}
 	currentDay++;
+
+	// End of day is the save checkpoint, same as the original games
+	SaveManager &saveManager = SaveManager::getInstance();
+	saveManager.data.day = currentDay;
+	saveManager.data.rank = myRank;
+	saveManager.data.lastRankLimit = lastRankLimit;
+	saveManager.data.totalTipsCents = totalTipsCents;
+	saveManager.save();
+
 	Papas::ResourceManager::getInstance().stopMusic();
 	beginDayIntro();
 }
@@ -794,7 +1116,48 @@ void Papas::Game::completeServedPizza(Pizza &pizza)
 	result.baking = scoreBaking(pizza, order);
 	result.cutting = scoreCutting(pizza, order);
 	result.overall = (result.waiting + result.topping + result.baking + result.cutting) / 4;
-	result.tipCents = std::max(0, (int)std::round((result.overall * 2.0f - 100.0f) * 3.0f));
+
+	// Star bookkeeping (GiveOrderScreen.as): >=80 lights this customer's next
+	// star, under 60 wipes them all; the fifth star mints a gold seal (max 3)
+	SaveData &sv = SaveManager::getInstance().data;
+	resultCustomerType = ticket->customerType;
+	bool starTracked = resultCustomerType > 0 && resultCustomerType < (int)sizeof(sv.customerStars);
+	resultStarsBefore = starTracked ? sv.customerStars[resultCustomerType] : 0;
+	resultSealsBefore = starTracked ? sv.customerSeals[resultCustomerType] : 0;
+	resultStarEarned = 0;
+	resultStarsLost = false;
+	resultSealEarned = false;
+	resultStarSfxPlayed = false;
+	if (result.overall >= 80 && resultStarsBefore < 5)
+		resultStarEarned = resultStarsBefore + 1;
+	else if (result.overall < 60 && resultStarsBefore > 0)
+		resultStarsLost = true;
+
+	// Each seal raises this customer's max tip by $1 over the $3 base, and
+	// the fifth star always pays a flat $9
+	int maxTipCents = 300 + resultSealsBefore * 100;
+	result.tipCents = std::max(0, (int)std::round((result.overall * 2.0f - 100.0f) / 100.0f * maxTipCents));
+	if (resultStarEarned == 5)
+		result.tipCents = 900;
+
+	if (starTracked)
+	{
+		if (resultStarEarned == 5)
+		{
+			// Row full: back to zero stars, seal awarded unless they have all 3
+			if (resultSealsBefore < 3)
+			{
+				sv.customerSeals[resultCustomerType] = resultSealsBefore + 1;
+				resultSealEarned = true;
+			}
+			sv.customerStars[resultCustomerType] = 0;
+		}
+		else if (resultStarEarned > 0)
+			sv.customerStars[resultCustomerType] = resultStarEarned;
+		else if (resultStarsLost)
+			sv.customerStars[resultCustomerType] = 0;
+	}
+
 	result.customerName = order.name;
 	if (result.overall >= 90) resultReaction = "overjoyed";
 	else if (result.overall >= 80) resultReaction = "happy";
@@ -860,6 +1223,15 @@ void Papas::Game::updateResult()
 	{
 		resultPhase = ResultReady;
 		resultPhaseStarted = osGetTime();
+	}
+
+	// The earned star lights up partway into the tip phase (the row flips
+	// state at the same moment in renderResultStars)
+	if (resultPhase == ResultTip && resultStarEarned > 0 && !resultStarSfxPlayed
+	    && osGetTime() - resultPhaseStarted >= 700)
+	{
+		Papas::ResourceManager::getInstance().playSfx("getstar");
+		resultStarSfxPlayed = true;
 	}
 }
 
@@ -933,6 +1305,83 @@ void Papas::Game::renderTipJar()
 	}
 }
 
+// Five stars printed on the counter, filled up to this customer's count,
+// with their gold seal pins lined up on the left
+void Papas::Game::renderStarRow(float centerX, float y, int stars, int seals, float depth)
+{
+	static const float STAR_SCALE = 0.45f;
+	static const float SEAL_SCALE = 0.5f;
+	float stepX = starFilledImg.subtex->width * STAR_SCALE + 2.0f;
+	float x = centerX - (5.0f * stepX - 2.0f) * 0.5f;
+	for (int i = 0; i < 5; i++)
+	{
+		C2D_Image img = (i < stars) ? starFilledImg : starEmptyImg;
+		C2D_DrawImageAt(img, x + i * stepX, y, depth, nullptr, STAR_SCALE, STAR_SCALE);
+	}
+	for (int s = 0; s < seals && s < 3; s++)
+		C2D_DrawImageAt(sealImg, x - 26.0f - s * 12.0f, y - 2.0f, depth,
+			nullptr, SEAL_SCALE, SEAL_SCALE);
+}
+
+// The result screen's star strip: shows the pre-serve count through the
+// drumroll, then flips to the new state (with a flash on the earned star)
+// at the getstar moment partway into the tip phase
+void Papas::Game::renderResultStars()
+{
+	static const float ROW_CX = 170.0f;
+	static const float ROW_Y = 204.0f;
+	static const float STAR_SCALE = 0.45f;
+	u64 sincePhase = osGetTime() - resultPhaseStarted;
+	bool revealed = resultPhase == ResultReady ||
+		(resultPhase == ResultTip && sincePhase >= 700);
+
+	int stars = resultStarsBefore;
+	int seals = resultSealsBefore;
+	if (revealed)
+	{
+		if (resultStarEarned > 0) stars = resultStarEarned;
+		else if (resultStarsLost) stars = 0;
+		if (resultSealEarned) seals++;
+	}
+	renderStarRow(ROW_CX, ROW_Y, stars, seals, 0.80f);
+
+	// White flash popping over the freshly earned star
+	if (revealed && resultStarEarned > 0 && resultPhase == ResultTip)
+	{
+		float t = std::min(1.0f, (float)(sincePhase - 700) / 600.0f);
+		float w = starFilledImg.subtex->width * STAR_SCALE;
+		float stepX = w + 2.0f;
+		float rowX = ROW_CX - (5.0f * stepX - 2.0f) * 0.5f;
+		float cx = rowX + (resultStarEarned - 1) * stepX + w * 0.5f;
+		float cy = ROW_Y + starFilledImg.subtex->height * STAR_SCALE * 0.5f;
+		float scale = STAR_SCALE * (1.0f + 1.1f * (1.0f - t));
+		C2D_ImageTint tint;
+		C2D_AlphaImageTint(&tint, 1.0f - t);
+		C2D_DrawImageAt(starFlashImg,
+			cx - starFlashImg.subtex->width * scale * 0.5f,
+			cy - starFlashImg.subtex->height * scale * 0.5f,
+			0.81f, &tint, scale, scale);
+	}
+}
+
+// Name + star row on the take-order counter, like the original takeorder_fg
+void Papas::Game::renderTakeOrderStars(int customerType)
+{
+	static const float ROW_CX = 180.0f;
+	const SaveData &sv = SaveManager::getInstance().data;
+	int stars = 0, seals = 0;
+	if (customerType > 0 && customerType < (int)sizeof(sv.customerStars))
+	{
+		stars = sv.customerStars[customerType];
+		seals = sv.customerSeals[customerType];
+	}
+	renderStarRow(ROW_CX, 166.0f, stars, seals, 0.66f);
+	float tw = 0.0f;
+	C2D_TextGetDimensions(&takeOrderNameText, 0.5f, 0.5f, &tw, nullptr);
+	C2D_DrawText(&takeOrderNameText, C2D_WithColor, ROW_CX - tw * 0.5f, 188.0f, 0.66f,
+		0.5f, 0.5f, C2D_Color32(244, 239, 218, 255));
+}
+
 PapasError Papas::Game::render_top()
 {
 	if (showingDayIntro)
@@ -950,6 +1399,7 @@ PapasError Papas::Game::render_top()
 		if (customer != nullptr) customer->renderOrdering(0.0f);
 		Papas::Stereo::plane(0.0f);
 		C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
+		renderResultStars();
 		// Roy boxes the pizza and flips the lid open toward the viewer; as in
 		// the original, the pizza itself stays hidden and only the glow shows.
 		if (giveOrderLoaded) renderGiveOrderRoy();
@@ -1108,6 +1558,11 @@ void Papas::Game::TakeOrder(Customer* customer)
 		to_bubbleKind = BubbleOpening;
 		customer->playPresentation("stand");
 
+		// Their name gets printed on the counter next to the star row
+		C2D_TextBufClear(nameTextBuf);
+		C2D_TextFontParse(&takeOrderNameText, dokyo, nameTextBuf, map_customers[customerNum].name.c_str());
+		C2D_TextOptimize(&takeOrderNameText);
+
 		to_firstRun = true;
 	}
 
@@ -1115,6 +1570,7 @@ void Papas::Game::TakeOrder(Customer* customer)
 	{
 		Papas::Stereo::plane(0.0f);
 		C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
+		renderTakeOrderStars(customerNum);
 		Papas::Stereo::plane(-0.12f);
 		renderOrderBubble();
 		return;
@@ -1127,6 +1583,7 @@ void Papas::Game::TakeOrder(Customer* customer)
 
 	Papas::Stereo::plane(0.0f);
 	C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
+	renderTakeOrderStars(customerNum);
 	//Returns true for one frame on the first frame, and when the animation is paused
 	Papas::Stereo::plane(0.05f);
 	if (Roy2.renderAnimWithPauses(to_n_actions + 2, 2000))
@@ -1394,6 +1851,8 @@ PapasError Papas::Game::terminate()
 		C2D_SpriteSheetFree(startOfDaySheet);
 		startOfDaySheet = nullptr;
 	}
+	C2D_SpriteSheetFree(starsSheet);
+	C2D_TextBufDelete(nameTextBuf);
 	C2D_TextBufDelete(dayTextBuf);
 	C2D_TextBufDelete(orderBubbleTextBuf);
 	C2D_TextBufDelete(resultTextBuf);
