@@ -18,6 +18,7 @@ namespace Papas {
 		//bool firstPass;
 
 		C3D_RenderTarget* topRenderTarget;
+		C3D_RenderTarget* topRightRenderTarget;
 		C3D_RenderTarget* bottomRenderTarget;
 
 	};

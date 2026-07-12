@@ -1,5 +1,6 @@
 #include "Papas_Renderer.h"
 #include "Papas_Scenes.h"
+#include "Papas_Stereo.h"
 
 PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 	//PapasError ret;
@@ -22,8 +23,11 @@ PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 
 	
 #ifndef DEBUGGING_TOP
-	// Create a C3D render target
+	// Create a C3D render target per eye; the right one is only rendered
+	// while the 3D slider is up
+	gfxSet3D(true);
 	topRenderTarget = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
+	topRightRenderTarget = C2D_CreateScreenTarget(GFX_TOP, GFX_RIGHT);
 #endif
 
 #ifndef DEBUGGING_BOTTOM
@@ -56,15 +60,28 @@ PapasError Papas::Renderer::render(Papas::SceneManager* sceneManager) {
 	C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
 
 #ifndef DEBUGGING_TOP
+	float slider = osGet3DSliderState();
+
 	// Render the scene
 	C2D_TargetClear(topRenderTarget, C2D_Color32(0x00, 0x00, 0x00, 0xff));
 	C2D_SceneBegin(topRenderTarget);
+	Papas::Stereo::beginEye(Papas::Stereo::EyeLeft, slider);
 
 	//Render the scene's top screen
 	sceneManager->render_top();
 
-
-	//C3D_FrameEnd(0);
+	// Second pass for the right eye, shifted the other way. With the slider
+	// down the 3DS only displays the left framebuffer, so skip the extra
+	// pass; still clear the right target so emulators that show both eyes
+	// (side-by-side and friends) don't display stale garbage.
+	C2D_TargetClear(topRightRenderTarget, C2D_Color32(0x00, 0x00, 0x00, 0xff));
+	if (slider > 0.0f)
+	{
+		C2D_SceneBegin(topRightRenderTarget);
+		Papas::Stereo::beginEye(Papas::Stereo::EyeRight, slider);
+		sceneManager->render_top();
+	}
+	Papas::Stereo::endEye();
 #endif
 	
 #ifndef DEBUGGING_BOTTOM

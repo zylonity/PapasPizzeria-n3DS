@@ -212,7 +212,11 @@ void Papas::CustomerRig::draw(const RigTypeAtlas& atlas, int typeId, int absFram
 
 		C3D_Mtx m;
 		affineToMtx(&m, a, b, c, d, tx, ty);
-		C2D_ViewRestore(&m);
+		// Compose with whatever view was active when we were called (the
+		// stereo eye shift), instead of stomping it.
+		C3D_Mtx composed;
+		Mtx_Multiply(&composed, &saved, &m);
+		C2D_ViewRestore(&composed);
 
 		// draw the limb quad at its registration offset in slot-local space
 		C2D_DrawParams p = {
@@ -240,7 +244,9 @@ void Papas::CustomerRig::draw(const RigTypeAtlas& atlas, int typeId, int absFram
 				float cx = logo.ox + logo.w * 0.5f;
 				C3D_Mtx lm;
 				affineToMtx(&lm, -a, -b, c, d, tx + 2.0f * cx * a, ty + 2.0f * cx * b);
-				C2D_ViewRestore(&lm);
+				C3D_Mtx lcomposed;
+				Mtx_Multiply(&lcomposed, &saved, &lm);
+				C2D_ViewRestore(&lcomposed);
 
 				// logo.w/h is the display size; the atlas image is larger and
 				// gets scaled into this quad.

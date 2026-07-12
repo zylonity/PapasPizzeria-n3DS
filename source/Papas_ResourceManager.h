@@ -27,6 +27,7 @@ namespace Papas
 		PapasError loadSong(const char *name, const char *ogg_file);
 		PapasError loadSfx(const char *name, const char *wav_file);
 		PapasError playMusic(const char *name);
+		PapasError playMusicOnce(const char *name);
 		PapasError playSfx(const char *name);
 		int playSfxLoop(const char *name);
 		PapasError stopSfxChannel(int channel);

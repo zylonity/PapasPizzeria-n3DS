@@ -92,6 +92,13 @@ PapasError Papas::ResourceManager::playMusic(const char *name)
     return PAPAS_OK;
 }
 
+PapasError Papas::ResourceManager::playMusicOnce(const char *name)
+{
+    Mix_PlayMusic(songs[name], 1);
+
+    return PAPAS_OK;
+}
+
 PapasError Papas::ResourceManager::pauseMusic()
 {
     Mix_PauseMusic();
