@@ -13,6 +13,7 @@
 #include "Papas_Customers.h"
 #include "Papas_GiveOrderFrames.h"
 #include "Papas_StartOfDayFrames.h"
+#include "Papas_Stereo.h"
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
@@ -118,9 +119,11 @@ PapasError Papas::MainMenu::render_top()
 {
 
 	// Draw the top background
+	Papas::Stereo::plane(0.8f);
 	C2D_DrawImageAt(top_bg, 0, 0, 0, NULL, 1, 1);
 
-	// Draw the logo
+	// Draw the logo, floating a touch in front of the screen
+	Papas::Stereo::plane(-0.1f);
 	float scaling = 0.7f;
 	float xmiddle = (SCREEN_WIDTH_TOP / 2) - ((logo.subtex->width * scaling) / 2);
 	float ymiddle = (SCREEN_HEIGHT_TOP / 2) - ((logo.subtex->height * scaling) / 2);
@@ -209,6 +212,14 @@ PapasError Papas::IntroVid::update()
 		TP_exitThread(); //finishes playing the video (skips)
 	}
 
+	// Video's over: hand off to the game. This must happen here and not in
+	// render_top, which now runs twice per frame (once per eye).
+	if (!THEORA_isplaying && startedPlaying)
+	{
+		p_sceneManager->changeScene(new Papas::Game());
+		return PAPAS_OK; // changeScene deleted us; touch nothing else
+	}
+
 	return PAPAS_OK;
 }
 
@@ -218,13 +229,6 @@ PapasError Papas::IntroVid::render_top()
 	if (THEORA_isplaying && THEORA_HasVideo(&THEORA_vidCtx)){
 		frameDrawAtCentered(&THEORA_frame, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 0.5f, THEORA_scaleframe, THEORA_scaleframe);
 	}
-
-	if (!THEORA_isplaying && startedPlaying)
-	{
-		p_sceneManager->changeScene(new Papas::Game());
-	}
-
-
 
 	return PAPAS_OK;
 }
@@ -798,30 +802,41 @@ PapasError Papas::Game::render_top()
 
 	if (showingResult)
 	{
+		Papas::Stereo::plane(1.0f);
 		C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
+		Papas::Stereo::plane(0.5f);
 		Customer *customer = c_manager.getCustomer(resultCustomerNumber);
 		if (customer != nullptr) customer->renderOrdering(0.0f);
+		Papas::Stereo::plane(0.0f);
 		C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
 		// Roy boxes the pizza and flips the lid open toward the viewer; as in
 		// the original, the pizza itself stays hidden and only the glow shows.
 		if (giveOrderLoaded) renderGiveOrderRoy();
 		else pz_manager.renderPizzaForResult(resultPizzaId, {211.0f, 125.0f}, 0.34f, 0.72f);
+		Papas::Stereo::plane(-0.08f);
 		renderTipJar();
 		return PAPAS_OK;
 	}
 
+	Papas::Stereo::plane(0.35f);
 	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0.002f);
 
 	if(!takingOrder){
 
+		Papas::Stereo::plane(1.0f);
 		C2D_DrawImageAt(ticketsStationImg, 0, 0, 0.001f);
+		Papas::Stereo::plane(0.0f);
 		C2D_DrawImageAt(currentPopupImg, 0, 214, 0.003f);
 		// Customers in the lobby sit between the station art and the popup
+		Papas::Stereo::plane(0.75f);
 		c_manager.renderLines(0.0015f);
 		// Door sign: flips to CLOSED once the day's last customer has walked in
+		Papas::Stereo::plane(0.95f);
 		C2D_DrawImageAt(c_manager.allSpawned() ? signClosedImg : signOpenImg,
 			53.0f, 10.0f, 0.0018f);
+		Papas::Stereo::plane(0.35f);
 		r_manager.renderReceipt(true);
+		Papas::Stereo::plane(0.1f);
 		if (currentStation == TicketStation)
 		{
 			Roy.renderAnim(true);
@@ -833,6 +848,7 @@ PapasError Papas::Game::render_top()
 	}
 	else{
 		TakeOrder(c_manager.getOrderingCustomer());
+		Papas::Stereo::plane(0.05f);
 		r_manager.renderDockedReceipt(true);
 	}
 	
@@ -934,7 +950,9 @@ void Papas::Game::TakeOrder(Customer* customer)
 	// Painter's order: wallpaper -> customer -> counter, so the customer
 	// stands behind the countertop (transparent pixels still write depth on
 	// this screen, so layering by depth alone doesn't work here).
+	Papas::Stereo::plane(1.0f);
 	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
+	Papas::Stereo::plane(0.5f);
 	customer->renderOrdering(0.0f);
 	//Roy2.renderAnimWithPauses(5, 2000);
 
@@ -954,7 +972,9 @@ void Papas::Game::TakeOrder(Customer* customer)
 
 	if (to_bubbleKind == BubbleOpening && osGetTime() - to_orderStartedAt < 700)
 	{
+		Papas::Stereo::plane(0.0f);
 		C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
+		Papas::Stereo::plane(-0.12f);
 		renderOrderBubble();
 		return;
 	}
@@ -964,8 +984,10 @@ void Papas::Game::TakeOrder(Customer* customer)
 		customer->playPresentation("takeorder");
 	}
 
+	Papas::Stereo::plane(0.0f);
 	C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
 	//Returns true for one frame on the first frame, and when the animation is paused
+	Papas::Stereo::plane(0.05f);
 	if (Roy2.renderAnimWithPauses(to_n_actions + 2, 2000))
 	{
 		if (to_currentAction < to_n_actions)
@@ -1017,6 +1039,7 @@ void Papas::Game::TakeOrder(Customer* customer)
 		
 	}
 
+	Papas::Stereo::plane(-0.12f);
 	renderOrderBubble();
 
 	// if (currentAction == n_actions + 2)
