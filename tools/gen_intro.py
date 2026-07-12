@@ -59,13 +59,26 @@ BLACKLIST = {
 PLANES = {
     2816: 0.95, 2817: 0.70, 2818: 0.70, 2819: 0.70,             # shot 1 street
     2825: 0.42, 2828: 0.42, 2834: 0.40,                          # delivery car
-    2836: 0.95, 2837: 0.85, 2838: 0.80, 2840: 0.75, 2841: 0.70,  # shot 2 scenery
-    2843: 0.70, 2844: 0.65, 2855: 0.70, 2856: 0.85, 2857: 0.70,
-    2853: 0.30, 2854: 0.10,                                      # Roy / cab frame
+    2836: 0.95, 2837: 0.85,                                      # shot 2 sky/window
+    # The truck driver is assembled from several layers (2838 = driver +
+    # cab interior, 2841/2855/2857 = face, 2843 = hands on the wheel,
+    # 2840/2844 = wheel/dashboard): keep them in one tight depth cluster or
+    # his face/hands visibly detach from his body in 3D.
+    2838: 0.40, 2853: 0.35, 2841: 0.32, 2855: 0.32, 2857: 0.32,
+    2843: 0.30, 2840: 0.30, 2844: 0.22,
+    2856: 0.18,                                                  # windshield glare
+    2854: 0.10,                                                  # truck cab front
     2858: 0.95, 2821: 0.45, 2822: 0.45, 2823: 0.35, 2824: 0.35,  # shot 3 arrival
     2860: 0.45,
     2861: 0.95, 2863: 0.90, 2865: 0.50, 2867: 0.50,              # dark walk
     2869: 0.80, 2871: 0.80,
+    2928: 0.95, 2918: 0.90, 2927: 0.85, 2929: 0.05,              # interior set
+    # Kingsley waits BEHIND the transparent front door: he must sit deeper
+    # than the door/wall (0.80) or stereo puts him in front of the glass he
+    # is occluded by, which is genuinely painful to look at.
+    2797: 0.88, 2799: 0.88, 2781: 0.88, 2783: 0.88, 2785: 0.88,
+    2789: 0.88, 2792: 0.88, 2801: 0.88, 2803: 0.88, 2814: 0.88,
+    1684: 0.88, 1685: 0.88, 1686: 0.88, 1692: 0.88, 1695: 0.88,
 }
 
 swf = Swf(ROOT)
@@ -228,7 +241,11 @@ def run_plane(r, rank, nlayers):
         return 0.0            # full-screen overlay (fade): keep at the glass
     if nlayers <= 1:
         return 0.95
-    return 0.95 - 0.85 * (rank / (nlayers - 1))
+    # Unlabelled layers stay in a NARROW band: in the walk/interior shots Roy
+    # is built from many separate limb layers, and spreading them over the
+    # full depth range put his body parts on visibly different 3D planes
+    # (genuinely eye-straining). Big set pieces get their depth from PLANES.
+    return 0.55 - 0.20 * (rank / (nlayers - 1))
 
 
 # ---------------- sampled frames -> draw list ----------------
