@@ -12,8 +12,10 @@
 
 namespace Papas {
 
-	// Plays the ready.ogv intro video, B skips it
-	class IntroVid : public Scene
+	// The intro cutscene (car ride -> pizzeria -> Papa's note), played back
+	// as layered animation from the original clip's timeline (see
+	// tools/gen_intro.py). Replaces the old prerecorded ready.ogv. B skips.
+	class IntroCutscene : public Scene
 	{
 	public:
 		PapasError init(Papas::SceneManager *sceneManager) override;
@@ -23,10 +25,11 @@ namespace Papas {
 		PapasError terminate() override;
 
 	private:
-		bool startedPlaying;
 		Papas::SceneManager *p_sceneManager;
 		C2D_SpriteSheet sheet_bg;
 		C2D_Image skip_bg;
+		C2D_SpriteSheet introSheets[4]; // INTRO_SHEET_COUNT checked in the .cpp
+		u64 startedAt;
 	};
 
 	class MainMenu : public Scene {

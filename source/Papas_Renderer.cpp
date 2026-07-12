@@ -71,10 +71,12 @@ PapasError Papas::Renderer::render(Papas::SceneManager* sceneManager) {
 	sceneManager->render_top();
 
 	// Second pass for the right eye, shifted the other way. With the slider
-	// down only the left framebuffer is displayed, so skip the extra pass.
+	// down the 3DS only displays the left framebuffer, so skip the extra
+	// pass; still clear the right target so emulators that show both eyes
+	// (side-by-side and friends) don't display stale garbage.
+	C2D_TargetClear(topRightRenderTarget, C2D_Color32(0x00, 0x00, 0x00, 0xff));
 	if (slider > 0.0f)
 	{
-		C2D_TargetClear(topRightRenderTarget, C2D_Color32(0x00, 0x00, 0x00, 0xff));
 		C2D_SceneBegin(topRightRenderTarget);
 		Papas::Stereo::beginEye(Papas::Stereo::EyeRight, slider);
 		sceneManager->render_top();

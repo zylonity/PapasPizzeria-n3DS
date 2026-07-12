@@ -9,10 +9,10 @@
 #include <cstdio>
 #include <citro2d.h>
 #include <citro3d.h>
-#include <theoraplayer.h>
 #include "Papas_Customers.h"
 #include "Papas_GiveOrderFrames.h"
 #include "Papas_StartOfDayFrames.h"
+#include "Papas_IntroFrames.h"
 #include "Papas_Stereo.h"
 
 #include <SDL/SDL.h>
@@ -144,8 +144,11 @@ PapasError Papas::MainMenu::render_bottom()
 		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed))
 		{
 			if(i == 0){
-				p_sceneManager->changeScene(new Papas::IntroVid()); //skip intro video temporarily
+				// Stop the menu music BEFORE the switch: the cutscene's init
+				// starts its own track, and we'd silence it otherwise.
 				ResourceManager::getInstance().stopMusic();
+				p_sceneManager->changeScene(new Papas::IntroCutscene());
+				return PAPAS_OK; // changeScene deleted us; touch nothing else
 			}
 
 		}
@@ -172,24 +175,36 @@ PapasError Papas::MainMenu::terminate()
 	return PAPAS_OK;
 }
 
-PapasError Papas::IntroVid::init(Papas::SceneManager *sceneManager)
+PapasError Papas::IntroCutscene::init(Papas::SceneManager *sceneManager)
 {
 
 	p_sceneManager = sceneManager;
-	startedPlaying = false;
-	Papas::ResourceManager::getInstance().endMusicPlayer();
 
 	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
 	skip_bg = C2D_SpriteSheetGetImage(sheet_bg, 3);
 
-	ndspInit();
+	static_assert(INTRO_SHEET_COUNT <= 4, "grow IntroCutscene::introSheets");
+	for (int i = 0; i < INTRO_SHEET_COUNT; i++)
+	{
+		char path[40];
+		std::snprintf(path, sizeof(path), "romfs:/gfx/intro_%d.t3x", i + 1);
+		introSheets[i] = C2D_SpriteSheetLoad(path);
+		for (size_t j = 0; j < C2D_SpriteSheetCount(introSheets[i]); j++)
+			C3D_TexSetFilter(C2D_SpriteSheetGetImage(introSheets[i], j).tex, GPU_LINEAR, GPU_LINEAR);
+	}
 
-	ndspSetCallback(TP_audioCallback, NULL);
+	// Layer tints are Flash colour-transform multipliers
+	C2D_SetTintMode(C2D_TintMult);
+
+	Papas::ResourceManager::getInstance().loadSong("gameintro", "romfs:/music/gameintro.ogg");
+	Papas::ResourceManager::getInstance().playMusicOnce("gameintro");
+
+	startedAt = osGetTime();
 
 	return PAPAS_OK;
 }
 
-PapasError Papas::IntroVid::update()
+PapasError Papas::IntroCutscene::update()
 {
 
 	hidScanInput();
@@ -199,22 +214,12 @@ PapasError Papas::IntroVid::update()
 	if (kDown & KEY_START)
 		return PAPAS_NOT_OK; // break in order to return to hbmenu
 
-	if (!THEORA_isplaying && startedPlaying == false)
-	{
-		TP_changeFile("romfs:/videos/ready.ogv");
-	}
-	else{
-		startedPlaying = true;
-	}
+	u64 elapsed = osGetTime() - startedAt;
+	u64 duration = (u64)INTRO_SRC_FRAMES * 1000 / INTRO_FPS;
 
-	if (kDown & KEY_B && THEORA_isplaying && startedPlaying)
-	{
-		TP_exitThread(); //finishes playing the video (skips)
-	}
-
-	// Video's over: hand off to the game. This must happen here and not in
-	// render_top, which now runs twice per frame (once per eye).
-	if (!THEORA_isplaying && startedPlaying)
+	// B skips; the scene change must happen here and not in render_top,
+	// which runs twice per frame (once per eye).
+	if ((kDown & KEY_B) || elapsed >= duration)
 	{
 		p_sceneManager->changeScene(new Papas::Game());
 		return PAPAS_OK; // changeScene deleted us; touch nothing else
@@ -223,28 +228,164 @@ PapasError Papas::IntroVid::update()
 	return PAPAS_OK;
 }
 
-PapasError Papas::IntroVid::render_top()
+// The cutscene's layer data uses centre-origin stage coordinates (the
+// original clip is placed at the Flash stage centre), so anchoring at the
+// middle of the 400x240 top screen puts the 320x240 stage at 40..360 x 0..240.
+static const float INTRO_X = 200.0f;
+static const float INTRO_Y = 120.0f;
+
+// Draw one cutscene layer: an affine matrix in stage px composed with the
+// active stereo view, the same batching pattern as CustomerRig::draw.
+static void drawIntroLayer(C2D_SpriteSheet *sheets, const IntroDraw &d,
+						   const IntroDraw *next, float t, float depth)
+{
+	float a = d.a, b = d.b, c = d.c, dm = d.d, tx = d.tx, ty = d.ty;
+	float tint[4] = {(float)d.tint[0], (float)d.tint[1],
+					 (float)d.tint[2], (float)d.tint[3]};
+	if (next != nullptr)
+	{
+		a += (next->a - a) * t;   b += (next->b - b) * t;
+		c += (next->c - c) * t;   dm += (next->d - dm) * t;
+		tx += (next->tx - tx) * t; ty += (next->ty - ty) * t;
+		for (int i = 0; i < 4; i++)
+			tint[i] += ((float)next->tint[i] - tint[i]) * t;
+	}
+
+	C2D_Image img = C2D_SpriteSheetGetImage(sheets[d.sheet], d.index);
+
+	Papas::Stereo::plane((float)d.plane / 100.0f);
+
+	C3D_Mtx saved;
+	C2D_ViewSave(&saved);
+	C2D_Flush();
+
+	C3D_Mtx m;
+	memset(&m, 0, sizeof(m));
+	m.r[0].x = a; m.r[0].y = c; m.r[0].w = tx + INTRO_X;
+	m.r[1].x = b; m.r[1].y = dm; m.r[1].w = ty + INTRO_Y;
+	m.r[2].z = 1;
+	m.r[3].w = 1;
+	C3D_Mtx composed;
+	Mtx_Multiply(&composed, &saved, &m);
+	C2D_ViewRestore(&composed);
+
+	C2D_DrawParams p = {
+		{0.0f, 0.0f, (float)img.subtex->width, (float)img.subtex->height},
+		{0.0f, 0.0f},
+		depth,
+		0.0f
+	};
+	if (tint[0] < 254.5f || tint[1] < 254.5f || tint[2] < 254.5f || tint[3] < 254.5f)
+	{
+		C2D_ImageTint ti;
+		C2D_PlainImageTint(&ti, C2D_Color32((u8)tint[0], (u8)tint[1],
+											(u8)tint[2], (u8)tint[3]), 1.0f);
+		C2D_DrawImage(img, &p, &ti);
+	}
+	else
+	{
+		C2D_DrawImage(img, &p, nullptr);
+	}
+	C2D_Flush();
+
+	C2D_ViewRestore(&saved);
+}
+
+PapasError Papas::IntroCutscene::render_top()
 {
 
-	if (THEORA_isplaying && THEORA_HasVideo(&THEORA_vidCtx)){
-		frameDrawAtCentered(&THEORA_frame, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 0.5f, THEORA_scaleframe, THEORA_scaleframe);
+	u64 elapsed = osGetTime() - startedAt;
+	float srcFrame = (float)elapsed * INTRO_FPS / 1000.0f;
+
+	static const int N_SAMPLES = (int)(sizeof(INTRO_FRAMES) / sizeof(INTRO_FRAMES[0]));
+	int idx = (int)(srcFrame / INTRO_SAMPLE_STEP);
+	if (idx > N_SAMPLES - 1) idx = N_SAMPLES - 1;
+	const IntroFrame &f0 = INTRO_FRAMES[idx];
+	const IntroFrame *f1 = idx + 1 < N_SAMPLES ? &INTRO_FRAMES[idx + 1] : nullptr;
+
+	float t = 0.0f;
+	if (f1 != nullptr)
+	{
+		t = (srcFrame - (float)f0.srcFrame) / (float)(f1->srcFrame - f0.srcFrame);
+		if (t < 0.0f) t = 0.0f;
+		if (t > 1.0f) t = 1.0f;
+	}
+
+	for (u16 i = 0; i < f0.count; i++)
+	{
+		const IntroDraw &d = INTRO_DRAWS[f0.first + i];
+		// Match the same placement in the next sample to lerp its motion
+		const IntroDraw *nd = nullptr;
+		if (f1 != nullptr)
+		{
+			for (u16 j = 0; j < f1->count; j++)
+			{
+				if (INTRO_DRAWS[f1->first + j].run == d.run)
+				{
+					nd = &INTRO_DRAWS[f1->first + j];
+					break;
+				}
+			}
+		}
+		drawIntroLayer(introSheets, d, nd, t, 0.1f + (float)i * 0.002f);
+	}
+
+	// Stage mask: the original relied on the Flash stage clipping oversized
+	// layers, so black out everything beside the 320px-wide stage window.
+	// Drawn through the same anchor transform as the layers so the bars stay
+	// flush with the stage edges wherever the stage sits on screen.
+	{
+		Papas::Stereo::plane(0.0f);
+
+		C3D_Mtx saved;
+		C2D_ViewSave(&saved);
+		C2D_Flush();
+
+		C3D_Mtx m;
+		Mtx_Identity(&m);
+		m.r[0].w = INTRO_X;
+		m.r[1].w = INTRO_Y;
+		C3D_Mtx composed;
+		Mtx_Multiply(&composed, &saved, &m);
+		C2D_ViewRestore(&composed);
+
+		const u32 black = C2D_Color32(0x00, 0x00, 0x00, 0xff);
+		C2D_DrawRectSolid(-200.0f, -120.0f, 0.9f, 45.0f, 280.0f, black); // left of stage
+		C2D_DrawRectSolid(200.0f, -120.0f, 0.9f, -45.0f, 280.0f, black); // right of stage
+		// Thin strips over the stage's top/bottom edges: layer antialiasing
+		// otherwise leaves a bright fringe along the screen border
+		C2D_DrawRectSolid(-160.0f, -120.0f, 0.9f, 320.0f, 2.0f, black);
+		C2D_DrawRectSolid(-160.0f, 118.0f, 0.9f, 320.0f, 2.0f, black);
+		C2D_Flush();
+
+		C2D_ViewRestore(&saved);
 	}
 
 	return PAPAS_OK;
 }
 
-PapasError Papas::IntroVid::render_bottom()
+PapasError Papas::IntroCutscene::render_bottom()
 {
 	C2D_DrawImageAt(skip_bg, 0, 0, 0, NULL, 1, 1);
 
 	return PAPAS_OK;
 }
 
-PapasError Papas::IntroVid::terminate()
+PapasError Papas::IntroCutscene::terminate()
 {
-	TP_exitThread();
-	ndspExit();
+	C2D_SetTintMode(C2D_TintSolid);
+	Papas::ResourceManager::getInstance().stopMusic();
+	// Symmetric with the old video scene: Game::init reopens the mixer
+	Papas::ResourceManager::getInstance().endMusicPlayer();
 
+	for (int i = 0; i < INTRO_SHEET_COUNT; i++)
+	{
+		if (introSheets[i] != nullptr)
+		{
+			C2D_SpriteSheetFree(introSheets[i]);
+			introSheets[i] = nullptr;
+		}
+	}
 	if (sheet_bg)
 	{
 		C2D_SpriteSheetFree(sheet_bg);
