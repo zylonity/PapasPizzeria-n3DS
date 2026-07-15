@@ -17,11 +17,11 @@ int main(int argc, char* argv[]) {
 
 	while (aptMainLoop()) {
 		ret = g_framework.update();
-		ASSERT(ret == PAPAS_OK, "");
 
-		// Exit loop and begin termination if we get anything than a standard OK return
-		if (ret != PAPAS_OK)
+		if (ret == PAPAS_EXIT_REQUESTED)
 			break;
+
+		ASSERT(ret == PAPAS_OK, "");
 	}
 
 	ret = g_framework.terminate();

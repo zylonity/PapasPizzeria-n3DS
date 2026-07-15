@@ -46,7 +46,8 @@ PapasError Papas::Renderer::update(Papas::SceneManager* sceneManager) {
 	PapasError ret;
 
 	ret = sceneManager->update();
-	ASSERT(ret == PAPAS_OK, "");
+	if (ret != PAPAS_OK)
+		return ret;
 
 	ret = render(sceneManager);
 	ASSERT(ret == PAPAS_OK, "");

@@ -77,8 +77,8 @@ PapasError Papas::MainMenu::update()
 
 	// Respond to user input
 	u32 kDown = hidKeysDown();
-	if (kDown & KEY_START)
-		return PAPAS_NOT_OK; // break in order to return to hbmenu
+	if (kDown & (KEY_START | KEY_SELECT))
+		return PAPAS_EXIT_REQUESTED;
 
 	// Browse through menu with DPAD
 	if (kDown & KEY_DDOWN)
@@ -293,6 +293,8 @@ PapasError Papas::SaveSelect::update()
 	hidScanInput();
 	hidTouchRead(&touch);
 	u32 kDown = hidKeysDown();
+	if (kDown & (KEY_START | KEY_SELECT))
+		return PAPAS_EXIT_REQUESTED;
 
 	if (kDown & KEY_B)
 	{
@@ -503,8 +505,8 @@ PapasError Papas::IntroCutscene::update()
 
 	// Respond to user input
 	u32 kDown = hidKeysDown();
-	if (kDown & KEY_START)
-		return PAPAS_NOT_OK; // break in order to return to hbmenu
+	if (kDown & (KEY_START | KEY_SELECT))
+		return PAPAS_EXIT_REQUESTED;
 
 	u64 elapsed = osGetTime() - startedAt;
 	u64 duration = (u64)INTRO_SRC_FRAMES * 1000 / INTRO_FPS;
@@ -1709,8 +1711,8 @@ PapasError Papas::Game::update()
 	u32 kDown = hidKeysDown();
 	u32 kHeld = hidKeysHeld();
 
-	if (kDown & KEY_START)
-		return PAPAS_NOT_OK; // break in order to return to hbmenu
+	if (kDown & (KEY_START | KEY_SELECT))
+		return PAPAS_EXIT_REQUESTED;
 
 	if (showingDayIntro)
 	{

@@ -10,11 +10,8 @@ PapasError Papas::SceneManager::init() {
 }
 
 PapasError Papas::SceneManager::update() {
-	PapasError ret;
-
 	if (currentScene != nullptr) {
-		ret = currentScene->update();
-		ASSERT(ret == PAPAS_OK, "Updating scene failed");
+		return currentScene->update();
 	}
 
 	return PAPAS_OK;
@@ -63,11 +60,11 @@ PapasError Papas::SceneManager::changeScene(Papas::Scene* scene) {
 }
 
 PapasError Papas::SceneManager::terminate() {
-	PapasError ret;
-
-	currentScene->terminate();
-	delete currentScene;
-	currentScene = nullptr;
+	if (currentScene) {
+		currentScene->terminate();
+		delete currentScene;
+		currentScene = nullptr;
+	}
 
 	return PAPAS_OK;
 }
