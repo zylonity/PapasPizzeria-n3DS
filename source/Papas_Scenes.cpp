@@ -12,6 +12,7 @@
 #include "Papas_Customers.h"
 #include "Papas_GiveOrderFrames.h"
 #include "Papas_StartOfDayFrames.h"
+#include "Papas_NewCustomerFrames.h"
 #include "Papas_IntroFrames.h"
 #include "Papas_Stereo.h"
 #include "Papas_Save.h"
@@ -788,7 +789,16 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	lastRankLimit = saved.lastRankLimit;
 	totalTipsCents = saved.totalTipsCents;
 	dayTextBuf = C2D_TextBufNew(16);
-	beginDayIntro();
+
+	showingNewCustomer = false;
+	newCustomerNoPapa = false;
+	newCustomerType = 0;
+	newCustomerSheet = nullptr;
+	newCustomerNameScale = 1.0f;
+	newCustomerTextBuf = C2D_TextBufNew(32);
+	Papas::ResourceManager::getInstance().loadSfx("endofday", "romfs:/sfx/endofday.wav");
+
+	beginDayOrNewCustomer();
 
 	SwitchStation(TicketStation);
 
@@ -1015,6 +1025,164 @@ void Papas::Game::endDayIntro()
 	c_manager.initManager(myRank);
 }
 
+//===============================================================================
+// NEW CUSTOMER! splash (NewCustomerScreen.as). The original screen is a
+// static container: a striped backdrop, a white disc that inflates behind the
+// customer, the customer themselves playing "overjoyed" with their name under
+// them, and a title that drops in. tools/gen_newcustomer.py
+// bakes the art and the three motion tracks into Papas_NewCustomerFrames.h,
+// already converted to top-screen coordinates.
+//===============================================================================
+
+// Picks up the frame's entry from a track that holds its last value
+static int newCustomerTrackIndex(float srcFrame, int frames)
+{
+	int index = (int)srcFrame - 1;
+	if (index < 0) index = 0;
+	if (index >= frames) index = frames - 1;
+	return index;
+}
+
+bool Papas::Game::beginNewCustomer()
+{
+	newCustomerNoPapa = CustomerManager::papaBlocked(myRank);
+	newCustomerType = newCustomerNoPapa ? 0 : CustomerManager::newCustomerToday(myRank);
+	if (!newCustomerNoPapa && newCustomerType == 0) return false;
+
+	newCustomerSheet = C2D_SpriteSheetLoad("romfs:/gfx/newcustomer.t3x");
+	if (newCustomerSheet == nullptr) return false;
+	for (size_t i = 0; i < C2D_SpriteSheetCount(newCustomerSheet); i++)
+		C3D_TexSetFilter(C2D_SpriteSheetGetImage(newCustomerSheet, i).tex, GPU_LINEAR, GPU_LINEAR);
+
+	if (!newCustomerNoPapa)
+	{
+		// The take-order-sized limb art is the closest of the two variants to
+		// this screen's 0.43 draw scale
+		CustomerRig::getInstance().load();
+		CustomerRig::getInstance().loadType(newCustomerType, newCustomerAtlas);
+
+		C2D_TextBufClear(newCustomerTextBuf);
+		std::unordered_map<int, CustomerData>::const_iterator entry =
+			map_customers.find(newCustomerType);
+		C2D_TextFontParse(&newCustomerNameText, dokyo, newCustomerTextBuf,
+			entry != map_customers.end() ? entry->second.name.c_str() : "");
+		C2D_TextOptimize(&newCustomerNameText);
+		// Match the original field's 48px type rather than guess a scale
+		float naturalHeight = 0.0f;
+		C2D_TextGetDimensions(&newCustomerNameText, 1.0f, 1.0f, nullptr, &naturalHeight);
+		newCustomerNameScale = naturalHeight > 0.0f
+			? NEWCUSTOMER_NAME_HEIGHT / naturalHeight : 1.0f;
+
+		// setupScreen(): the customer counts as introduced the moment the
+		// splash is built, so an exit here does not queue it up again
+		SaveManager &saveManager = SaveManager::getInstance();
+		saveManager.data.customerMet[newCustomerType] = 1;
+		saveManager.save();
+	}
+
+	Papas::ResourceManager::getInstance().stopMusic();
+	Papas::ResourceManager::getInstance().playSfx(
+		newCustomerNoPapa ? "endofday" : "customer_overjoyed");
+	showingNewCustomer = true;
+	newCustomerStartedAt = osGetTime();
+	return true;
+}
+
+void Papas::Game::renderNewCustomer()
+{
+	s64 elapsed = (s64)(osGetTime() - newCustomerStartedAt);
+	if (elapsed < 0) elapsed = 0;
+	float srcFrame = 1.0f + (float)elapsed * NEWCUSTOMER_FPS / 1000.0f;
+
+	Papas::Stereo::plane(1.0f);
+	C2D_DrawImageAt(C2D_SpriteSheetGetImage(newCustomerSheet,
+		newCustomerNoPapa ? NC_IMG_NOPAPA_BG : NC_IMG_BG), 0.0f, 0.0f, 0.0f);
+
+	if (newCustomerNoPapa)
+	{
+		// The seal slams in from offscreen over a shrinking shadow; neither
+		// exists before its start frame.
+		int index = (int)srcFrame - NEWCUSTOMER_SEAL_START;
+		if (index >= 0)
+		{
+			const NewCustomerBox &shadow = NEWCUSTOMER_NOPAPA_SHADOW[
+				std::min(index, NEWCUSTOMER_NOPAPA_SHADOW_FRAMES - 1)];
+			C2D_Image shadowImg = C2D_SpriteSheetGetImage(newCustomerSheet, NC_IMG_NOPAPA_SHADOW);
+			Papas::Stereo::plane(0.85f);
+			C2D_DrawImageAt(shadowImg, shadow.x, shadow.y, 0.1f, nullptr,
+				shadow.w / shadowImg.subtex->width, shadow.h / shadowImg.subtex->height);
+
+			const NewCustomerSealFrame &seal = NEWCUSTOMER_SEAL[
+				std::min(index, NEWCUSTOMER_SEAL_FRAMES - 1)];
+			// The seal art is rasterised at its largest on-screen size, so
+			// this only ever scales down
+			Papas::Stereo::plane(0.4f);
+			C2D_DrawImageAt(C2D_SpriteSheetGetImage(newCustomerSheet, NC_IMG_SEAL),
+				seal.x, seal.y, 0.2f, nullptr, seal.scale, seal.scale);
+		}
+		return;
+	}
+
+	// The disc inflates behind the customer, who is on stage from the start
+	const NewCustomerBox &disc = NEWCUSTOMER_DISC[
+		newCustomerTrackIndex(srcFrame, NEWCUSTOMER_DISC_FRAMES)];
+	Papas::Stereo::plane(0.8f);
+	if (disc.w > 0.0f)
+	{
+		C2D_Image discImg = C2D_SpriteSheetGetImage(newCustomerSheet, NC_IMG_DISC);
+		C2D_DrawImageAt(discImg, disc.x, disc.y, 0.1f, nullptr,
+			disc.w / discImg.subtex->width, disc.h / discImg.subtex->height);
+	}
+	C2D_DrawImageAt(C2D_SpriteSheetGetImage(newCustomerSheet, NC_IMG_SHADOW),
+		NEWCUSTOMER_SHADOW_X, NEWCUSTOMER_SHADOW_Y, 0.2f);
+
+	// The name sits on the disc, so it shares its depth; the customer stands
+	// in front of both.
+	float nameWidth = 0.0f;
+	C2D_TextGetDimensions(&newCustomerNameText, newCustomerNameScale, newCustomerNameScale,
+		&nameWidth, nullptr);
+	C2D_DrawText(&newCustomerNameText, C2D_WithColor, NEWCUSTOMER_NAME_CX - nameWidth * 0.5f,
+		NEWCUSTOMER_NAME_Y, 0.3f, newCustomerNameScale, newCustomerNameScale,
+		C2D_Color32(0, 0, 0, 255));
+
+	Papas::Stereo::plane(0.6f);
+	CustomerRig &rig = CustomerRig::getInstance();
+	int segment = rig.segmentIndex("overjoyed");
+	int frame = rig.frameForTime(segment, (float)elapsed / 1000.0f);
+	rig.draw(newCustomerAtlas, newCustomerType, frame,
+		NEWCUSTOMER_RIG_X, NEWCUSTOMER_RIG_Y,
+		NEWCUSTOMER_RIG_SCALE, NEWCUSTOMER_RIG_SCALE, 0.4f);
+
+	// The title reads as titling over the scene rather than part of it
+	Papas::Stereo::plane(-0.1f);
+	float titleY = NEWCUSTOMER_TITLE_Y[
+		newCustomerTrackIndex(srcFrame, NEWCUSTOMER_TITLE_FRAMES)];
+	if (titleY > -900.0f)
+	{
+		C2D_DrawImageAt(C2D_SpriteSheetGetImage(newCustomerSheet, NC_IMG_TITLE),
+			NEWCUSTOMER_TITLE_X, titleY, 0.5f);
+	}
+}
+
+void Papas::Game::endNewCustomer()
+{
+	showingNewCustomer = false;
+	if (newCustomerSheet != nullptr)
+	{
+		C2D_SpriteSheetFree(newCustomerSheet);
+		newCustomerSheet = nullptr;
+	}
+	CustomerRig::getInstance().freeType(newCustomerAtlas);
+	// endAnimation(): straight into the day it was introducing
+	beginDayIntro();
+}
+
+// Every day starts here: the splash first if one is due, the intro otherwise
+void Papas::Game::beginDayOrNewCustomer()
+{
+	if (!beginNewCustomer()) beginDayIntro();
+}
+
 void Papas::Game::startNextDay()
 {
 	// EndDayScreen.as: one rank per day when total tips pass the next limit
@@ -1035,7 +1203,7 @@ void Papas::Game::startNextDay()
 	saveManager.save();
 
 	Papas::ResourceManager::getInstance().stopMusic();
-	beginDayIntro();
+	beginDayOrNewCustomer();
 }
 
 void Papas::Game::loadGiveOrderSheets()
@@ -1386,6 +1554,12 @@ void Papas::Game::renderTakeOrderStars(int customerType)
 
 PapasError Papas::Game::render_top()
 {
+	if (showingNewCustomer)
+	{
+		renderNewCustomer();
+		return PAPAS_OK;
+	}
+
 	if (showingDayIntro)
 	{
 		renderDayIntro();
@@ -1652,7 +1826,7 @@ PapasError Papas::Game::render_bottom()
 {
 
 	C2D_DrawImageAt(currentStationImg, 0, 0, 0.01f);
-	if (showingDayIntro)
+	if (showingDayIntro || showingNewCustomer)
 	{
 		// Station art only; no buttons while the intro plays
 		return PAPAS_OK;
@@ -1713,6 +1887,17 @@ PapasError Papas::Game::update()
 
 	if (kDown & (KEY_START | KEY_SELECT))
 		return PAPAS_EXIT_REQUESTED;
+
+	if (showingNewCustomer)
+	{
+		u64 elapsed = osGetTime() - newCustomerStartedAt;
+		int frames = newCustomerNoPapa ? NEWCUSTOMER_NOPAPA_SRC_FRAMES : NEWCUSTOMER_SRC_FRAMES;
+		u64 duration = (u64)((float)frames * 1000.0f / NEWCUSTOMER_FPS);
+		bool skip = elapsed > 400 && ((kDown & KEY_A) || touch.px != 0 || touch.py != 0);
+		if (elapsed >= duration || skip)
+			endNewCustomer();
+		return PAPAS_OK;
+	}
 
 	if (showingDayIntro)
 	{
@@ -1804,7 +1989,8 @@ void Papas::Game::SwitchStation(Stations station)
 	{
 	case TicketStation:
 		// During the day intro the music starts when the intro ends
-		if (!showingDayIntro) Papas::ResourceManager::getInstance().switchMusic("orders_music");
+		if (!showingDayIntro && !showingNewCustomer)
+			Papas::ResourceManager::getInstance().switchMusic("orders_music");
 		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 0);
 		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 1);
 		currentStation = station;
@@ -1853,8 +2039,15 @@ PapasError Papas::Game::terminate()
 		C2D_SpriteSheetFree(startOfDaySheet);
 		startOfDaySheet = nullptr;
 	}
+	if (newCustomerSheet != nullptr)
+	{
+		C2D_SpriteSheetFree(newCustomerSheet);
+		newCustomerSheet = nullptr;
+	}
+	CustomerRig::getInstance().freeType(newCustomerAtlas);
 	C2D_SpriteSheetFree(starsSheet);
 	C2D_TextBufDelete(nameTextBuf);
+	C2D_TextBufDelete(newCustomerTextBuf);
 	C2D_TextBufDelete(dayTextBuf);
 	C2D_TextBufDelete(orderBubbleTextBuf);
 	C2D_TextBufDelete(resultTextBuf);

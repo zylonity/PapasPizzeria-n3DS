@@ -219,6 +219,25 @@ namespace Papas {
 		void renderDayIntro();
 		void endDayIntro();
 
+		// NEW CUSTOMER! splash (NewCustomerScreen.as), shown ahead of the day
+		// intro the first time a newly unlocked customer is due. Its no-papa
+		// sibling takes over at rank 31+ until every customer is fully sealed.
+		bool showingNewCustomer;
+		bool newCustomerNoPapa;
+		int newCustomerType;
+		u64 newCustomerStartedAt;
+		C2D_SpriteSheet newCustomerSheet;
+		RigTypeAtlas newCustomerAtlas;
+		C2D_TextBuf newCustomerTextBuf;
+		C2D_Text newCustomerNameText;
+		float newCustomerNameScale;
+		// Returns false if there is nothing to introduce today
+		bool beginNewCustomer();
+		void renderNewCustomer();
+		void endNewCustomer();
+		// Both splashes lead into the day intro; this picks between them
+		void beginDayOrNewCustomer();
+
 		// Serving results: drumroll -> customer looks -> reacts -> tip -> Continue
 		bool showingResult;
 		bool resultTouchHeld;

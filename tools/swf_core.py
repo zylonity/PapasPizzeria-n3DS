@@ -150,6 +150,29 @@ class Swf:
                 dp = struct.unpack_from("<H", tb, 0)[0]; cur.pop(dp, None)
         self._tl[cid] = frames; return frames
 
+    def morph_ratios(self, cid, want_depth):
+        """[(frame, char, ratio)] for one depth of a sprite, 1-based frames,
+        covering only the frames the depth is occupied. Morph tweens are the
+        one thing timeline() throws away, and they can't be recovered from
+    the JPEXS exports whenever anything else on the clip renders wrong."""
+        inner = parse_tags(self.sprite_tag[cid], 4, len(self.sprite_tag[cid]))
+        out = []; f = 1; ch = None; ratio = None
+        for code, tb in inner:
+            if code == 1:
+                if ch is not None: out.append((f, ch, ratio))
+                f += 1
+            elif code == 26:
+                rr = R(tb, 0); flags = rr.u8(); dp = rr.u16()
+                if dp != want_depth: continue
+                if flags & 2: ch = rr.u16(); ratio = None
+                if flags & 4: read_matrix(rr)
+                if flags & 8: read_cxform(rr)
+                if flags & 16: ratio = rr.u16()
+            elif code == 28:
+                if struct.unpack_from("<H", tb, 0)[0] == want_depth:
+                    ch = None; ratio = None
+        return out
+
     def union_bounds(self, cid, depth=0):
         """Union render bounds across all frames = JPEXS PNG export canvas."""
         if cid in self._ub: return self._ub[cid]

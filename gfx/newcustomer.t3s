@@ -1,0 +1,9 @@
+--atlas --border edge -f rgba4444 -z auto
+
+NewCustomer/bg.png
+NewCustomer/disc.png
+NewCustomer/shadow.png
+NewCustomer/title.png
+NewCustomer/nopapa_bg.png
+NewCustomer/seal.png
+NewCustomer/nopapa_shadow.png

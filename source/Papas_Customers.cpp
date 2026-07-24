@@ -5,6 +5,7 @@
 
 #include "Papas_Customers.h"
 #include "Papas_ResourceManager.h"
+#include "Papas_Save.h"
 #include <algorithm>
 #include <cmath>
 
@@ -240,17 +241,47 @@ void Papas::CustomerManager::terminateManager()
 	customerLineup.clear();
 }
 
-void Papas::CustomerManager::decideLineup(int rank)
+// CustomerManager.as decideLineup(): the unlock pool is the 6 starters plus
+// one more type per rank past 1, capped at 35 - and PAPA LOUIE! (36) on top
+// once every one of those 35 is carrying 3 gold seals.
+int Papas::CustomerManager::unlockedCount(int rank)
 {
-	// CustomerManager.as decideLineup(): the unlock pool is the 6 starters
-	// plus one more type per rank past 1, capped at 35. The newest unlock is
-	// guaranteed to lead the day's lineup; the rest are random and distinct.
-	// PAPA LOUIE! (36) needs the star/badge progression (3 gold seals on all
-	// 35 customers at rank 31+), which is not ported yet.
-	static const int customersPerRank[11] = {4, 4, 5, 5, 6, 7, 7, 8, 8, 9, 10};
-	int count = customersPerRank[rank < 10 ? rank : 10];
 	int unlocked = 6 + (rank - 1);
 	if (unlocked > 35) unlocked = 35;
+	if (rank >= 31 && papaEarned()) unlocked++;
+	return unlocked;
+}
+
+bool Papas::CustomerManager::papaEarned()
+{
+	const SaveData &save = SaveManager::getInstance().data;
+	for (int type = 1; type <= 35; type++)
+	{
+		if (save.customerSeals[type] < 3) return false;
+	}
+	return true;
+}
+
+bool Papas::CustomerManager::papaBlocked(int rank)
+{
+	return rank >= 31 && !papaEarned();
+}
+
+int Papas::CustomerManager::newCustomerToday(int rank)
+{
+	// Below rank 2 the lineup is all random, so nobody is guaranteed to show
+	if (rank < 2) return 0;
+	int newest = unlockedCount(rank);
+	return SaveManager::getInstance().data.customerMet[newest] ? 0 : newest;
+}
+
+void Papas::CustomerManager::decideLineup(int rank)
+{
+	// The newest unlock is guaranteed to lead the day's lineup; the rest are
+	// random and distinct.
+	static const int customersPerRank[11] = {4, 4, 5, 5, 6, 7, 7, 8, 8, 9, 10};
+	int count = customersPerRank[rank < 10 ? rank : 10];
+	int unlocked = unlockedCount(rank);
 
 	customerLineup.clear();
 	std::vector<int> pool;

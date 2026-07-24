@@ -104,6 +104,22 @@ namespace Papas {
 		// True once the day's whole lineup has walked in (flips the door sign)
 		bool allSpawned() const { return totalCustomers >= (int)customerLineup.size(); }
 
+		//=======================================================================
+		// The day's unlock rules (CustomerManager.as decideLineup). Static
+		// because the NEW CUSTOMER! splash has to ask them BEFORE the day -
+		// and so the manager it precedes - exists.
+		//=======================================================================
+		// Highest customer type available at this rank: the 6 starters plus
+		// one per rank, capped at 35, or 36 once Papa has been earned.
+		static int  unlockedCount(int rank);
+		// PAPA LOUIE!: rank 31+ with 3 gold seals on all 35 other customers
+		static bool papaEarned();
+		// Rank 31+ but not there yet - shows the "no papa" splash instead
+		static bool papaBlocked(int rank);
+		// Type whose splash is due today, or 0. From rank 2 the newest unlock
+		// always leads the lineup, and gets a splash the first time.
+		static int  newCustomerToday(int rank);
+
 	private:
 		void decideLineup(int rank);
 		void spawnNext();
