@@ -1,4 +1,4 @@
-lil remake of papa's pizzeria for the 3DS, made it for my girlfriend but thought other people would like too
+lil remake of papa's pizzeria for the 3DS, made it for my wife but thought other people would like too
 
 early alpha so don't expect too much, but it should load without issues
 
