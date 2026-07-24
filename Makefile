@@ -42,6 +42,16 @@ ROMFS		:=	romfs
 GFXBUILD	:=	$(ROMFS)/gfx
 
 #---------------------------------------------------------------------------------
+# SMDH metadata (home-menu title/description/author) and icon.
+# These override the devkitARM defaults; the 48x48 icon feeds the .smdh that is
+# embedded in the .3dsx and, in turn, the .cxi/.cia.
+#---------------------------------------------------------------------------------
+APP_TITLE		:=	Papa's Pizzeria
+APP_DESCRIPTION	:=	Papa's Pizzeria - Nintendo 3DS port
+APP_AUTHOR		:=	zylonity
+ICON			:=	icon.png
+
+#---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
