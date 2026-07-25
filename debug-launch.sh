@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Debug launcher: build (-O0), start Azahar in the background halted on its GDB stub,
-# and return only once port 4003 is accepting connections so CLion can attach gdb.
-# Used as the "Before launch" step of the CLion "Debug (Azahar)" configuration.
+# Build for debugging, start Azahar's GDB stub, and wait for CLion to attach.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -34,8 +32,7 @@ stop_azahar
 set_azahar_gdbstub true "$PORT"
 
 echo ">> Launching AzaharPlus in background (halts on GDB stub :$PORT) ..."
-# setsid detaches Azahar into its own session so CLion doesn't kill it when this
-# before-launch task exits (nohup/& alone isn't enough — CLion reaps the process group).
+# Give Azahar its own session so CLion won't reap it with this task.
 setsid "$AZAHAR_BIN" "$THREEDSX" </dev/null >/tmp/azahar-debug.log 2>&1 &
 disown 2>/dev/null || true
 

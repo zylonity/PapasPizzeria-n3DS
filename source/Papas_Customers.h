@@ -1,12 +1,5 @@
 #pragma once
-//===============================================================================
-// name: Papas_Customers.h
-// desc: Customer data (orders) + the live customer/line system, ported from
-//       the original game's Customer.as / CustomerManager.as. Customers are
-//       drawn with the shared skeletal rig (Papas_CustomerRig.*); each live
-//       customer lazy-loads its own type's limb atlas so only on-screen
-//       types cost VRAM.
-//===============================================================================
+// Customer orders and live queues drawn with the shared rig.
 
 #include "Papas_Constants.h"
 #include "Papas_Utils.h"
@@ -29,8 +22,7 @@ namespace Papas {
 	// Index -> order data for all 36 customer types (defined in Papas_Customers.cpp)
 	extern std::unordered_map<int, CustomerData> map_customers;
 
-	// A live customer somewhere in the lobby (Customer.as). The manager owns
-	// these and moves them between lines; the customer just walks/stands/draws.
+	// A lobby customer; the manager owns it and moves it between lines.
 	class Customer
 	{
 	public:
@@ -104,20 +96,14 @@ namespace Papas {
 		// True once the day's whole lineup has walked in (flips the door sign)
 		bool allSpawned() const { return totalCustomers >= (int)customerLineup.size(); }
 
-		//=======================================================================
-		// The day's unlock rules (CustomerManager.as decideLineup). Static
-		// because the NEW CUSTOMER! splash has to ask them BEFORE the day -
-		// and so the manager it precedes - exists.
-		//=======================================================================
-		// Highest customer type available at this rank: the 6 starters plus
-		// one per rank, capped at 35, or 36 once Papa has been earned.
+		// Keep unlock rules static so the pre-day splash can use them.
+		// Six starters, then one per rank; Papa is type 36.
 		static int  unlockedCount(int rank);
 		// PAPA LOUIE!: rank 31+ with 3 gold seals on all 35 other customers
 		static bool papaEarned();
 		// Rank 31+ but not there yet - shows the "no papa" splash instead
 		static bool papaBlocked(int rank);
-		// Type whose splash is due today, or 0. From rank 2 the newest unlock
-		// always leads the lineup, and gets a splash the first time.
+		// Find today's unseen lead unlock, or return 0.
 		static int  newCustomerToday(int rank);
 
 	private:
@@ -135,4 +121,3 @@ namespace Papas {
 		std::chrono::steady_clock::time_point lastUpdate;
 	};
 }
-//===============================================================================

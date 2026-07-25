@@ -48,8 +48,7 @@ namespace Papas {
 		std::vector<PizzaCut> cuts;
 	};
 
-	// Owns every pizza from Make Pizza to Serve: topping drags, oven timers,
-	// the cutting queue and handing the served pizza over for scoring
+	// Owns each pizza from topping through baking, cutting, and scoring.
 	class PizzaManager {
 	public:
 		PizzaManager() {};

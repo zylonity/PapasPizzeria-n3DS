@@ -17,18 +17,14 @@ namespace {
 		u32 dataSize;
 	};
 
-	// mkdir returns EEXIST noise we don't care about; both levels because a
-	// fresh SD (or Azahar's virtual one) may not even have /3ds yet
+	// A fresh real or virtual SD may not have either directory yet.
 	void ensureSaveDir()
 	{
 		mkdir("sdmc:/3ds", 0777);
 		mkdir(SAVE_DIR, 0777);
 	}
 
-	// Fields are only ever appended, so a file from an older version is read
-	// into the front of the struct and everything added since keeps its
-	// default. Anything claiming to be newer (or bigger) than this build
-	// knows about is refused rather than half-read.
+	// Older saves fill the struct's front; reject newer or oversized layouts.
 	bool readSlotFile(const char *path, Papas::SaveData &out)
 	{
 		FILE *f = fopen(path, "rb");
@@ -45,9 +41,7 @@ namespace {
 		fclose(f);
 		if (!ok) return false;
 
-		// A pre-v3 file has no record of who has been introduced, so treat
-		// everything already unlocked at its rank as met: the alternative is
-		// re-running the splash for a customer the player has served for days.
+		// Mark old saves' unlocked customers as met so their splash doesn't replay.
 		if (header.version < 3)
 		{
 			int unlocked = 6 + (out.rank - 1);
@@ -120,4 +114,3 @@ bool Papas::SaveManager::eraseSlot(int slot)
 	if (activeSlot == slot) activeSlot = -1;
 	return remove(path) == 0;
 }
-//===============================================================================

@@ -36,8 +36,7 @@ bool Papas::Button::showButton(touchPosition& touch, bool selected, bool* aPress
 	hitBox.height = img_Pressed.subtex->height;
 	hitBox.width = img_Pressed.subtex->width;
 
-	//Detect touch
-	//If between left and between right and between top and between bottom
+	// Check whether the touch sits inside the button.
 	if (touch.px == 0.0f && touch.py == 0.0f && lastTouch.px > hitBox.left && lastTouch.px < hitBox.left + hitBox.width && lastTouch.py > hitBox.top && lastTouch.py < hitBox.top + hitBox.height)
 	{
 		C2D_DrawImageAt(img_Pressed, pos.x, pos.y, 1, NULL, 1, 1);
@@ -146,6 +145,15 @@ void Papas::AnimatedSprite::renderAnim(bool loop)
 	}
 }
 
+// Draw where the animation currently sits without stepping it on
+void Papas::AnimatedSprite::renderCurrentFrame()
+{
+	if (!finished && !each_sprite.empty())
+	{
+		C2D_DrawSprite(&each_sprite[currentSprite]);
+	}
+}
+
 void Papas::AnimatedSprite::destroyAnim()
 {
 
@@ -165,8 +173,7 @@ void Papas::RoyPeeking::renderAnim(bool loop)
 			}
 			else if (currentSprite == numOfSprites - 1) 
 			{
-				// We slow down the last few frames, since I had to remove them to load them onto the sprite sheet
-				// Don't need to worry about copy cos C2D_Sprite holds a pointer to the texture anyways
+				// Slow the trimmed ending; C2D_Sprite already points at the texture.
 				for (size_t i = 0; i < 45; i++)
 				{
 					each_sprite.push_back(each_sprite[28]);
@@ -242,8 +249,7 @@ void Papas::RoyPeeking::resetAnim()
 	currentSprite = 0;
 }
 
-// Loops the scribble anim with a wait between runs; returns true at the
-// start of each run so the game knows to move to the next order line
+// Loop the scribble with pauses and report when a new order line starts.
 bool Papas::RoyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
 {
 	end = osGetTime();
@@ -342,8 +348,7 @@ void Papas::ReceiptParts::init(const char *receiptNum, C2D_Font *font, C2D_Sprit
 		s_cuts[i] = C2D_SpriteSheetGetImage(receipt_spriteSheet, i + 26);
 		C3D_TexSetFilter(s_cuts[i].tex, GPU_LINEAR, GPU_LINEAR);
 	}
-	//Numbers and cross
-	//I want cross to be 0th item cos that way each number corresponds to itself soo:
+	// Put the cross at zero so every number matches its own index.
 	s_nums_cross = C2D_SpriteSheetGetImage(receipt_spriteSheet, 13);
 	C3D_TexSetFilter(s_nums_cross.tex, GPU_LINEAR, GPU_LINEAR);
 	for (size_t i = 0; i < 12; i++)
@@ -536,7 +541,8 @@ void Papas::Receipt::showReceipt(bool topReceipt)
 bool Papas::Receipt::detectTouch(touchPosition &touch)
 {
 
-	if (touch.px != 0 || touch.py != 0) // I wanna account for latency, if the receipt is moving but you move outside the hitbox faster than the hitbox can move, it still drags
+	// Keep dragging if the touch outruns the moving hitbox.
+	if (touch.px != 0 || touch.py != 0)
 	{
 		if (
 			(touch.px > bottom.hitBox.left && touch.px < bottom.hitBox.left + bottom.hitBox.width &&
@@ -554,13 +560,12 @@ bool Papas::Receipt::detectTouch(touchPosition &touch)
 void Papas::Receipt::detectMovement(touchPosition &touch)
 {
 
-	//bottom.hitBox = {bottom.receipt_bg.params.pos.x, bottom.receipt_bg.params.pos.y, bottom.receipt_bg.params.pos.w, bottom.receipt_bg.params.pos.h};
-
 	static bool isDragging = false;
 	static touchPosition prevTouch;
 	static v2 offset;
 
-	if (touch.px != 0 || touch.py != 0) // I wanna account for latency, if the receipt is moving but you move outside the hitbox faster than the hitbox can move, it still drags
+	// Keep dragging if the touch outruns the moving hitbox.
+	if (touch.px != 0 || touch.py != 0)
 	{
 		if (isDragging ||
 			(touch.px > bottom.hitBox.left && touch.px < bottom.hitBox.left + bottom.hitBox.width &&
@@ -569,7 +574,7 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 
 			if (!isDragging)
 			{
-				// Set the initial position and scale as soon as you start grabbing it, to prevent a "jolt" or "jump" (idk but this fixes that)
+				// Set the grabbed state right away so the receipt doesn't jump.
 				bottom.setScaleReceipt(smallScaleBottom);
 
 				if (bottom.pinnedTop)
@@ -721,18 +726,13 @@ void Papas::ReceiptManager::moveReceiptToBack(int indexToMove)
 
 void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 {
-	/*There is a bug where the transparency of a receipt lower in the array isnt processed on top of the transparency of a receipt higher in the array
-	i'm 96% sure its because of the rendering order, since technically the one lower in the array is processed first
-	to fix this i have to reorder the array in terms of depth, which i can't be fucked to do right now, but will do later*/
-
-	/*UPDATE: I kinda fixed it, but it's still a bit odd when you move the receipt lol*/
+	// Kinda fixed receipt overlap; proper depth sorting can wait cos I can't be fucked lol.
 	if (touch.px != 0 || touch.py != 0) // Check if the screen is touched
 	{
 		if (activeReceiptIndex == -1) // No receipt is being dragged
 		{
 
-			// Basically, we need to figure out what the best receipt to grab is, depending on how deep it is
-			//  so these guys lmk which the best index is by going through the loop
+			// Grab the frontmost matching receipt.
 			float maxDepth = -1.0f;
 			float bestReceiptIndex = -1;
 
@@ -757,8 +757,7 @@ void Papas::ReceiptManager::detectMovement(touchPosition &touch)
 			{
 				activeReceiptIndex = bestReceiptIndex;
 
-				// add the depth and allow it to moove
-				// this might fuck up later, if you move the receipts too much, pain in my ass
+				// Bring it forward; too much movement might fuck with depth later, pain in my ass.
 				currentMaxDepth += 0.1f;
 				v_receipts[activeReceiptIndex]->bottom.currentDepth = normalizedDepth();
 				v_receipts[activeReceiptIndex]->top.currentDepth = normalizedDepth();

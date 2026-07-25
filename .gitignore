@@ -423,3 +423,7 @@ papas_extract/
 # regenerated locally); the committed romfs/gfx/*.t3x are built from these.
 gfx/rig_parts/
 gfx/rig_logos/
+
+# Packaged output from packaging/build_cia.sh
+*.cia
+*.cxi

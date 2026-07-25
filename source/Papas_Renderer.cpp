@@ -23,8 +23,7 @@ PapasError Papas::Renderer::init(Papas::SceneManager* sceneManager) {
 
 	
 #ifndef DEBUGGING_TOP
-	// Create a C3D render target per eye; the right one is only rendered
-	// while the 3D slider is up
+	// Give each eye a target; draw the right one only when 3D is on.
 	gfxSet3D(true);
 	topRenderTarget = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
 	topRightRenderTarget = C2D_CreateScreenTarget(GFX_TOP, GFX_RIGHT);
@@ -71,10 +70,7 @@ PapasError Papas::Renderer::render(Papas::SceneManager* sceneManager) {
 	//Render the scene's top screen
 	sceneManager->render_top();
 
-	// Second pass for the right eye, shifted the other way. With the slider
-	// down the 3DS only displays the left framebuffer, so skip the extra
-	// pass; still clear the right target so emulators that show both eyes
-	// (side-by-side and friends) don't display stale garbage.
+	// Skip the right-eye pass when 3D is off, but clear stale emulator output.
 	C2D_TargetClear(topRightRenderTarget, C2D_Color32(0x00, 0x00, 0x00, 0xff));
 	if (slider > 0.0f)
 	{

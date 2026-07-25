@@ -12,9 +12,7 @@
 
 namespace Papas {
 
-	// The intro cutscene (car ride -> pizzeria -> Papa's note), played back
-	// as layered animation from the original clip's timeline (see
-	// tools/gen_intro.py). Replaces the old prerecorded ready.ogv. B skips.
+	// Layered intro cutscene; B skips it.
 	class IntroCutscene : public Scene
 	{
 	public:
@@ -59,10 +57,7 @@ namespace Papas {
 
 	};
 
-	// Save-slot picker between the main menu and the game: three files on
-	// the bottom screen. An empty slot starts a new game (intro cutscene
-	// first); a used slot loads straight into the day. B backs out, X twice
-	// deletes the selected file.
+	// Three-slot picker: B backs out, and pressing X twice deletes a slot.
 	class SaveSelect : public Scene
 	{
 	public:
@@ -134,6 +129,9 @@ namespace Papas {
 
 		C2D_Image ticketsStationImg;
 		C2D_Image ticketsHolderImg;
+		// Cross-faded coal bed behind the oven grate.
+		C2D_Image coalsDimImg;
+		C2D_Image coalsBrightImg;
 		Button createReceipt;
 
 		// Take-order top screen art (wallpaper behind, counter in front)
@@ -205,23 +203,22 @@ namespace Papas {
 		u64 dayIntroStartedAt;
 		int dayIntroPick;
 		int currentDay;
-		// Rank progression (EndDayScreen.as): rank-up when total tips cross
-		// lastRankLimit + (rank+1)*500 cents at the end of a day
+		// Rank up when tips pass lastRankLimit + (rank + 1) * $5.
 		int myRank;
 		int lastRankLimit;
 		void beginDayIntro();
 		void startNextDay();
 		C2D_SpriteSheet startOfDaySheet;
-		C2D_TextBuf dayTextBuf;
-		C2D_Text dayNumText;
+		// Use baked plate digits because the game font is too small.
+		C2D_SpriteSheet dayNumberSheet;
+		C2D_Image dayDigits[10];
+		void renderDayNumber(float centreX, float inkCentreY);
 		C2D_Image signOpenImg;
 		C2D_Image signClosedImg;
 		void renderDayIntro();
 		void endDayIntro();
 
-		// NEW CUSTOMER! splash (NewCustomerScreen.as), shown ahead of the day
-		// intro the first time a newly unlocked customer is due. Its no-papa
-		// sibling takes over at rank 31+ until every customer is fully sealed.
+		// Show NEW CUSTOMER! before the day; rank 31+ can use the no-Papa version.
 		bool showingNewCustomer;
 		bool newCustomerNoPapa;
 		int newCustomerType;
@@ -245,8 +242,7 @@ namespace Papas {
 		ResultPhase resultPhase;
 		u64 resultPhaseStarted;		// resets on every phase change
 		u64 resultStartedAt;		// fixed, drives Roy's animation
-		// Roy give-order clip: ~5 MB of atlases, loaded only while a result
-		// shows (capacity checked against GIVEORDER_SHEET_COUNT in the .cpp)
+		// Load Roy's large give-order atlases only while results are visible.
 		C2D_SpriteSheet giveOrderSheets[8];
 		bool giveOrderLoaded;
 		int giveOrderPick;
@@ -262,9 +258,7 @@ namespace Papas {
 		C2D_Image resultCoinSpin[6];	// the coin flipping into the jar
 		C2D_TextBuf resultTextBuf;
 		C2D_Text resultText[8];
-		// Star-customer system (GiveOrderScreen.as): each customer type earns
-		// a star for a >=80 order, loses them all under 60; five stars mint a
-		// gold seal (max 3) that raises their max tip by $1 each
+		// Scores earn or clear stars; five stars make one of up to three seals.
 		C2D_SpriteSheet starsSheet;
 		C2D_Image starEmptyImg;
 		C2D_Image starFilledImg;

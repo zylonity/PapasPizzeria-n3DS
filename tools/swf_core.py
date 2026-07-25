@@ -1,7 +1,4 @@
-"""Shared SWF parsing core for the intro pipeline (extracted from gen_rig.py
-patterns). Parses tags, matrices, cxforms; resolves char kinds, sprite
-timelines, JPEXS export anchors (SVG bounds for shapes, union render bounds
-for sprites), and child-sprite stop frames from exported scripts."""
+"""Shared parser for the subset of SWF timelines used by the asset tools."""
 import os, re, glob, zlib, struct
 
 class R:
@@ -128,8 +125,7 @@ class Swf:
         self._svg[cid] = res; return res
 
     def timeline(self, cid):
-        """List of frames; each frame is {depth: (char, matrix, cxform)}.
-        Matrices/cxforms persist across frames as in the SWF display list."""
+        """Return frames as persistent depth-to-placement maps."""
         if cid in self._tl: return self._tl[cid]
         inner = parse_tags(self.sprite_tag[cid], 4, len(self.sprite_tag[cid]))
         frames = []; cur = {}
@@ -151,10 +147,7 @@ class Swf:
         self._tl[cid] = frames; return frames
 
     def morph_ratios(self, cid, want_depth):
-        """[(frame, char, ratio)] for one depth of a sprite, 1-based frames,
-        covering only the frames the depth is occupied. Morph tweens are the
-        one thing timeline() throws away, and they can't be recovered from
-    the JPEXS exports whenever anything else on the clip renders wrong."""
+        """Return the raw morph chain for one sprite depth."""
         inner = parse_tags(self.sprite_tag[cid], 4, len(self.sprite_tag[cid]))
         out = []; f = 1; ch = None; ratio = None
         for code, tb in inner:
@@ -194,8 +187,7 @@ class Swf:
         self._ub[cid] = res; return res
 
     def stop_frame(self, cid):
-        """1-based frame a child clip stops on (from JPEXS script exports),
-        or None if it loops freely."""
+        """Return the child's scripted stop frame, or None if it loops."""
         if cid in self._stop: return self._stop[cid]
         res = None
         pat = os.path.join(self.root, f"papas_extract/scripts/DefineSprite_{cid}*/frame_*")
@@ -209,8 +201,7 @@ class Swf:
         self._stop[cid] = res; return res
 
     def child_frame(self, cid, elapsed):
-        """Which 1-based frame a child sprite shows `elapsed` frames after
-        being placed (loops unless a stop() script pins it)."""
+        """Find the child frame shown after `elapsed` parent frames."""
         n = self.sprite_nframes.get(cid, 1)
         if n <= 1: return 1
         stop = self.stop_frame(cid)

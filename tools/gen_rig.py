@@ -1,17 +1,8 @@
 #!/usr/bin/env python3
-"""Generate romfs:/rig/customer.rig (LE binary) from the SWF + papas_extract.
-Shared rig: 15 slots, segment labels, baked per-frame matrices.
-Per type: part offsets/sizes/imageIndex/frameCount (12 parts).
-Also emits gfx/<type>.t3s for the requested types."""
+"""Build customer.rig and the requested customer atlases from the SWF extract."""
 import sys, os, zlib, struct, glob, re
 
-# Atlas art is pre-downscaled so each on-screen context samples its texture
-# ~1:1: raw JPEXS exports are full Flash size, and GPU minification of the
-# baked-in antialiased edge makes silhouettes stair-step (Roy's sprites avoid
-# this by being exported at display size). Two variants per type: "" for the
-# take-order close-up (scale 0.7) and "_line" for the lobby lines (0.32; the
-# waitline's 0.27 samples that at a gentle 0.84). The .rig keeps ORIGINAL
-# pixel sizes; the runtime already stretches each image into its (w,h) quad.
+# Bake close-up and "_line" art near display size so edges stay smooth.
 ART_SCALES=[("",0.7),("_line",0.32)]
 
 ROOT = sys.argv[1] if len(sys.argv) > 1 else "."
@@ -84,14 +75,7 @@ for code,tb in tags:
 def apply(m,x,y):
     a,b,c,d,tx,ty=m; return (a*x+c*y+tx, b*x+d*y+ty)
 
-# Registration = union RENDER bounds over ALL frames of a symbol, which is
-# exactly the canvas JPEXS crops its PNG exports to. SWF SHAPEBOUNDS won't do:
-# they include bezier control points, so curvy shapes (eyes/mouth/hands)
-# declare a bigger box than they render. JPEXS's own render bounds leak into
-# the shape SVG exports: each papas_extract/shapes/<id>.svg has the render
-# size in width/height and the origin offset in its root <g> translate
-# (render xmin,ymin = -tx,-ty). Verified: sizes match the exported PNG canvas
-# for all 416 limb symbols, offsets match SWF bounds wherever those were tight.
+# Use JPEXS render bounds; SWF bounds include stray Bezier control points.
 svg_size_re=re.compile(r'height="([0-9.]+)px" width="([0-9.]+)px"')
 svg_g_re=re.compile(r'<g transform="matrix\(([-0-9.]+), ([-0-9.]+), ([-0-9.]+), ([-0-9.]+), ([-0-9.]+), ([-0-9.]+)\)">')
 _svg_cache={}
@@ -176,11 +160,7 @@ SLOT_ORDER=[depth_name[d] for d in depths_sorted]     # back->front draw order
 NUMFRAMES=len(frames); NUMSLOTS=len(SLOT_ORDER)
 IDENT=(1,0,0,1,0,0)
 
-# ---------------- parts model ----------------
-# "logo" (last) is not a slot: it's the 2-frame shirt-logo child inside each
-# body clip. Frame 2 is just frame 1 pre-mirrored so the logo reads correctly
-# when the whole customer is x-flipped (leave line); the runtime redraws frame
-# 1 mirrored about its own center instead, so only one image is stored.
+# The shirt logo isn't a limb slot; runtime mirrors its one stored frame.
 PARTS=["body","head","neck","upperarm","forearm","foot","hair","back_hair","mouth","eyes","hand","hand2","logo"]
 PARTIDX={p:i for i,p in enumerate(PARTS)}
 # slot name -> part name
@@ -206,11 +186,7 @@ for d in glob.glob(os.path.join(SPR,"DefineSprite_*_customer*")):
 
 TYPES=sorted({t for (t,_) in type_part_dir})
 
-# ---------------- shirt logo (child of each body clip) ----------------
-# body sprite = body shape + a 2-frame child sprite named "logo". JPEXS bakes
-# logo frame 1 into the exported body PNG; here we pull the logo's own bitmap
-# (embedded in the frame-1 shape's SVG export) + its placement so the runtime
-# can redraw it mirrored while the customer walks away flipped.
+# Pull the shirt logo out so flipped customers can mirror it cleanly.
 import base64
 LOGO_DIR=os.path.join(ROOT,"gfx/rig_logos")
 def sprite_children(sid):
@@ -291,12 +267,7 @@ for i,(f,name) in enumerate(lab):
     end=lab[i+1][0] if i+1<len(lab) else NUMFRAMES
     SEGMENTS.append((name,f,end-f,1 if name in LOOPING else 0))
 
-# ---------------- expression track ----------------
-# Eyes/mouth/hands/feet sub-frames are driven per timeline frame by
-# `<slot>.clip.gotoAndStop(N)` calls in clip 409's frame scripts (JPEXS folder
-# frame_<K> holds the DoAction for 0-indexed frame K-1). Bake the current
-# sub-frame (0-indexed) for every slot, every frame, by playing the timeline
-# linearly and holding each value until it changes.
+# Replay gotoAndStop calls to bake each limb's expression subframe.
 SCRIPTS_409=os.path.join(ROOT,"papas_extract/scripts/DefineSprite_409_customer")
 goto_re=re.compile(r"([A-Za-z_]+)\.clip\.gotoAndStop\((\d+)\)")
 expr_state={nm:0 for nm in SLOT_ORDER}
@@ -325,9 +296,7 @@ for nm in SLOT_ORDER:
     buf+=cstr(nm,16)+struct.pack("<BB",PARTIDX[SLOT2PART[nm]],0)
 for (nm,st,ln,lp) in SEGMENTS:
     buf+=cstr(nm,16)+u16(st)+u16(ln)+struct.pack("<BB",lp,0)
-# v4: pad so the float matrix block is 4-byte aligned in the file. The
-# runtime reads it through a raw float*, and VFP loads on the real ARM11
-# data-abort on unaligned addresses (emulators don't check).
+# Rig v4 aligns matrices so raw ARM11 VFP loads are safe.
 buf+=b"\0"*(-len(buf)%4)
 # matrices baked [frame][slot][6]
 mflat=bytearray()
@@ -359,9 +328,7 @@ GFX=os.path.join(ROOT,"gfx")
 STAGE=os.path.join(GFX,"rig_parts")
 
 def alpha_bleed(px, known, iters=6):
-    """Flood RGB from 'known' texels outward into the rest (alpha untouched):
-    the GPU bilinear filter blends edge pixels with their transparent
-    neighbors' RGB, so leaving black there puts a dark halo around limbs."""
+    """Bleed known colours outward so filtering won't add dark halos."""
     import numpy as np
     rgb=px[...,:3]
     known=known.copy()
@@ -380,11 +347,7 @@ def alpha_bleed(px, known, iters=6):
     return px
 
 def stage_scaled(src, dst, w, h):
-    """Lanczos-downscale src to (w,h) at dst: premultiplied for the resize
-    (no fringe pull-in), then alpha-bled for the GPU's straight-alpha bilinear.
-    The whole pipeline stays in float: quantizing the premultiplied image to
-    8-bit first turns rounding noise at near-zero-alpha texels into saturated
-    white specks when unpremultiplied (noise/alpha clips to 255)."""
+    """Downscale with premultiplied alpha, then bleed padding for tex3ds."""
     from PIL import Image
     import numpy as np
     if os.path.isfile(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
@@ -397,8 +360,7 @@ def stage_scaled(src, dst, w, h):
                                .resize((w,h),Image.LANCZOS)) for c in range(4)],axis=-1)
     np.clip(small,0,255,out=small)      # Lanczos ringing can under/overshoot
     sa=small[...,3:4]
-    # Unpremultiply only where alpha carries real signal; texels fainter than
-    # that get their RGB from the bleed pass below (their alpha stays as-is).
+    # Let the bleed pass colour texels whose alpha is too faint to unpremultiply.
     solid=sa[...,0]>8.0
     small[...,:3]=np.where(solid[...,None],
                            np.clip(small[...,:3]*255.0/np.maximum(sa,1e-6),0,255), 0)
@@ -410,9 +372,7 @@ def scaled_size(w,h,scale):
 for t in want:
     os.makedirs(STAGE,exist_ok=True)
     for suffix,scale in ART_SCALES:
-        # --border edge: 1px replicated border per image, else bilinear filtering
-        # bleeds neighboring atlas sprites in as flickering lines around the limbs
-        # (must be the long form: tex3ds 2.3.0's parser rejects the short -b)
+        # Replicate borders; tex3ds 2.3.0 needs the long option spelling.
         lines=["--atlas --border edge -f rgba -z auto",""]
         for part in PARTS:
             m=type_meta[t][PARTIDX[part]]

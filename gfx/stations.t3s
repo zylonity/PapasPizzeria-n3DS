@@ -1,4 +1,4 @@
---atlas -f rgba -z auto
+--atlas --border edge -f rgba -z auto
 
 ./Stations/order_bottom.png
 ./Stations/orders_popup.png
@@ -13,3 +13,5 @@
 
 ./Stations/sign_open.png
 ./Stations/sign_closed.png
+./Stations/coals_dim.png
+./Stations/coals_bright.png

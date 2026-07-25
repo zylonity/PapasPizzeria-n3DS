@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Read customer.rig back (mirrors the planned C++ POD layout) and composite the
-'stand' pose for customer type 1: world AABB of each limb = slotMatrix * partOffset."""
+"""Read customer.rig back and draw customer 1's standing pose."""
 import struct, sys
 d=open(sys.argv[1],"rb").read()
 p=0

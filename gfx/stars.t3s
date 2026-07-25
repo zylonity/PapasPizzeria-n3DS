@@ -1,0 +1,6 @@
+--atlas -f rgba -z auto
+
+./Stars/star_empty.png
+./Stars/star_filled.png
+./Stars/star_flash.png
+./Stars/seal.png

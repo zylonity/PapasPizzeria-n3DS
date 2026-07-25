@@ -33,8 +33,7 @@ PapasError Papas::Framework::update() {
 PapasError Papas::Framework::terminate() {
 	PapasError ret;
 
-	// Scenes own Citro2D resources, so release them while the renderer is
-	// still alive.
+	// Let scenes free their Citro2D resources before the renderer goes away.
 	ret = m_pSceneManager->terminate();
 	ASSERT(ret == PAPAS_OK, "");
 	delete m_pSceneManager;

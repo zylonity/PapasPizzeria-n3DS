@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Build the 3DS app and launch it in the Azahar emulator.
-# Used both standalone (./run.sh) and by the CLion "Build and Run (Azahar)" config.
+# Build the app and launch it in Azahar.
 set -euo pipefail
 
 cd "$(dirname "$0")"

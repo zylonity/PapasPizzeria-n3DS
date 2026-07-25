@@ -5,7 +5,7 @@
 
 // Layout/tuning values, mostly traced off the station art
 static const float PIZZA_SCALE = 0.7f;
-static const Papas::v2 COUNTER_POS = {148.0f, 118.0f};	// pizza centre at the topping station
+static const Papas::v2 COUNTER_POS = {161.0f, 118.0f};	// pizza centre at the topping station
 static const Papas::v2 BOARD_POS = {170.0f, 118.0f};	// pizza centre on the cutting board
 static const float PIZZA_RADIUS = 137.0f;		// unscaled, for cut detection
 static const float PIZZA_DROP_RADIUS = 88.0f;	// how close a topping drop has to be to count
@@ -246,8 +246,7 @@ void Papas::PizzaManager::updateCutting(touchPosition &touch)
 		else if (!touching && cuttingWasTouching && cuttingDrag) {
 			ResourceManager::getInstance().stopSfxChannel(dottedLineChannel);
 			dottedLineChannel = -1;
-			// Line vs circle intersection; the cut only counts if both
-			// crossing points sit inside the dragged segment
+			// Count a cut only when both circle crossings fit inside the drag.
 			v2 d = {cutEnd.x - cutStart.x, cutEnd.y - cutStart.y};
 			v2 f = {cutStart.x - BOARD_POS.x, cutStart.y - BOARD_POS.y};
 			float radius = PIZZA_RADIUS * PIZZA_SCALE;
@@ -376,8 +375,7 @@ void Papas::PizzaManager::renderCutting(touchPosition &touch)
 	}
 }
 
-// Topping station: the pizza on the counter, the dragged topping, and the
-// Make Pizza / To Oven buttons depending on where the order's at
+// Draw the topping pizza, dragged item, and the button for its current step.
 void Papas::PizzaManager::renderBottom(touchPosition &touch, Receipt *ticket)
 {
 	Pizza *active = activePizza(ticket);

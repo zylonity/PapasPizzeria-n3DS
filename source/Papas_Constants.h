@@ -15,7 +15,7 @@ typedef int PapasError;
                    message, __FILE__, __LINE__);                             \
             svcOutputDebugString(message, strlen(message));                         \
             printf("Exiting in 3 seconds...\n");                           \
-            svcSleepThread(3 * 1000 * 1000 * 1000ULL); /* Sleep for 10 seconds */ \
+            svcSleepThread(3 * 1000 * 1000 * 1000ULL); /* Pause for 3 seconds. */ \
             exit(1);                                                        \
         }                                                                    \
     } while (0)

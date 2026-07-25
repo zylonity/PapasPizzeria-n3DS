@@ -12,6 +12,8 @@
 #include "Papas_Customers.h"
 #include "Papas_GiveOrderFrames.h"
 #include "Papas_StartOfDayFrames.h"
+#include "Papas_DayNumber.h"
+#include "Papas_Sign.h"
 #include "Papas_NewCustomerFrames.h"
 #include "Papas_IntroFrames.h"
 #include "Papas_Stereo.h"
@@ -146,8 +148,7 @@ PapasError Papas::MainMenu::render_bottom()
 		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed))
 		{
 			if(i == 0){
-				// Menu music keeps playing under the file picker; SaveSelect
-				// stops it itself right before launching the game/cutscene
+				// Keep menu music through the picker; it stops when the game starts.
 				p_sceneManager->changeScene(new Papas::SaveSelect());
 				return PAPAS_OK; // changeScene deleted us; touch nothing else
 			}
@@ -182,8 +183,7 @@ static const float SLOT_W = 280.0f;
 static const float SLOT_H = 52.0f;
 static float slotY(int i) { return 34.0f + i * 60.0f; }
 
-// The top-screen receipts: three tickets standing along the bottom edge,
-// the selected one pops up out of the row
+// Show three save tickets, popping the selected one above the row.
 static const float RCPT_SCALE = 0.85f;
 static const float RCPT_PEEK = 65.0f;	// px of ticket visible while tucked
 
@@ -250,8 +250,7 @@ void Papas::SaveSelect::refreshSlotText()
 		C2D_TextFontParse(&slotInfoText[i], dokyo, textBuf, info);
 		C2D_TextOptimize(&slotInfoText[i]);
 
-		// What the ticket says: day and rank stamped on the stripes, or
-		// "New Game" alone on blank paper
+		// Used slots show day and rank; blank ones just say "New Game".
 		char line[16];
 		if (slotUsed[i])
 		{
@@ -269,12 +268,10 @@ void Papas::SaveSelect::refreshSlotText()
 	}
 }
 
-// Load or start the chosen file. changeScene deletes us, so every caller
-// must return straight away without touching members.
+// changeScene deletes this picker, so callers must return right away.
 PapasError Papas::SaveSelect::activateSlot(int slot)
 {
-	// Both destinations start their own track (the cutscene its music, the
-	// game the day-intro flow), so the menu music ends here
+	// Both destinations start their own audio, so end menu music here.
 	ResourceManager::getInstance().stopMusic();
 	if (slotUsed[slot] && SaveManager::getInstance().loadSlot(slot))
 	{
@@ -349,9 +346,7 @@ PapasError Papas::SaveSelect::update()
 		}
 	}
 
-	// Ease each ticket toward its spot. Animated here and not in
-	// render_top: with 3D on, that runs twice a frame (once per eye) and
-	// the eyes must see the ticket at the same height.
+	// Animate here so both stereo eye renders see the same ticket height.
 	for (int i = 0; i < SaveManager::SLOT_COUNT; i++)
 	{
 		float target = (i == selected) ? 1.0f : 0.0f;
@@ -390,8 +385,7 @@ PapasError Papas::SaveSelect::render_top()
 		Papas::Stereo::plane(0.5f - 0.45f * popAmount[i]);
 		C2D_DrawImageAt(receiptImg, x, y, 0.4f, NULL, RCPT_SCALE, RCPT_SCALE);
 
-		// Offsets are receipt-art pixels scaled to screen; the file line sits
-		// just under the printed header so it reads even while tucked
+		// Place the file line just below the header so tucked tickets stay readable.
 		float cx = x + w / 2.0f;
 		drawTextCentered(&slotTitleText[i], cx, y + 47.0f * RCPT_SCALE, 0.5f, 0.55f, colInk);
 		if (slotUsed[i])
@@ -512,8 +506,7 @@ PapasError Papas::IntroCutscene::update()
 	u64 elapsed = osGetTime() - startedAt;
 	u64 duration = (u64)INTRO_SRC_FRAMES * 1000 / INTRO_FPS;
 
-	// B skips; the scene change must happen here and not in render_top,
-	// which runs twice per frame (once per eye).
+	// Handle skipping here because render_top runs once per eye.
 	if ((kDown & KEY_B) || elapsed >= duration)
 	{
 		p_sceneManager->changeScene(new Papas::Game());
@@ -523,14 +516,11 @@ PapasError Papas::IntroCutscene::update()
 	return PAPAS_OK;
 }
 
-// The cutscene's layer data uses centre-origin stage coordinates (the
-// original clip is placed at the Flash stage centre), so anchoring at the
-// middle of the 400x240 top screen puts the 320x240 stage at 40..360 x 0..240.
+// Centre the clip's 320x240 stage in the 400x240 top screen.
 static const float INTRO_X = 200.0f;
 static const float INTRO_Y = 120.0f;
 
-// Draw one cutscene layer: an affine matrix in stage px composed with the
-// active stereo view, the same batching pattern as CustomerRig::draw.
+// Draw one transformed layer without losing the active stereo view.
 static void drawIntroLayer(C2D_SpriteSheet *sheets, const IntroDraw &d,
 						   const IntroDraw *next, float t, float depth)
 {
@@ -625,10 +615,7 @@ PapasError Papas::IntroCutscene::render_top()
 		drawIntroLayer(introSheets, d, nd, t, 0.1f + (float)i * 0.002f);
 	}
 
-	// Stage mask: the original relied on the Flash stage clipping oversized
-	// layers, so black out everything beside the 320px-wide stage window.
-	// Drawn through the same anchor transform as the layers so the bars stay
-	// flush with the stage edges wherever the stage sits on screen.
+	// Mask oversized layers to the original 320px-wide Flash stage.
 	{
 		Papas::Stereo::plane(0.0f);
 
@@ -647,8 +634,7 @@ PapasError Papas::IntroCutscene::render_top()
 		const u32 black = C2D_Color32(0x00, 0x00, 0x00, 0xff);
 		C2D_DrawRectSolid(-200.0f, -120.0f, 0.9f, 45.0f, 280.0f, black); // left of stage
 		C2D_DrawRectSolid(200.0f, -120.0f, 0.9f, -45.0f, 280.0f, black); // right of stage
-		// Thin strips over the stage's top/bottom edges: layer antialiasing
-		// otherwise leaves a bright fringe along the screen border
+		// Cover the bright antialiasing fringe at the stage edges.
 		C2D_DrawRectSolid(-160.0f, -120.0f, 0.9f, 320.0f, 2.0f, black);
 		C2D_DrawRectSolid(-160.0f, 118.0f, 0.9f, 320.0f, 2.0f, black);
 		C2D_Flush();
@@ -691,6 +677,11 @@ PapasError Papas::IntroCutscene::terminate()
 	return PAPAS_OK;
 }
 
+// Time Roy's scribble by the clock so stereo's second draw can't speed it up.
+static const float ROY_ORDER_FRAME_MS = 1000.0f / 60.0f;
+// Idle between lines, as in the original (TakeOrderScreen.as lineIntervalSpeed)
+static const float ROY_ORDER_PAUSE_MS = 2000.0f;
+
 PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 {
 
@@ -705,6 +696,11 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	ticketsHolderImg = C2D_SpriteSheetGetImage(s_stations, 9);
 	signOpenImg = C2D_SpriteSheetGetImage(s_stations, 10);
 	signClosedImg = C2D_SpriteSheetGetImage(s_stations, 11);
+	coalsDimImg = C2D_SpriteSheetGetImage(s_stations, 12);
+	coalsBrightImg = C2D_SpriteSheetGetImage(s_stations, 13);
+	// Filter this atlas for its scaled sign and coal tiles; 1:1 art stays crisp.
+	C3D_TexSetFilter(signOpenImg.tex, GPU_LINEAR, GPU_LINEAR);
+	C3D_TexSetFilter(signClosedImg.tex, GPU_LINEAR, GPU_LINEAR);
 
 	
 	orderStation = C2D_SpriteSheetLoad("romfs:/gfx/taking_order.t3x");
@@ -726,7 +722,7 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 	v2 pos_order = {-45, 45};
 	v2 scl_order = {1.0f, 1.0f};
-	Roy2.createAnim("romfs:/gfx/Roy_takingorder.t3x", 0.0f, pos_order, scl_order, 0.0f);
+	Roy2.createAnim("romfs:/gfx/Roy_takingorder.t3x", ROY_ORDER_FRAME_MS, pos_order, scl_order, 0.0f);
 
 	// Receipt system stuff to move later
 	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
@@ -778,17 +774,17 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 
 	createReceipt.createButton(orderStation, 2, 2, 3, {34, 141});
 
-	// Start-of-day intro: storefront cutscene before the first customer.
-	// The customer manager is initialised when the intro finishes.
+	// Run the storefront intro before creating the customer manager.
 	Papas::ResourceManager::getInstance().loadSfx("startofday", "romfs:/sfx/startofday.wav");
-	// Resume from the active save slot; a fresh slot holds day-1 defaults,
-	// so a new game falls out of the same path
+	// Fresh and existing slots can share this setup path.
 	const SaveData &saved = SaveManager::getInstance().data;
 	currentDay = saved.day;
 	myRank = saved.rank;
 	lastRankLimit = saved.lastRankLimit;
 	totalTipsCents = saved.totalTipsCents;
-	dayTextBuf = C2D_TextBufNew(16);
+	// Loaded with the rest of the day intro, below
+	startOfDaySheet = nullptr;
+	dayNumberSheet = nullptr;
 
 	showingNewCustomer = false;
 	newCustomerNoPapa = false;
@@ -820,8 +816,7 @@ Papas::Receipt *Papas::Game::dockedReceipt()
 	return docked;
 }
 
-// Original docks 0.3% per late second; ideal wait here is the requested bake
-// time plus a 30 second prep allowance (line-entry time isn't tracked yet)
+// Dock 0.3% per late second, with bake time plus 30 seconds as the target.
 int Papas::Game::scoreWaiting(const Pizza &pizza, const CustomerData &order) const
 {
 	if (pizza.ticket == nullptr || pizza.ticket->orderStartedAt == 0) return 100;
@@ -838,8 +833,7 @@ int Papas::Game::scoreBaking(const Pizza &pizza, const CustomerData &order) cons
 	return std::max(0, (int)std::floor(100.0f - difference / 90.0f * 100.0f));
 }
 
-// Port of checkToppingAccuracy: quantity, right quadrants, even spread,
-// and a penalty for anything the customer never asked for
+// Score topping quantity, coverage, spread, and unwanted items.
 int Papas::Game::scoreToppings(const Pizza &pizza, const CustomerData &order) const
 {
 	// What the receipt wants, folded down per topping type
@@ -902,8 +896,7 @@ int Papas::Game::scoreToppings(const Pizza &pizza, const CustomerData &order) co
 	return std::max(0, (int)std::floor(average));
 }
 
-// Port of checkCuttingAccuracy: cut count, how close each cut's angle is
-// to the ideal spread, and whether the cuts go all the way across
+// Score cut count, angle spread, and whether each cut crosses the pizza.
 int Papas::Game::scoreCutting(const Pizza &pizza, const CustomerData &order) const
 {
 	int expectedCuts = order.CutPizzaIn / 2;	// 4/6/8 slices = 2/3/4 full cuts
@@ -952,11 +945,53 @@ int Papas::Game::scoreCutting(const Pizza &pizza, const CustomerData &order) con
 	return std::min(100, std::max(0, score));
 }
 
+// Centre the baked day digits on the plate, drawing their shadow first.
+void Papas::Game::renderDayNumber(float centreX, float inkCentreY)
+{
+	if (dayNumberSheet == nullptr) return;
+
+	int digits[8];
+	int count = 0;
+	int value = currentDay > 0 ? currentDay : 1;
+	while (value > 0 && count < 8)
+	{
+		digits[count++] = value % 10;
+		value /= 10;
+	}
+
+	float total = 0.0f;
+	for (int i = 0; i < count; i++) total += DAYNUM_ADVANCE[digits[i]];
+
+	C2D_ImageTint shadowTint, inkTint;
+	C2D_PlainImageTint(&shadowTint, C2D_Color32(178, 178, 172, 255), 1.0f);
+	C2D_PlainImageTint(&inkTint, C2D_Color32(58, 58, 58, 255), 1.0f);
+
+	// Pixel-snap these final-size digits so they stay crisp.
+	float pen = roundf(centreX - total * 0.5f) - DAYNUM_PAD;
+	float y = roundf(inkCentreY - DAYNUM_INK_H * 0.5f) - DAYNUM_PAD;
+	for (int i = count; i-- > 0; )
+	{
+		C2D_Image digit = dayDigits[digits[i]];
+		C2D_DrawImageAt(digit, roundf(pen) + 2.0f, y + 2.0f, 0.34f, &shadowTint);
+		C2D_DrawImageAt(digit, roundf(pen), y, 0.35f, &inkTint);
+		pen += DAYNUM_ADVANCE[digits[i]];
+	}
+}
+
 void Papas::Game::renderDayIntro()
 {
 	static const float SOD_X = 38.0f; // centre the 323px scene on the top screen
-	// The original clip plays on the plain white stage
-	C2D_DrawRectSolid(0.0f, 0.0f, 0.0f, 400.0f, 240.0f, C2D_Color32(255, 255, 255, 255));
+	static const float SOD_W = 323.0f;
+	// Keep the storefront deep and slide the day plate in front.
+	static const float SOD_PLANE_SCENE = 1.0f;
+	static const float SOD_PLANE_DOOR = 0.9f;
+	static const float SOD_PLANE_PLATE = -0.2f;
+	static const u32 SOD_BLACK = C2D_Color32(0, 0, 0, 255);
+
+	// Fill behind the opaque clip so stereo shifts don't reveal the clear colour.
+	Papas::Stereo::plane(0.0f);
+	C2D_DrawRectSolid(0.0f, 0.0f, 0.0f, 400.0f, 240.0f, SOD_BLACK);
+	Papas::Stereo::plane(SOD_PLANE_SCENE);
 	s64 elapsed = (s64)(osGetTime() - dayIntroStartedAt);
 	if (elapsed < 0) elapsed = 0;
 	float srcFrame = 1.0f + (float)elapsed * STARTOFDAY_FPS / 1000.0f;
@@ -967,6 +1002,7 @@ void Papas::Game::renderDayIntro()
 	       (float)STARTOFDAY_PATCHES[dayIntroPick + 1].srcFrame <= srcFrame)
 		dayIntroPick++;
 	const StartOfDayPatch &patch = STARTOFDAY_PATCHES[dayIntroPick];
+	Papas::Stereo::plane(SOD_PLANE_DOOR);
 	C2D_DrawImageAt(C2D_SpriteSheetGetImage(startOfDaySheet, patch.index),
 		SOD_X + patch.ox, (float)patch.oy, 0.20f);
 
@@ -978,19 +1014,18 @@ void Papas::Game::renderDayIntro()
 	float y1 = fi < STARTOFDAY_SRC_FRAMES ? STARTOFDAY_PLATE_TRACK[fi] : y0;
 	float plateY = y0 + (y1 - y0) * (srcFrame - (float)fi);
 	C2D_Image plate = C2D_SpriteSheetGetImage(startOfDaySheet, 1);
+	Papas::Stereo::plane(SOD_PLANE_PLATE);
 	C2D_DrawImageAt(plate, SOD_X + STARTOFDAY_PLATE_X, plateY, 0.30f);
 
-	// The real day number over the blanked area, shadow first like the original
-	static const float DAY_TEXT_SCALE = 2.0f;
-	static const float DAY_TEXT_Y_OFFSET = 9.0f;
-	float tw = 0.0f, th = 0.0f;
-	C2D_TextGetDimensions(&dayNumText, DAY_TEXT_SCALE, DAY_TEXT_SCALE, &tw, &th);
-	float tx = SOD_X + STARTOFDAY_PLATE_X + plate.subtex->width * 0.5f - tw * 0.5f;
-	float ty = plateY + STARTOFDAY_DIGIT_Y - th * 0.5f + DAY_TEXT_Y_OFFSET;
-	C2D_DrawText(&dayNumText, C2D_WithColor, tx + 2.0f, ty + 2.0f, 0.34f,
-		DAY_TEXT_SCALE, DAY_TEXT_SCALE, C2D_Color32(178, 178, 172, 255));
-	C2D_DrawText(&dayNumText, C2D_WithColor, tx, ty, 0.35f,
-		DAY_TEXT_SCALE, DAY_TEXT_SCALE, C2D_Color32(58, 58, 58, 255));
+	// Put the real day number in the sample number's cleaned-out spot.
+	static const float SOD_DIGIT_DROP = 3.0f;
+	renderDayNumber(SOD_X + STARTOFDAY_PLATE_X + plate.subtex->width * 0.5f,
+		plateY + STARTOFDAY_DIGIT_Y + SOD_DIGIT_DROP);
+
+	// The eye shift slides the scene past its edges, so re-mask the borders
+	Papas::Stereo::plane(0.0f);
+	C2D_DrawRectSolid(0.0f, 0.0f, 0.5f, SOD_X, 240.0f, SOD_BLACK);
+	C2D_DrawRectSolid(SOD_X + SOD_W, 0.0f, 0.5f, 400.0f - (SOD_X + SOD_W), 240.0f, SOD_BLACK);
 }
 
 void Papas::Game::beginDayIntro()
@@ -1001,11 +1036,13 @@ void Papas::Game::beginDayIntro()
 		for (size_t i = 0; i < C2D_SpriteSheetCount(startOfDaySheet); i++)
 			C3D_TexSetFilter(C2D_SpriteSheetGetImage(startOfDaySheet, i).tex, GPU_LINEAR, GPU_LINEAR);
 	}
-	C2D_TextBufClear(dayTextBuf);
-	char dayStr[8];
-	std::snprintf(dayStr, sizeof(dayStr), "%d", currentDay);
-	C2D_TextFontParse(&dayNumText, dokyo, dayTextBuf, dayStr);
-	C2D_TextOptimize(&dayNumText);
+	if (dayNumberSheet == nullptr)
+	{
+		// Drawn 1:1, so these keep the sheet's default nearest filtering
+		dayNumberSheet = C2D_SpriteSheetLoad("romfs:/gfx/daynumber.t3x");
+		for (int i = 0; i < 10; i++)
+			dayDigits[i] = C2D_SpriteSheetGetImage(dayNumberSheet, i);
+	}
 	showingDayIntro = true;
 	dayIntroStartedAt = osGetTime();
 	dayIntroPick = 0;
@@ -1020,19 +1057,17 @@ void Papas::Game::endDayIntro()
 		C2D_SpriteSheetFree(startOfDaySheet);
 		startOfDaySheet = nullptr;
 	}
+	if (dayNumberSheet != nullptr)
+	{
+		C2D_SpriteSheetFree(dayNumberSheet);
+		dayNumberSheet = nullptr;
+	}
 	Papas::ResourceManager::getInstance().switchMusic("orders_music");
 	// Spawn today's customers (loads the rig + per-type atlases on demand)
 	c_manager.initManager(myRank);
 }
 
-//===============================================================================
-// NEW CUSTOMER! splash (NewCustomerScreen.as). The original screen is a
-// static container: a striped backdrop, a white disc that inflates behind the
-// customer, the customer themselves playing "overjoyed" with their name under
-// them, and a title that drops in. tools/gen_newcustomer.py
-// bakes the art and the three motion tracks into Papas_NewCustomerFrames.h,
-// already converted to top-screen coordinates.
-//===============================================================================
+// NEW CUSTOMER! splash, using the art and tracks from gen_newcustomer.py.
 
 // Picks up the frame's entry from a track that holds its last value
 static int newCustomerTrackIndex(float srcFrame, int frames)
@@ -1056,8 +1091,7 @@ bool Papas::Game::beginNewCustomer()
 
 	if (!newCustomerNoPapa)
 	{
-		// The take-order-sized limb art is the closest of the two variants to
-		// this screen's 0.43 draw scale
+		// The close-up limb art best matches this screen's 0.43 scale.
 		CustomerRig::getInstance().load();
 		CustomerRig::getInstance().loadType(newCustomerType, newCustomerAtlas);
 
@@ -1073,8 +1107,7 @@ bool Papas::Game::beginNewCustomer()
 		newCustomerNameScale = naturalHeight > 0.0f
 			? NEWCUSTOMER_NAME_HEIGHT / naturalHeight : 1.0f;
 
-		// setupScreen(): the customer counts as introduced the moment the
-		// splash is built, so an exit here does not queue it up again
+		// Count them as introduced as soon as the splash is built.
 		SaveManager &saveManager = SaveManager::getInstance();
 		saveManager.data.customerMet[newCustomerType] = 1;
 		saveManager.save();
@@ -1100,8 +1133,7 @@ void Papas::Game::renderNewCustomer()
 
 	if (newCustomerNoPapa)
 	{
-		// The seal slams in from offscreen over a shrinking shadow; neither
-		// exists before its start frame.
+		// Hide the seal and shadow until their entrance begins.
 		int index = (int)srcFrame - NEWCUSTOMER_SEAL_START;
 		if (index >= 0)
 		{
@@ -1114,8 +1146,7 @@ void Papas::Game::renderNewCustomer()
 
 			const NewCustomerSealFrame &seal = NEWCUSTOMER_SEAL[
 				std::min(index, NEWCUSTOMER_SEAL_FRAMES - 1)];
-			// The seal art is rasterised at its largest on-screen size, so
-			// this only ever scales down
+			// The seal is baked at maximum size, so only scale it down.
 			Papas::Stereo::plane(0.4f);
 			C2D_DrawImageAt(C2D_SpriteSheetGetImage(newCustomerSheet, NC_IMG_SEAL),
 				seal.x, seal.y, 0.2f, nullptr, seal.scale, seal.scale);
@@ -1136,8 +1167,7 @@ void Papas::Game::renderNewCustomer()
 	C2D_DrawImageAt(C2D_SpriteSheetGetImage(newCustomerSheet, NC_IMG_SHADOW),
 		NEWCUSTOMER_SHADOW_X, NEWCUSTOMER_SHADOW_Y, 0.2f);
 
-	// The name sits on the disc, so it shares its depth; the customer stands
-	// in front of both.
+	// Keep the name on the disc and the customer in front of both.
 	float nameWidth = 0.0f;
 	C2D_TextGetDimensions(&newCustomerNameText, newCustomerNameScale, newCustomerNameScale,
 		&nameWidth, nullptr);
@@ -1239,16 +1269,11 @@ void Papas::Game::renderGiveOrderRoy()
 	// Placement of the scaled 339x249 clip canvas on the top screen
 	static const float ROY_X = -55.0f;
 	static const float ROY_Y = 20.0f;
-	// The original carry frames tilt/jiggle the box, so the entrance is a
-	// procedural ease-out glide of the steady hold pose (table entry 0)
-	// along the original path instead: frame 1's content offset -> the hold
-	// pose's own offset, over the original 17-frame carry duration.
+	// Glide the steady pose in so the original's carry jiggle doesn't show.
 	static const float SLIDE_FROM_X = 10.0f;
 	static const float SLIDE_FROM_Y = 42.0f;
 	static const float SLIDE_END_FRAME = 18.0f;
-	// Signed guard + advance-only pick: osGetTime() is wall-clock based, and
-	// a read below the captured start would otherwise underflow the u64 math
-	// and snap the clip between its first and last frame.
+	// Guard wall-clock rollback so unsigned timing can't jump to the last frame.
 	s64 elapsed = (s64)(osGetTime() - resultStartedAt);
 	if (elapsed < 0) elapsed = 0;
 	float srcFrame = 1.0f + (float)elapsed * GIVEORDER_FPS / 1000.0f;
@@ -1287,8 +1312,7 @@ void Papas::Game::completeServedPizza(Pizza &pizza)
 	result.cutting = scoreCutting(pizza, order);
 	result.overall = (result.waiting + result.topping + result.baking + result.cutting) / 4;
 
-	// Star bookkeeping (GiveOrderScreen.as): >=80 lights this customer's next
-	// star, under 60 wipes them all; the fifth star mints a gold seal (max 3)
+	// Scores 80+ earn a star, under 60 clears them, and five makes a seal.
 	SaveData &sv = SaveManager::getInstance().data;
 	resultCustomerType = ticket->customerType;
 	bool starTracked = resultCustomerType > 0 && resultCustomerType < (int)sizeof(sv.customerStars);
@@ -1303,8 +1327,7 @@ void Papas::Game::completeServedPizza(Pizza &pizza)
 	else if (result.overall < 60 && resultStarsBefore > 0)
 		resultStarsLost = true;
 
-	// Each seal raises this customer's max tip by $1 over the $3 base, and
-	// the fifth star always pays a flat $9
+	// Each seal adds $1 to the $3 max tip; the fifth star pays $9.
 	int maxTipCents = 300 + resultSealsBefore * 100;
 	result.tipCents = std::max(0, (int)std::round((result.overall * 2.0f - 100.0f) / 100.0f * maxTipCents));
 	if (resultStarEarned == 5)
@@ -1355,8 +1378,7 @@ void Papas::Game::completeServedPizza(Pizza &pizza)
 	showingResult = true;
 }
 
-// Walks the result phases on the original's timings, playing the customer's
-// reaction and the tip sounds along the way
+// Run the original result timing, including reactions and tip sounds.
 void Papas::Game::updateResult()
 {
 	u64 elapsed = osGetTime() - resultPhaseStarted;
@@ -1395,8 +1417,7 @@ void Papas::Game::updateResult()
 		resultPhaseStarted = osGetTime();
 	}
 
-	// The earned star lights up partway into the tip phase (the row flips
-	// state at the same moment in renderResultStars)
+	// Light the earned star partway through the tip phase.
 	if (resultPhase == ResultTip && resultStarEarned > 0 && !resultStarSfxPlayed
 	    && osGetTime() - resultPhaseStarted >= 700)
 	{
@@ -1475,8 +1496,7 @@ void Papas::Game::renderTipJar()
 	}
 }
 
-// Five stars printed on the counter, filled up to this customer's count,
-// with their gold seal pins lined up on the left
+// Draw the customer's five stars and their seal pins.
 void Papas::Game::renderStarRow(float centerX, float y, int stars, int seals, float depth)
 {
 	static const float STAR_SCALE = 0.45f;
@@ -1493,9 +1513,7 @@ void Papas::Game::renderStarRow(float centerX, float y, int stars, int seals, fl
 			nullptr, SEAL_SCALE, SEAL_SCALE);
 }
 
-// The result screen's star strip: shows the pre-serve count through the
-// drumroll, then flips to the new state (with a flash on the earned star)
-// at the getstar moment partway into the tip phase
+// Keep old stars through the drumroll, then reveal and flash the earned one.
 void Papas::Game::renderResultStars()
 {
 	static const float ROW_CX = 170.0f;
@@ -1552,6 +1570,43 @@ void Papas::Game::renderTakeOrderStars(int customerType)
 		0.5f, 0.5f, C2D_Color32(244, 239, 218, 255));
 }
 
+// Transparent pixels write depth, so draw take-order layers back-to-front.
+static const float TO_COUNTER_DEPTH = 0.002f;
+static const float TO_WALL_DEPTH = 0.003f;
+
+// Keep the ticket wall and its receipts on one stereo plane across both screens.
+static const float TICKET_WALL_PLANE = -0.05f;
+
+// Stretch the backdrop's edge texel so stereo shifts can't expose black.
+static const float BACKDROP_BLEED = 6.0f;	// > STRENGTH * the furthest plane
+
+static void drawBackdropEdge(C2D_Image img, float u, float x, float y, float depth)
+{
+	Tex3DS_SubTexture edge = *img.subtex;
+	edge.width = 1;
+	edge.left = u;
+	edge.right = u;
+	C2D_Image slice = { img.tex, &edge };
+	C2D_DrawImageAt(slice, x, y, depth, nullptr, BACKDROP_BLEED, 1.0f);
+}
+
+// Drop-in for C2D_DrawImageAt on any backdrop that has to reach the screen edge.
+static void drawBackdrop(C2D_Image img, float x, float y, float depth)
+{
+	const float texelU = 1.0f / (float)img.tex->width;
+	drawBackdropEdge(img, img.subtex->left + 0.5f * texelU,
+		x - BACKDROP_BLEED, y, depth);
+	drawBackdropEdge(img, img.subtex->right - 0.5f * texelU,
+		x + (float)img.subtex->width, y, depth);
+	C2D_DrawImageAt(img, x, y, depth);
+}
+
+// Draw lobby layers in order; tiny customer offsets stay below the holder.
+static const float LOBBY_STATION_DEPTH  = 0.001f;
+static const float LOBBY_CUSTOMER_DEPTH = 0.0015f;
+static const float LOBBY_HOLDER_DEPTH   = 0.002f;
+static const float LOBBY_POPUP_DEPTH    = 0.003f;
+
 PapasError Papas::Game::render_top()
 {
 	if (showingNewCustomer)
@@ -1569,15 +1624,14 @@ PapasError Papas::Game::render_top()
 	if (showingResult)
 	{
 		Papas::Stereo::plane(1.0f);
-		C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
+		drawBackdrop(to_wallpaper, 0, 0, 0);
 		Papas::Stereo::plane(0.5f);
 		Customer *customer = c_manager.getCustomer(resultCustomerNumber);
 		if (customer != nullptr) customer->renderOrdering(0.0f);
 		Papas::Stereo::plane(0.0f);
 		C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
 		renderResultStars();
-		// Roy boxes the pizza and flips the lid open toward the viewer; as in
-		// the original, the pizza itself stays hidden and only the glow shows.
+		// Roy boxes the hidden pizza while the lid and glow face the viewer.
 		if (giveOrderLoaded) renderGiveOrderRoy();
 		else pz_manager.renderPizzaForResult(resultPizzaId, {211.0f, 125.0f}, 0.34f, 0.72f);
 		Papas::Stereo::plane(-0.08f);
@@ -1585,23 +1639,21 @@ PapasError Papas::Game::render_top()
 		return PAPAS_OK;
 	}
 
-	Papas::Stereo::plane(0.35f);
-	C2D_DrawImageAt(ticketsHolderImg, 260, 0, 0.002f);
-
 	if(!takingOrder){
 
+		// Stay back-to-front because even transparent pixels write depth here.
 		Papas::Stereo::plane(1.0f);
-		C2D_DrawImageAt(ticketsStationImg, 0, 0, 0.001f);
-		Papas::Stereo::plane(0.0f);
-		C2D_DrawImageAt(currentPopupImg, 0, 214, 0.003f);
-		// Customers in the lobby sit between the station art and the popup
+		drawBackdrop(ticketsStationImg, 0, 0, LOBBY_STATION_DEPTH);
+		// Customers enter behind the holder, which doubles as the lobby door.
 		Papas::Stereo::plane(0.75f);
-		c_manager.renderLines(0.0015f);
-		// Door sign: flips to CLOSED once the day's last customer has walked in
-		Papas::Stereo::plane(0.95f);
-		C2D_DrawImageAt(c_manager.allSpawned() ? signClosedImg : signOpenImg,
-			53.0f, 10.0f, 0.0018f);
-		Papas::Stereo::plane(0.35f);
+		c_manager.renderLines(LOBBY_CUSTOMER_DEPTH);
+		Papas::Stereo::plane(TICKET_WALL_PLANE);
+		C2D_DrawImageAt(ticketsHolderImg, 260, 0, LOBBY_HOLDER_DEPTH);
+		// Draw the transparent banner last so it can't hide customers' feet.
+		Papas::Stereo::plane(0.0f);
+		C2D_DrawImageAt(currentPopupImg, 0, 214, LOBBY_POPUP_DEPTH);
+		// (the door sign lives in the corner of the bottom screen, render_bottom)
+		Papas::Stereo::plane(TICKET_WALL_PLANE);
 		r_manager.renderReceipt(true);
 		Papas::Stereo::plane(0.1f);
 		if (currentStation == TicketStation)
@@ -1615,7 +1667,9 @@ PapasError Papas::Game::render_top()
 	}
 	else{
 		TakeOrder(c_manager.getOrderingCustomer());
-		Papas::Stereo::plane(0.05f);
+		// Keep the receipt wall and its ticket in front of the counter.
+		Papas::Stereo::plane(TICKET_WALL_PLANE);
+		C2D_DrawImageAt(ticketsHolderImg, 260, 0, TO_WALL_DEPTH);
 		r_manager.renderDockedReceipt(true);
 	}
 	
@@ -1714,17 +1768,14 @@ void Papas::Game::TakeOrder(Customer* customer)
 	}
 	int customerNum = customer->getType();
 
-	// Painter's order: wallpaper -> customer -> counter, so the customer
-	// stands behind the countertop (transparent pixels still write depth on
-	// this screen, so layering by depth alone doesn't work here).
+	// Draw wallpaper, customer, then counter; transparent pixels still write depth.
 	Papas::Stereo::plane(1.0f);
-	C2D_DrawImageAt(to_wallpaper, 0, 0, 0);
+	drawBackdrop(to_wallpaper, 0, 0, 0);
 	Papas::Stereo::plane(0.5f);
 	customer->renderOrdering(0.0f);
 	//Roy2.renderAnimWithPauses(5, 2000);
 
-	// First frame of the order: bind the receipt to this customer and
-	// start the balloon opening
+	// On the first frame, bind the receipt and open the speech balloon.
 	if(to_firstRun == false){
 		to_n_actions = map_customers[customerNum].items.size();
 		r_manager.getDockedReceipt(&to_tempReceipt);
@@ -1745,8 +1796,11 @@ void Papas::Game::TakeOrder(Customer* customer)
 	if (to_bubbleKind == BubbleOpening && osGetTime() - to_orderStartedAt < 700)
 	{
 		Papas::Stereo::plane(0.0f);
-		C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
+		C2D_DrawImageAt(to_counter, 0, 0, TO_COUNTER_DEPTH);
 		renderTakeOrderStars(customerNum);
+		// Hold Roy's first frame while the balloon opens.
+		Papas::Stereo::plane(0.05f);
+		Roy2.renderCurrentFrame();
 		Papas::Stereo::plane(-0.12f);
 		renderOrderBubble();
 		return;
@@ -1758,11 +1812,11 @@ void Papas::Game::TakeOrder(Customer* customer)
 	}
 
 	Papas::Stereo::plane(0.0f);
-	C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
+	C2D_DrawImageAt(to_counter, 0, 0, TO_COUNTER_DEPTH);
 	renderTakeOrderStars(customerNum);
 	//Returns true for one frame on the first frame, and when the animation is paused
 	Papas::Stereo::plane(0.05f);
-	if (Roy2.renderAnimWithPauses(to_n_actions + 2, 2000))
+	if (Roy2.renderAnimWithPauses(to_n_actions + 2, ROY_ORDER_PAUSE_MS))
 	{
 		if (to_currentAction < to_n_actions)
 		{
@@ -1816,15 +1870,31 @@ void Papas::Game::TakeOrder(Customer* customer)
 	Papas::Stereo::plane(-0.12f);
 	renderOrderBubble();
 
-	// if (currentAction == n_actions + 2)
-	// {
-	// 	tempReceipt->add
-	// }
 }
 
 PapasError Papas::Game::render_bottom()
 {
 
+	// Cross-fade a 2x2 coal bed behind the grate so its cut-out slats reveal it.
+	if (currentStation == BakingStation)
+	{
+		static const float COAL_X[4] = {14.0f, 156.0f, 14.0f, 156.0f};
+		static const float COAL_Y[4] = {18.0f, 18.0f, 123.0f, 123.0f};
+		// Stretch the compact 128x96 tiles back over their 142x105 area.
+		static const float COAL_SX = 142.0f / 128.0f;
+		static const float COAL_SY = 105.0f / 96.0f;
+		// Slow the source twinkle into a gentler whole-bed glow.
+		static const float COAL_PERIOD_MS = 1600.0f;
+
+		float phase = (float)(osGetTime() % (u64)COAL_PERIOD_MS) / COAL_PERIOD_MS;
+		C2D_ImageTint glow;
+		C2D_AlphaImageTint(&glow, 0.5f - 0.5f * cosf(2.0f * M_PI * phase));
+		for (int i = 0; i < 4; i++)
+		{
+			C2D_DrawImageAt(coalsDimImg, COAL_X[i], COAL_Y[i], 0.004f, nullptr, COAL_SX, COAL_SY);
+			C2D_DrawImageAt(coalsBrightImg, COAL_X[i], COAL_Y[i], 0.005f, &glow, COAL_SX, COAL_SY);
+		}
+	}
 	C2D_DrawImageAt(currentStationImg, 0, 0, 0.01f);
 	if (showingDayIntro || showingNewCustomer)
 	{
@@ -1839,12 +1909,18 @@ PapasError Papas::Game::render_bottom()
 
 	if (currentStation == TicketStation){
 		r_manager.renderReceipt(false);
+		// Close the sharp 1:1 door sign after the day's last customer arrives.
+		static const float SIGN_FOOT_X = 25.0f;
+		static const float SIGN_FOOT_Y = 240.0f;
+		C2D_DrawImageAt(c_manager.allSpawned() ? signClosedImg : signOpenImg,
+			roundf(SIGN_FOOT_X - SIGN_FOOT_OX), roundf(SIGN_FOOT_Y - SIGN_FOOT_OY), 0.5f);
 	}
 
-	if (currentStation == TicketStation && takingOrder == false)
+	// The button only pops up once a customer has actually reached the counter
+	if (currentStation == TicketStation && takingOrder == false &&
+		c_manager.getOrderingCustomer() != nullptr)
 	{
-		// Only take an order once a customer has reached the counter
-		if(createReceipt.showButton(touch) && c_manager.getOrderingCustomer() != nullptr){
+		if(createReceipt.showButton(touch)){
 			takingOrder = true;
 			r_manager.createReceipt();
 		}
@@ -1923,8 +1999,7 @@ PapasError Papas::Game::update()
 			showingResult = false;
 			resultTouchHeld = false;
 			freeGiveOrderSheets();
-			// Last order of the day served: rank check + next day's intro
-			// (before SwitchStation so its music switch stays gated)
+			// Finish the day before switching stations so its music stays gated.
 			if (c_manager.dayIsOver())
 				startNextDay();
 			SwitchStation(TicketStation);
@@ -1932,21 +2007,26 @@ PapasError Papas::Game::update()
 		return PAPAS_OK;
 	}
 
+	// Wrap left from orders to cutting and right from cutting to orders.
 	if (kDown & KEY_L)
 	{
-		if (currentStation > TicketStation)
+		if (currentStation == CuttingStation)
 		{
-			if (currentStation == CuttingStation)
-			{
-				pz_manager.cancelCutting();
-			}
-			SwitchStation((Stations)(currentStation - 1));
+			pz_manager.cancelCutting();
 		}
+		SwitchStation(currentStation == TicketStation
+			? CuttingStation
+			: (Stations)(currentStation - 1));
 	}
 
 	if (kDown & KEY_R)
 	{
-		if (currentStation < CuttingStation)
+		if (currentStation == CuttingStation)
+		{
+			pz_manager.cancelCutting();
+			SwitchStation(TicketStation);
+		}
+		else
 		{
 			SwitchStation((Stations)(currentStation + 1));
 		}
@@ -2039,6 +2119,11 @@ PapasError Papas::Game::terminate()
 		C2D_SpriteSheetFree(startOfDaySheet);
 		startOfDaySheet = nullptr;
 	}
+	if (dayNumberSheet != nullptr)
+	{
+		C2D_SpriteSheetFree(dayNumberSheet);
+		dayNumberSheet = nullptr;
+	}
 	if (newCustomerSheet != nullptr)
 	{
 		C2D_SpriteSheetFree(newCustomerSheet);
@@ -2048,7 +2133,6 @@ PapasError Papas::Game::terminate()
 	C2D_SpriteSheetFree(starsSheet);
 	C2D_TextBufDelete(nameTextBuf);
 	C2D_TextBufDelete(newCustomerTextBuf);
-	C2D_TextBufDelete(dayTextBuf);
 	C2D_TextBufDelete(orderBubbleTextBuf);
 	C2D_TextBufDelete(resultTextBuf);
 	C2D_FontFree(dokyo);

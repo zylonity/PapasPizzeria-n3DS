@@ -1,17 +1,11 @@
 #pragma once
-//===============================================================================
-// name: Papas_Framework.h
-// desc: Simple framework
-// auth: Khaleel Brewesh Mora
-//===============================================================================
+// Small game framework by Khaleel Brewesh Mora.
 #include "Papas_Constants.h"
 
 namespace Papas {
-	//===============================================================================
 	// Forward Declarations
 	class Renderer;
 	class SceneManager;
-	//===============================================================================
 
 
 	class Framework

@@ -51,8 +51,7 @@ namespace Papas {
 		rect hitBox;
 
 		bool wasPressed;
-		// Per-button and consumed on activation; a shared static here made
-		// overlapping buttons fire off each other's stale releases
+		// Keep this per button so stale releases can't trigger a neighbour.
 		touchPosition lastTouch;
 	};
 
@@ -65,6 +64,8 @@ namespace Papas {
 		void destroyAnim();
 
 		virtual void renderAnim(bool loop);
+		// Hold the current frame until the screen is ready to animate.
+		void renderCurrentFrame();
 
 		void setPosition(v2 postoSet);
 		void setRotation(v2 postoSet);

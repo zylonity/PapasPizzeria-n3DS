@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# One-time Linux dev setup for PapasPizzeria-n3DS.
-# Installs the devkitPro portlibs, your 3ds-LibTheoraPlayer release, and the AzaharPlus emulator.
-# Re-runnable: skips things that are already present.
+# Install the Linux toolchain, video library, and Azahar; safe to rerun.
 set -euo pipefail
 
 DKP="${DEVKITPRO:-/opt/devkitpro}"
@@ -44,8 +42,7 @@ else
           *.zip)          unzip -oq "$f" ;;
         esac
       done )
-    # Install: if the archive uses a portlibs layout (lib/ + include/), copy those;
-    # otherwise copy loose .a and header files.
+    # Copy either a portlibs layout or the archive's loose libraries and headers.
     if [ -d "$tmp/lib" ] || [ -d "$tmp/include" ]; then
         [ -d "$tmp/lib" ]     && sudo cp -rv "$tmp/lib/."     "$PORT3DS/lib/"
         [ -d "$tmp/include" ] && sudo cp -rv "$tmp/include/." "$PORT3DS/include/"
@@ -62,10 +59,7 @@ else
 fi
 
 echo "==> [3/3] Installing the AzaharPlus emulator (AppImage) ..."
-# NOTE: we use the native AzaharPlus AppImage, NOT the org.azahar_emu.Azahar flatpak.
-# The flatpak's sandboxed cubeb outputs total silence (stream routes fine but all-zero
-# samples); the native AppImage plays audio correctly. AZAHAR_BIN in azahar-config.sh
-# points here.
+# Use the native AzaharPlus AppImage; the Flatpak's sandboxed audio is silent.
 APPIMG="$HOME/Applications/AzaharPlus.AppImage"
 if [ -x "$APPIMG" ]; then
     echo "    AzaharPlus already installed at $APPIMG, skipping."

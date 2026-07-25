@@ -1,13 +1,5 @@
 #pragma once
-//===============================================================================
-// name: Papas_CustomerRig.h
-// desc: Skeletal (Flash-cutout) customer animation, reconstructed from the
-//       original SWF. One shared rig (clip 409) drives all 36 customer types:
-//       15 flat limb slots, drawn back-to-front by depth, each with a baked
-//       per-frame affine matrix. Data lives in romfs:/rig/customer.rig (see
-//       tools/gen_rig.py); limb art is a per-type t3x atlas
-//       (romfs:/gfx/customerN.t3x) loaded on demand. Is a SINGLETON
-//===============================================================================
+// Shared SWF-based customer rig; each customer's art loads only when needed.
 
 #include "Papas_Constants.h"
 #include <citro2d.h>
@@ -64,9 +56,7 @@ namespace Papas {
 		PapasError load(const char* path = "romfs:/rig/customer.rig");
 		void       unload();
 
-		// Per-type limb textures (VRAM win: only load types currently on screen).
-		// variant "" = take-order-sized art, "_line" = lobby-line-sized art;
-		// each context samples ~1:1 so baked edge AA stays one screen pixel.
+		// Load only visible types: "" is close-up art and "_line" is lobby art.
 		PapasError loadType(int typeId, RigTypeAtlas& out, const char* variant = "") const;
 		void       freeType(RigTypeAtlas& atlas) const;
 
@@ -75,8 +65,7 @@ namespace Papas {
 		int  frameForTime(int segIdx, float seconds) const;
 		bool segmentDone(int segIdx, float seconds) const; // non-looping segment played out
 
-		// Draw a posed customer. (x,y) is where the rig origin lands; scaleX<0 flips
-		// (facing). exprEyes/exprMouth pick a sub-frame for those expression parts.
+		// Draw from (x,y); negative scaleX flips, and expressions pick subframes.
 		void draw(const RigTypeAtlas& atlas, int typeId, int absFrame,
 				  float x, float y, float scaleX, float scaleY,
 				  float baseDepth = 0.5f,
@@ -85,8 +74,7 @@ namespace Papas {
 		bool loaded() const { return buffer != nullptr; }
 		const RigHeader* getHeader() const { return header; }
 
-		//===============================================================================
-		// Singleton Implementations
+		// Shared instance.
 		static CustomerRig& getInstance()
 		{
 			static CustomerRig instance; // Guaranteed to be destroyed.
@@ -95,7 +83,6 @@ namespace Papas {
 		// Make deleted functions public for nicer error messages (~ Scott Myers)
 		CustomerRig(CustomerRig const&)  = delete;	// Copy constructor
 		void operator=(CustomerRig const&) = delete;	// Assignment Operator
-		//===============================================================================
 
 	private:
 		const float* slotMatrix(int frame, int slot) const {
@@ -112,12 +99,9 @@ namespace Papas {
 		int               typeStride = 0;
 		const uint8_t*    exprTrack = nullptr;  // [frame*numSlots + slot] sub-frame index
 
-		//===============================================================================
-		// Singleton Implementations (Banned functions to prevent a new instance)
+		// Don't allow extra instances.
 		CustomerRig()
 		{
 		} // Default Constructor private so can only be called from within
-		//===============================================================================
 	};
 }
-//===============================================================================

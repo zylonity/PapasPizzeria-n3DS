@@ -1,20 +1,9 @@
 #!/usr/bin/env python3
-# Convert the original intro cutscene (DefineSprite_2930_intro_master,
-# 1171 frames @ 30fps on the 600x450 stage: the delivery car drives by, Roy
-# drives the truck, arrives at the pizzeria, walks in through the dark and
-# finds Papa's note) into 3DS assets, replacing the prerecorded ready.ogv.
+# Turn the original 1171-frame intro into layered 3DS assets.
 #
-# Unlike startofday/giveorder this is NOT stored as frame patches: the SWF
-# timeline is replayed as LAYERS. Each top-level placement run becomes a
-# handful of atlas images (child sprites use their JPEXS PNG exports, bare
-# shapes/morphshapes are rasterised from their SVG exports) plus per-sampled-
-# frame affine matrices + tints. That keeps the whole 39s cutscene in a few
-# sheets and gives every layer its own stereo plane for the 3D effect.
+# Replay SWF layers with transforms and tints to keep the 39-second clip compact.
 #
-# Emits:
-#   gfx/Intro/*.png + gfx/intro_<n>.t3s   (atlas sheets)
-#   source/Papas_IntroFrames.h            (layer/draw/frame tables)
-# Prints a reconstruction-vs-reference diff for a few sample frames.
+# Writes Intro atlases and Papas_IntroFrames.h, then checks sample frames.
 #
 # Usage: python3 tools/gen_intro.py [repo root]
 
@@ -41,10 +30,7 @@ FPS = 30
 SAMPLE_STEP = 2          # stored at 15fps, runtime lerps back to smooth
 STAGE_W, STAGE_H = 600, 450
 SCALE = 240.0 / 450.0    # dst stage is 320x240, centred on the top screen
-# The game places intro_master at the stage centre, so layer coordinates are
-# CENTRE-origin: the visible stage is sprite (-300..300, -225..225), which
-# lands at dst (-160..160, -120..120). The runtime anchors that at the middle
-# of the top screen (INTRO_X/Y = 200,120).
+# Keep layer coordinates centred; runtime anchors them at (200,120).
 SHEET_MAX_AREA = 720 * 1024    # leaves tex3ds packing slack in a 1024x1024 sheet
 
 # The original clip bakes in its own Flash-era UI; the port has its own.
@@ -53,17 +39,12 @@ BLACKLIST = {
     2833,  # papalouie.com watermark text
 }
 
-# Stereo plane per char (into-the-screen units for Papas::Stereo::plane).
-# Hand-tuned for the hero layers; anything unlisted falls back to its depth
-# rank within the frame (backgrounds deep, top layers near the glass).
+# Hand-tune hero stereo planes and infer the rest from layer order.
 PLANES = {
     2816: 0.95, 2817: 0.70, 2818: 0.70, 2819: 0.70,             # shot 1 street
     2825: 0.42, 2828: 0.42, 2834: 0.40,                          # delivery car
     2836: 0.95, 2837: 0.85,                                      # shot 2 sky/window
-    # The truck driver is assembled from several layers (2838 = driver +
-    # cab interior, 2841/2855/2857 = face, 2843 = hands on the wheel,
-    # 2840/2844 = wheel/dashboard): keep them in one tight depth cluster or
-    # his face/hands visibly detach from his body in 3D.
+    # Keep the truck driver's pieces close so stereo doesn't pull him apart.
     2838: 0.40, 2853: 0.35, 2841: 0.32, 2855: 0.32, 2857: 0.32,
     2843: 0.30, 2840: 0.30, 2844: 0.22,
     2856: 0.18,                                                  # windshield glare
@@ -73,9 +54,7 @@ PLANES = {
     2861: 0.95, 2863: 0.90, 2865: 0.50, 2867: 0.50,              # dark walk
     2869: 0.80, 2871: 0.80,
     2928: 0.95, 2918: 0.90, 2927: 0.85, 2929: 0.05,              # interior set
-    # Kingsley waits BEHIND the transparent front door: he must sit deeper
-    # than the door/wall (0.80) or stereo puts him in front of the glass he
-    # is occluded by, which is genuinely painful to look at.
+    # Keep Kingsley behind the transparent front door.
     2797: 0.88, 2799: 0.88, 2781: 0.88, 2783: 0.88, 2785: 0.88,
     2789: 0.88, 2792: 0.88, 2801: 0.88, 2803: 0.88, 2814: 0.88,
     1684: 0.88, 1685: 0.88, 1686: 0.88, 1692: 0.88, 1695: 0.88,
@@ -86,8 +65,7 @@ ub = swf.union_bounds(INTRO)
 CX0, CY0 = -ub[0], -ub[1]  # stage (0,0) in the JPEXS export canvas
 
 
-# ---------------- master timeline -> placement runs ----------------
-# A run = one char occupying one depth for a continuous span of frames.
+# A placement run is one character holding one depth for a continuous span.
 class Run:
     def __init__(self, depth, char, born):
         self.depth = depth; self.char = char; self.born = born
@@ -241,10 +219,7 @@ def run_plane(r, rank, nlayers):
         return 0.0            # full-screen overlay (fade): keep at the glass
     if nlayers <= 1:
         return 0.95
-    # Unlabelled layers stay in a NARROW band: in the walk/interior shots Roy
-    # is built from many separate limb layers, and spreading them over the
-    # full depth range put his body parts on visibly different 3D planes
-    # (genuinely eye-straining). Big set pieces get their depth from PLANES.
+    # Keep unlabelled layers close so stereo doesn't split characters apart.
     return 0.55 - 0.20 * (rank / (nlayers - 1))
 
 
@@ -253,8 +228,7 @@ for i, r in enumerate(runs):
     r.id = i
 
 def fold_matrix(mt, anchor, rs):
-    # dst = S(SCALE) . M . T(x0,y0) . S(1/rs): maps the rs-prescaled image's
-    # pixels to centre-origin dst px on the 320x240 stage.
+    # Map the prescaled image into centre-origin pixels on the 320x240 stage.
     m = mat_mul((SCALE, 0, 0, SCALE, 0, 0),
                 mat_mul(mt, mat_mul((1, 0, 0, 1, anchor[0], anchor[1]),
                                     (1 / rs, 0, 0, 1 / rs, 0, 0))))
@@ -334,11 +308,7 @@ def fx(v):
 
 with open(HEADER, "w") as fh:
     w = fh.write
-    w("// Generated by tools/gen_intro.py - do not edit.\n")
-    w("// Layered playback of the original intro clip (DefineSprite_2930):\n")
-    w("// per sampled frame a back-to-front list of atlas images with affine\n")
-    w("// matrices (dst px on the 320x240 stage), multiply-tints and stereo\n")
-    w("// planes. The runtime lerps matrices between samples for 30fps+.\n")
+    w("// Generated by tools/gen_intro.py; layered intro frames with transforms and depth.\n")
     w("#pragma once\n#include <3ds.h>\n\n")
     w(f"#define INTRO_FPS {FPS}\n")
     w(f"#define INTRO_SRC_FRAMES {n_frames}\n")

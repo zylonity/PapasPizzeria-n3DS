@@ -10,26 +10,7 @@ TOPDIR ?= $(CURDIR)
 include $(DEVKITARM)/3ds_rules
 
 #---------------------------------------------------------------------------------
-# TARGET is the name of the output
-# BUILD is the directory where object files & intermediate files will be placed
-# SOURCES is a list of directories containing source code
-# DATA is a list of directories containing data files
-# INCLUDES is a list of directories containing header files
-# GRAPHICS is a list of directories containing graphics files
-# GFXBUILD is the directory where converted graphics files will be placed
-#   If set to $(BUILD), it will statically link in the converted
-#   files as if they were data files.
-#
-# NO_SMDH: if set to anything, no SMDH file is generated.
-# ROMFS is the directory which contains the RomFS, relative to the Makefile (Optional)
-# APP_TITLE is the name of the app stored in the SMDH file (Optional)
-# APP_DESCRIPTION is the description of the app stored in the SMDH file (Optional)
-# APP_AUTHOR is the author of the app stored in the SMDH file (Optional)
-# ICON is the filename of the icon (.png), relative to the project folder.
-#   If not set, it attempts to use one of the following (in this order):
-#     - <Project name>.png
-#     - icon.png
-#     - <libctru folder>/default_icon.png
+# Project paths, generated output, RomFS, and home-menu metadata.
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
@@ -42,9 +23,7 @@ ROMFS		:=	romfs
 GFXBUILD	:=	$(ROMFS)/gfx
 
 #---------------------------------------------------------------------------------
-# SMDH metadata (home-menu title/description/author) and icon.
-# These override the devkitARM defaults; the 48x48 icon feeds the .smdh that is
-# embedded in the .3dsx and, in turn, the .cxi/.cia.
+# Home-menu metadata shared by the .3dsx and packaged CIA.
 #---------------------------------------------------------------------------------
 APP_TITLE		:=	Papa's Pizzeria
 APP_DESCRIPTION	:=	Papa's Pizzeria - Nintendo 3DS port
@@ -76,15 +55,13 @@ LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 LIBS :=  -lSDL_mixer -lSDL -lvorbisidec -logg -lmad -lmikmod -lcitro2d -lcitro3d -lctru -lm
 
 #---------------------------------------------------------------------------------
-# list of directories containing libraries, this must be the top level containing
-# include and lib
+# Library root containing include/ and lib/.
 #---------------------------------------------------------------------------------
 LIBDIRS	:= $(PORTLIBS) $(CTRULIB)
 
 
 #---------------------------------------------------------------------------------
-# no real need to edit anything past this point unless you need to add additional
-# rules for different file extensions
+# Edit below only when adding file types or build rules.
 #---------------------------------------------------------------------------------
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
@@ -186,8 +163,7 @@ cia: all
 	@makerom -f cia -o $(OUTPUT).cia -DAPP_ENCRYPTED=false -rsf $(CURDIR)/template.rsf -target t -exefslogo -elf $(OUTPUT).elf
 	@echo "Complete!"
 	
-# Press Y in the Homebrew Launcher first (netloader). Auto-discovers the 3DS
-# on the LAN; pass 3DS_IP=x.x.x.x if discovery fails (e.g. across subnets).
+# Start netloader with Y; set 3DS_IP if discovery can't find the console.
 sideload: all
 	@echo "... sideloading ..."
 	@3dslink $(TARGET).3dsx $(if $(3DS_IP),-a $(3DS_IP))

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Generate compile_commands.json for CLion/clangd indexing of this devkitPro 3DS project.
-# devkitARM silences the real compiler commands, so we synthesize the DB from the
-# Makefile's flags instead. Re-run this after adding source files or new include dirs.
+# Build compile_commands.json from the Makefile flags for CLion and clangd.
 set -euo pipefail
 cd "$(dirname "$0")"
 

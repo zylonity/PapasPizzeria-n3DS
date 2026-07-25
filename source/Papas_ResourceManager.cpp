@@ -1,8 +1,4 @@
-//===============================================================================
-// name: Papas_ResourceManager.cpp
-// desc: Manages all resources. Is a SINGLETON
-// auth: Khaleel Brewesh
-//===============================================================================
+// Shared resource manager by Khaleel Brewesh.
 
 #include "Papas_ResourceManager.h"
 
@@ -42,8 +38,7 @@ PapasError Papas::ResourceManager::initMusicPlayer()
 
 PapasError Papas::ResourceManager::loadSong(const char *name, const char *ogg_file)
 {
-    // Scenes reload their tracks on every init; a repeat insert would no-op
-    // and leak the freshly loaded music
+    // Replace reloaded tracks instead of leaking the fresh copy.
     if (songs.find(name) != songs.end())
         return PAPAS_OK;
     songs.insert({name, Mix_LoadMUS(ogg_file)});

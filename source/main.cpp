@@ -1,10 +1,8 @@
 #include "Papas_Framework.h"
 #include <3ds.h>
 
-//===============================================================================
-// Framework is constructed as Global
+// Keep the framework global for the app's lifetime.
 Papas::Framework g_framework;
-//===============================================================================
 
 
 int main(int argc, char* argv[]) {

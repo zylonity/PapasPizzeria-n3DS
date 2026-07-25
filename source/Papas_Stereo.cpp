@@ -5,8 +5,7 @@ namespace {
 	float s_scale = 0.0f;         // signed px per plane unit for the current eye
 	float s_currentOffset = 0.0f; // what the view matrix is set to right now
 
-	// Swapping the view matrix flushes the sprite batch, so only touch it
-	// when the offset actually changes.
+	// Change the view only when needed because it flushes the sprite batch.
 	void applyOffset(float xoff, bool force = false)
 	{
 		if (!force && xoff == s_currentOffset)
@@ -21,8 +20,7 @@ namespace {
 
 void Papas::Stereo::beginEye(Eye eye, float slider)
 {
-	// Layers behind the screen project left for the left eye and right for
-	// the right eye, so the left eye takes the negative shift.
+	// Inward layers shift left for the left eye and right for the right eye.
 	s_scale = (eye == EyeLeft ? -STRENGTH : STRENGTH) * slider;
 	applyOffset(0.0f, true);
 }
@@ -35,7 +33,6 @@ void Papas::Stereo::endEye()
 
 void Papas::Stereo::plane(float depth)
 {
-	// Whole pixels: the art is drawn pixel-snapped and a fractional shift
-	// would smear it under bilinear filtering.
+	// Keep shifts on whole pixels so filtered art stays crisp.
 	applyOffset(roundf(depth * s_scale));
 }

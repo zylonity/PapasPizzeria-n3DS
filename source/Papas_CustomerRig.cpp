@@ -1,7 +1,4 @@
-//===============================================================================
-// name: Papas_CustomerRig.cpp
-// desc: Loads/draws the shared customer rig. Is a SINGLETON
-//===============================================================================
+// Loads and draws the customer rig shared by everyone.
 
 #include "Papas_CustomerRig.h"
 #include <citro3d.h>
@@ -33,9 +30,7 @@ PapasError Papas::CustomerRig::load(const char* path)
 	p += header->numSlots * sizeof(RigSlot);
 	segments = reinterpret_cast<const RigSegment*>(p);
 	p += header->numSegments * sizeof(RigSegment);
-	// v4+: the file pads here so the matrix block sits on a 4-byte boundary.
-	// We read it through a raw float*, and VFP loads on the real ARM11
-	// data-abort on unaligned addresses (emulators don't check).
+	// Rig v4 aligns its matrices so they won't crash on a real ARM11.
 	ASSERT(header->version >= 4, "customer.rig too old, regenerate with gen_rig.py");
 	p += (4 - ((p - buffer) & 3)) & 3;
 	matrices = reinterpret_cast<const float*>(p);
@@ -172,8 +167,7 @@ void Papas::CustomerRig::draw(const RigTypeAtlas& atlas, int typeId, int absFram
 
 	C3D_Mtx saved;
 	C2D_ViewSave(&saved);
-	// citro2d applies one model matrix per batch at flush time, so flush any
-	// geometry queued before us (drawn with the identity/current matrix) first.
+	// Flush anything using the old model matrix first.
 	C2D_Flush();
 
 	for (int si = 0; si < header->numSlots; ++si)
@@ -183,8 +177,7 @@ void Papas::CustomerRig::draw(const RigTypeAtlas& atlas, int typeId, int absFram
 		if (part.frameCount == 0)
 			continue; // absent limb for this type
 
-		// Per-frame expression sub-frame (eyes/mouth/hands/feet), baked from the
-		// original timeline's gotoAndStop() scripts. exprEyes/exprMouth override.
+		// Use the baked expression unless the eyes or mouth were overridden.
 		int sub = 0;
 		if (part.frameCount > 1)
 		{
@@ -212,8 +205,7 @@ void Papas::CustomerRig::draw(const RigTypeAtlas& atlas, int typeId, int absFram
 
 		C3D_Mtx m;
 		affineToMtx(&m, a, b, c, d, tx, ty);
-		// Compose with whatever view was active when we were called (the
-		// stereo eye shift), instead of stomping it.
+		// Keep the active view, including the stereo eye shift.
 		C3D_Mtx composed;
 		Mtx_Multiply(&composed, &saved, &m);
 		C2D_ViewRestore(&composed);
@@ -226,13 +218,10 @@ void Papas::CustomerRig::draw(const RigTypeAtlas& atlas, int typeId, int absFram
 			0.0f
 		};
 		C2D_DrawImage(img, &p, nullptr);
-		// flush so THIS limb is rendered with matrix m before the next one
-		// changes the model matrix.
+		// Flush this limb before changing the model matrix.
 		C2D_Flush();
 
-		// v3+: the body can carry a shirt logo (customer 1 only). A flipped
-		// customer would show it mirror-reversed, so redraw it mirrored about
-		// its own center (the original swapped to a pre-mirrored logo frame 2).
+		// Mirror shirt logos around their centre so the text still reads correctly.
 		if (scaleX < 0.0f && header->version >= 3 &&
 			strncmp(slot.name, "body", 16) == 0)
 		{
@@ -248,8 +237,7 @@ void Papas::CustomerRig::draw(const RigTypeAtlas& atlas, int typeId, int absFram
 				Mtx_Multiply(&lcomposed, &saved, &lm);
 				C2D_ViewRestore(&lcomposed);
 
-				// logo.w/h is the display size; the atlas image is larger and
-				// gets scaled into this quad.
+				// Scale the larger atlas image into its display-size quad.
 				C2D_DrawParams lp = {
 					{ (float)logo.ox, (float)logo.oy, (float)logo.w, (float)logo.h },
 					{ 0.0f, 0.0f },
@@ -264,4 +252,3 @@ void Papas::CustomerRig::draw(const RigTypeAtlas& atlas, int typeId, int absFram
 
 	C2D_ViewRestore(&saved);
 }
-//===============================================================================

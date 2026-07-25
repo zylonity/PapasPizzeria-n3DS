@@ -1,7 +1,4 @@
-//===============================================================================
-// name: Papas_Customers.cpp
-// desc: Live customer/line system, ported from Customer.as/CustomerManager.as.
-//===============================================================================
+// Runs the live customer queues from Customer.as and CustomerManager.as.
 
 #include "Papas_Customers.h"
 #include "Papas_ResourceManager.h"
@@ -9,26 +6,31 @@
 #include <algorithm>
 #include <cmath>
 
-//===============================================================================
-// Lobby layout, ported from Customer.as. The original stage is 600x450 and the
-// top screen is 400x240, so positions map by x*0.667, y*0.533 (the rig origin
-// is at the top of the figure; a full-size figure is ~322px tall on the
-// original stage). All of these are hand-tunable.
-//===============================================================================
-#define ENTER_OFFSCREEN_X   420.0f	// spawn/walk-in x, fully off the right edge
-#define LEAVE_OFFSCREEN_X   430.0f	// walk-off x before rejoining the wait line
+// The 600x450 lobby maps into its 294x240 room, not the whole top screen.
+#define LOBBY_X(stage)      ((stage) * 0.49f)	// stage x -> lobby x
 
-#define ORDERLINE_X         73.0f	// 110 * 0.667
+// Send flipped leavers far enough to hide behind the ticket-holder door.
+#define ENTER_OFFSCREEN_X   LOBBY_X(630.0f)
+#define LEAVE_OFFSCREEN_X   320.0f	// past LOBBY_X(645), clear of the holder edge
+
+// Nudge each queue around this port's deeper counter.
+#define ORDERLINE_COUNTER   18.0f
+#define WAITLINE_COUNTER    24.0f
+
+// Give the queue more room without moving its front customer.
+#define LINE_SPACING        1.19f
+
+#define ORDERLINE_X         (LOBBY_X(110.0f) + ORDERLINE_COUNTER)
 #define ORDERLINE_Y         111.0f	// 208 * 0.533
-#define ORDERLINE_OFFSET    57.0f	// 86 * 0.667
+#define ORDERLINE_OFFSET    (LOBBY_X(86.0f) * LINE_SPACING)
 #define ORDERLINE_SCALE     0.32f	// 0.6 (Flash sizepercent) * 0.533
 
-#define WAITLINE_X          138.0f	// 207 * 0.667
+#define WAITLINE_X          (LOBBY_X(207.0f) + WAITLINE_COUNTER)
 #define WAITLINE_Y          52.0f	// 97 * 0.533
-#define WAITLINE_OFFSET     44.0f	// 66 * 0.667
+#define WAITLINE_OFFSET     (LOBBY_X(66.0f) * LINE_SPACING)
 #define WAITLINE_SCALE      0.27f	// 0.5 * 0.533
 
-#define LEAVELINE_X         183.0f	// 274 * 0.667
+#define LEAVELINE_X         LOBBY_X(274.0f)
 #define LEAVELINE_Y         77.0f	// 145 * 0.533
 #define LEAVELINE_SCALE     0.32f	// 0.6 * 0.533
 
@@ -40,18 +42,14 @@
 
 #define TIME_PER_DAY        90.0f	// seconds; spawnSpeed = day / (customers - 1)
 
-//===============================================================================
 // Customer
-//===============================================================================
 
 void Papas::Customer::spawnCustomer(int typeId, int num, int lineIndex)
 {
 	type = typeId;
 	number = num;
 
-	// VRAM win: only customers that are actually in the lobby hold their
-	// type's limb atlas (and only the lobby-sized variant; the bigger
-	// take-order art loads on demand in renderOrdering).
+	// Lobby customers hold only their lobby-sized limb atlas.
 	Papas::CustomerRig::getInstance().loadType(type, atlasLine, "_line");
 
 	// startCustomerEntering(): walk in from the right to the order carpet
@@ -102,8 +100,7 @@ void Papas::Customer::update(float deltaSeconds)
 	}
 	else if (walkDir == 1 && x >= targetX)
 	{
-		// Leaving customers finish offscreen; the manager moves them to the
-		// wait line from there.
+		// Once they're offscreen, the manager moves them to the wait line.
 		x = targetX;
 		walking = false;
 	}
@@ -176,8 +173,7 @@ void Papas::Customer::render(float depth)
 
 	int frame = Papas::CustomerRig::getInstance().frameForTime(currentSeg, animSeconds());
 	float scaleX = flipped ? -scale : scale; // Flash mirrors about x=0
-	// Draw at whole pixels: a continuously-sweeping subpixel position makes
-	// straight edges shimmer/crawl under bilinear filtering while walking.
+	// Pixel-snap walking customers to prevent filtered edges shimmering.
 	Papas::CustomerRig::getInstance().draw(atlasLine, type, frame,
 										   roundf(x), roundf(y), scaleX, scale, depth);
 }
@@ -211,9 +207,7 @@ void Papas::Customer::playPresentation(const char* segment)
 	presentationStart = std::chrono::steady_clock::now();
 }
 
-//===============================================================================
 // CustomerManager
-//===============================================================================
 
 void Papas::CustomerManager::initManager(int rank)
 {
@@ -241,9 +235,7 @@ void Papas::CustomerManager::terminateManager()
 	customerLineup.clear();
 }
 
-// CustomerManager.as decideLineup(): the unlock pool is the 6 starters plus
-// one more type per rank past 1, capped at 35 - and PAPA LOUIE! (36) on top
-// once every one of those 35 is carrying 3 gold seals.
+// Start with six, add one per rank, then unlock Papa after 35 triple seals.
 int Papas::CustomerManager::unlockedCount(int rank)
 {
 	int unlocked = 6 + (rank - 1);
@@ -277,8 +269,7 @@ int Papas::CustomerManager::newCustomerToday(int rank)
 
 void Papas::CustomerManager::decideLineup(int rank)
 {
-	// The newest unlock is guaranteed to lead the day's lineup; the rest are
-	// random and distinct.
+	// Put the newest unlock first, then pick the rest without duplicates.
 	static const int customersPerRank[11] = {4, 4, 5, 5, 6, 7, 7, 8, 8, 9, 10};
 	int count = customersPerRank[rank < 10 ? rank : 10];
 	int unlocked = unlockedCount(rank);
@@ -344,9 +335,7 @@ void Papas::CustomerManager::update()
 
 void Papas::CustomerManager::renderLines(float depth)
 {
-	// Spawn order decides who draws on top (Flash used depth 300 + number).
-	// Steps stay small so a full day's lineup fits under the ticket holder's
-	// 0.002 depth.
+	// Spawn order sets depth; keep the whole line inside the available gap.
 	for (size_t i = 0; i < v_customers.size(); i++)
 	{
 		v_customers[i]->render(depth + v_customers[i]->getNumber() * 0.00004f);
@@ -424,9 +413,7 @@ bool Papas::CustomerManager::dayIsOver() const
 		   orderline.empty() && waitline.empty();
 }
 
-//===============================================================================
 // Customer order data (index, name, items, notch time, slices)
-//===============================================================================
 std::unordered_map<int, Papas::CustomerData> Papas::map_customers = {
 	{1,                               // Index
 	 {"Cooper",                       // Name
@@ -476,4 +463,3 @@ std::unordered_map<int, Papas::CustomerData> Papas::map_customers = {
 						  {{0, 1, 0, 0}, Olive, 2},
 						  {{0, 0, 1, 0}, Anochovie, 2}}, 4, 4}}
 };
-//===============================================================================
