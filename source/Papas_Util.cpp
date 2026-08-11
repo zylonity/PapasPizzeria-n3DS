@@ -935,8 +935,8 @@ namespace {
 			"slice it. Short cuts don't count.",
 			"4 slices needs 2 cuts, 6 needs 3,",
 			"and 8 needs 4, spaced evenly.",
-			"THROW AWAY bins a ruined one so you",
-			"can start that order over.",
+			"They come off the oven in the order",
+			"you pulled them out.",
 			nullptr}},
 		{"Serving Up", {
 			"SERVE hands the pizza over and Roy",
@@ -1014,7 +1014,7 @@ void Papas::HelpBook::setPage(int newPage)
 		C2D_TextOptimize(&contents[i]);
 	}
 
-	C2D_TextFontParse(&hint, *dokyo, buf, "L/R or D-Pad turns pages    B Back");
+	C2D_TextFontParse(&hint, *dokyo, buf, "D-Pad or L/R turns pages    B Back");
 	C2D_TextOptimize(&hint);
 }
 
@@ -1034,11 +1034,16 @@ void Papas::HelpBook::renderTop()
 	C2D_DrawRectSolid(19.0f, 15.0f, 0.91f, 362.0f, 210.0f, colPaper);
 
 	float width = 0.0f;
-	C2D_TextGetDimensions(&title, 0.7f, 0.7f, &width, nullptr);
-	C2D_DrawText(&title, C2D_WithColor, (SCREEN_WIDTH_TOP - width) * 0.5f, 22.0f, 0.94f, 0.7f, 0.7f, colTitle);
+	C2D_TextGetDimensions(&title, 0.72f, 0.72f, &width, nullptr);
+	C2D_DrawText(&title, C2D_WithColor, (SCREEN_WIDTH_TOP - width) * 0.5f, 22.0f, 0.94f, 0.72f, 0.72f, colTitle);
 
+	// Centred with tight leading, so a wrapped sentence still reads as one
 	for (int i = 0; i < bodyLines; i++)
-		C2D_DrawText(&body[i], C2D_WithColor, 34.0f, 58.0f + i * 26.0f, 0.94f, 0.5f, 0.5f, colInk);
+	{
+		C2D_TextGetDimensions(&body[i], 0.52f, 0.52f, &width, nullptr);
+		C2D_DrawText(&body[i], C2D_WithColor, (SCREEN_WIDTH_TOP - width) * 0.5f,
+			62.0f + i * 22.0f, 0.94f, 0.52f, 0.52f, colInk);
+	}
 }
 
 void Papas::HelpBook::renderBottom()

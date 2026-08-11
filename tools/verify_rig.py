@@ -15,6 +15,9 @@ segs=[]
 for _ in range(nSeg):
     nm=d[p:p+16].split(b"\0")[0].decode(); st,ln,lp,_=struct.unpack_from("<HHBB",d,p+16); p+=22
     segs.append((nm,st,ln,lp))
+# Rig v4 pads the raw matrix block up to four bytes for real ARM11 VFP loads
+if ver>=4:
+    p=(p+3)&~3
 mat_off=p
 mat_stride=nSlots*6*4
 p+=nFrames*mat_stride

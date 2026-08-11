@@ -500,8 +500,8 @@ PapasError Papas::HelpScreen::update()
 		return PAPAS_OK; // changeScene deleted us; touch nothing else
 	}
 
-	if (kDown & (KEY_R | KEY_DRIGHT | KEY_A)) book.turnPage(1);
-	if (kDown & (KEY_L | KEY_DLEFT)) book.turnPage(-1);
+	if (kDown & (KEY_R | KEY_DRIGHT | KEY_DDOWN | KEY_A)) book.turnPage(1);
+	if (kDown & (KEY_L | KEY_DLEFT | KEY_DUP)) book.turnPage(-1);
 	if (kDown & KEY_TOUCH)
 	{
 		int row = HelpBook::rowAt(touch);
@@ -562,9 +562,7 @@ PapasError Papas::CreditsScreen::init(Papas::SceneManager *sceneManager)
 		"Papa's Pizzeria",
 		"originally by Flipline Studios",
 		"",
-		"3DS port by Khaleel Brewesh Mora",
-		"made for my wife, and for anyone",
-		"else who fancies a slice",
+		"3DS port by zylonity",
 		"",
 		"art and audio remain Flipline's",
 	};
@@ -594,20 +592,16 @@ PapasError Papas::CreditsScreen::update()
 	return PAPAS_OK;
 }
 
+// Logo up top, the words down on the touch screen where they're easier to read
 PapasError Papas::CreditsScreen::render_top()
 {
 	Papas::Stereo::plane(0.8f);
 	C2D_DrawImageAt(top_bg, 0, 0, 0, NULL, 1, 1);
 
-	Papas::Stereo::plane(0.3f);
-	float scaling = 0.45f;
-	C2D_DrawImageAt(logo, (SCREEN_WIDTH_TOP / 2) - ((logo.subtex->width * scaling) / 2), 6.0f,
-		0.2f, NULL, scaling, scaling);
-
 	Papas::Stereo::plane(-0.1f);
-	const u32 colInk = C2D_Color32(244, 239, 218, 255);
-	for (int i = 0; i < lineCount; i++)
-		drawTextCentered(&lines[i], SCREEN_WIDTH_TOP * 0.5f, 88.0f + i * 18.0f, 0.5f, 0.45f, colInk);
+	float scaling = 0.7f;
+	C2D_DrawImageAt(logo, (SCREEN_WIDTH_TOP / 2) - ((logo.subtex->width * scaling) / 2),
+		(SCREEN_HEIGHT_TOP / 2) - ((logo.subtex->height * scaling) / 2), 0.2f, NULL, scaling, scaling);
 
 	return PAPAS_OK;
 }
@@ -615,6 +609,14 @@ PapasError Papas::CreditsScreen::render_top()
 PapasError Papas::CreditsScreen::render_bottom()
 {
 	C2D_DrawImageAt(bottom_bg, 0, 0, 0, NULL, 1, 1);
+
+	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+	C2D_DrawRectSolid(18.0f, 44.0f, 0.90f, 284.0f, 150.0f, C2D_Color32(35, 42, 37, 245));
+	C2D_DrawRectSolid(22.0f, 48.0f, 0.91f, 276.0f, 142.0f, C2D_Color32(244, 239, 218, 255));
+
+	for (int i = 0; i < lineCount; i++)
+		drawTextCentered(&lines[i], SCREEN_WIDTH_BOTTOM * 0.5f, 60.0f + i * 22.0f, 0.94f, 0.5f, colInk);
+
 	drawTextCentered(&hintText, SCREEN_WIDTH_BOTTOM * 0.5f, 210.0f, 0.5f, 0.45f,
 		C2D_Color32(120, 105, 90, 255));
 
@@ -687,6 +689,9 @@ PapasError Papas::IntroCutscene::update()
 	// Handle skipping here because render_top runs once per eye.
 	if ((kDown & KEY_B) || elapsed >= duration)
 	{
+		// changeScene inits Game before terminating us, and both lots of art at
+		// once is more than an o3DS has. Drop the intro atlases first.
+		freeIntroSheets();
 		p_sceneManager->changeScene(new Papas::Game());
 		return PAPAS_OK; // changeScene deleted us; touch nothing else
 	}
@@ -830,13 +835,8 @@ PapasError Papas::IntroCutscene::render_bottom()
 	return PAPAS_OK;
 }
 
-PapasError Papas::IntroCutscene::terminate()
+void Papas::IntroCutscene::freeIntroSheets()
 {
-	C2D_SetTintMode(C2D_TintSolid);
-	Papas::ResourceManager::getInstance().stopMusic();
-	// Symmetric with the old video scene: Game::init reopens the mixer
-	Papas::ResourceManager::getInstance().endMusicPlayer();
-
 	for (int i = 0; i < INTRO_SHEET_COUNT; i++)
 	{
 		if (introSheets[i] != nullptr)
@@ -845,6 +845,16 @@ PapasError Papas::IntroCutscene::terminate()
 			introSheets[i] = nullptr;
 		}
 	}
+}
+
+PapasError Papas::IntroCutscene::terminate()
+{
+	C2D_SetTintMode(C2D_TintSolid);
+	Papas::ResourceManager::getInstance().stopMusic();
+	// Symmetric with the old video scene: Game::init reopens the mixer
+	Papas::ResourceManager::getInstance().endMusicPlayer();
+
+	freeIntroSheets();	// no-op if update already dropped them on the way out
 	if (sheet_bg)
 	{
 		C2D_SpriteSheetFree(sheet_bg);
@@ -981,6 +991,7 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	// Pause overlays, the customer file, and the day's running tally
 	overlay = OverlayNone;
 	pauseIndex = 0;
+	pauseSheet = nullptr;
 	fileSelected = 0;
 	uiTextBuf = C2D_TextBufNew(512);
 	fileTextBuf = C2D_TextBufNew(512);
@@ -1513,6 +1524,9 @@ static void drawBackdrop(C2D_Image img, float x, float y, float depth);
 // Pause menu rows and the customer-file grid, shared by their draw and touch code
 static const float PAUSE_MENU_Y = 60.0f;
 static const float PAUSE_ROW_H = 30.0f;
+// The 256x208 napkin board, centred on the top screen
+static const float PAUSE_BOARD_X = 72.0f;
+static const float PAUSE_BOARD_Y = 16.0f;
 static const float FILE_GRID_X = 26.0f;
 static const float FILE_GRID_Y = 22.0f;
 static const float FILE_CELL_W = 45.0f;
@@ -1544,12 +1558,42 @@ static void formatMoney(char *out, size_t size, int cents)
 
 // The pause menu and the two screens it can open
 
+// Only worth holding this art while the game's actually stopped
+void Papas::Game::loadPauseSheet()
+{
+	if (pauseSheet != nullptr) return;
+	pauseSheet = C2D_SpriteSheetLoad("romfs:/gfx/pause.t3x");
+	if (pauseSheet == nullptr) return;
+	pauseWoodImg = C2D_SpriteSheetGetImage(pauseSheet, 0);
+	pauseBoardImg = C2D_SpriteSheetGetImage(pauseSheet, 1);
+}
+
+void Papas::Game::freePauseSheet()
+{
+	if (pauseSheet != nullptr)
+	{
+		C2D_SpriteSheetFree(pauseSheet);
+		pauseSheet = nullptr;
+	}
+}
+
+// Stack the wood band down the screen; its grain runs sideways so it tiles fine
+void Papas::Game::renderPauseWood()
+{
+	if (pauseSheet == nullptr) return;
+	Papas::Stereo::plane(1.0f);
+	float band = (float)pauseWoodImg.subtex->height;
+	for (float y = 0.0f; y < SCREEN_HEIGHT_TOP; y += band)
+		C2D_DrawImageAt(pauseWoodImg, 0.0f, y, 0.05f);
+}
+
 void Papas::Game::togglePause()
 {
 	if (overlay == OverlayNone)
 	{
 		overlay = OverlayPause;
 		pauseIndex = 0;
+		loadPauseSheet();
 		Papas::Clock::pause();
 		Papas::ResourceManager::getInstance().pauseMusic();
 	}
@@ -1558,6 +1602,7 @@ void Papas::Game::togglePause()
 		// Whatever's on top, unpausing drops you straight back to work
 		if (overlay == OverlayFile) closeFile();
 		overlay = OverlayNone;
+		freePauseSheet();
 		Papas::Clock::resume();
 		Papas::ResourceManager::getInstance().resumeMusic();
 	}
@@ -1577,8 +1622,8 @@ void Papas::Game::updatePause(u32 kDown)
 	if (overlay == OverlayHelp)
 	{
 		if (kDown & (KEY_B | KEY_START)) leaveOverlay();
-		if (kDown & (KEY_R | KEY_DRIGHT | KEY_A)) helpBook.turnPage(1);
-		if (kDown & (KEY_L | KEY_DLEFT)) helpBook.turnPage(-1);
+		if (kDown & (KEY_R | KEY_DRIGHT | KEY_DDOWN | KEY_A)) helpBook.turnPage(1);
+		if (kDown & (KEY_L | KEY_DLEFT | KEY_DUP)) helpBook.turnPage(-1);
 		if (kDown & KEY_TOUCH)
 		{
 			int row = HelpBook::rowAt(touch);
@@ -1654,38 +1699,40 @@ void Papas::Game::updatePause(u32 kDown)
 
 void Papas::Game::renderPauseTop()
 {
-	const u32 colBoard = C2D_Color32(35, 42, 37, 245);
-	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
-	const u32 colTitle = C2D_Color32(170, 63, 24, 255);
+	// Napkin's clean writing area, in screen space once the board's placed
+	static const float NAPKIN_CX = 212.0f;
 	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+	const u32 colTitle = C2D_Color32(170, 63, 24, 255);
 
-	C2D_DrawRectSolid(90.0f, 50.0f, 0.90f, 220.0f, 140.0f, colBoard);
-	C2D_DrawRectSolid(95.0f, 55.0f, 0.91f, 210.0f, 130.0f, colPaper);
+	Papas::Stereo::plane(-0.1f);
+	if (pauseSheet != nullptr)
+		C2D_DrawImageAt(pauseBoardImg, PAUSE_BOARD_X, PAUSE_BOARD_Y, 0.20f);
 
 	C2D_TextBufClear(uiTextBuf);
-	char line[48];
+	char line[64];
+	char money[16];
 	C2D_Text text;
 
-	C2D_TextFontParse(&text, dokyo, uiTextBuf, "Paused");
-	C2D_TextOptimize(&text);
-	drawTextCentered(&text, 200.0f, 64.0f, 0.94f, 0.72f, colTitle);
-
+	// The board art already says "pause", so this is just the day's standings
 	std::snprintf(line, sizeof(line), "Day %d", currentDay);
 	C2D_TextFontParse(&text, dokyo, uiTextBuf, line);
 	C2D_TextOptimize(&text);
-	drawTextCentered(&text, 200.0f, 100.0f, 0.94f, 0.5f, colInk);
+	drawTextCentered(&text, NAPKIN_CX, 100.0f, 0.94f, 0.78f, colTitle);
 
-	std::snprintf(line, sizeof(line), "Rank %d - %s", myRank, rankTitle(myRank));
+	std::snprintf(line, sizeof(line), "Rank %d", myRank);
 	C2D_TextFontParse(&text, dokyo, uiTextBuf, line);
 	C2D_TextOptimize(&text);
-	drawTextCentered(&text, 200.0f, 126.0f, 0.94f, 0.42f, colInk);
+	drawTextCentered(&text, NAPKIN_CX, 134.0f, 0.94f, 0.6f, colInk);
 
-	formatMoney(line, sizeof(line), totalTipsCents);
-	char tips[64];
-	std::snprintf(tips, sizeof(tips), "Tips %s", line);
-	C2D_TextFontParse(&text, dokyo, uiTextBuf, tips);
+	C2D_TextFontParse(&text, dokyo, uiTextBuf, rankTitle(myRank));
 	C2D_TextOptimize(&text);
-	drawTextCentered(&text, 200.0f, 152.0f, 0.94f, 0.42f, colInk);
+	drawTextCentered(&text, NAPKIN_CX, 158.0f, 0.94f, 0.5f, colInk);
+
+	formatMoney(money, sizeof(money), totalTipsCents);
+	std::snprintf(line, sizeof(line), "Tips %s", money);
+	C2D_TextFontParse(&text, dokyo, uiTextBuf, line);
+	C2D_TextOptimize(&text);
+	drawTextCentered(&text, NAPKIN_CX, 184.0f, 0.94f, 0.56f, colInk);
 }
 
 void Papas::Game::renderPauseBottom()
@@ -1769,6 +1816,12 @@ void Papas::Game::selectFileCustomer(int type)
 
 void Papas::Game::renderFileTop()
 {
+	// The rig hangs off its top-left corner and stands 322 units tall, so the
+	// photo box gets centred around that rather than around the draw position.
+	static const float RIG_W = 149.0f;
+	static const float RIG_H = 323.0f;
+	static const float PHOTO_X = 36.0f, PHOTO_Y = 32.0f, PHOTO_W = 128.0f, PHOTO_H = 148.0f;
+
 	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
 	const u32 colTitle = C2D_Color32(170, 63, 24, 255);
 	const u32 colInk = C2D_Color32(39, 42, 35, 255);
@@ -1780,23 +1833,26 @@ void Papas::Game::renderFileTop()
 	if (fileSelected == 0) return;
 
 	// Polaroid on the left, their details on the right
-	C2D_DrawRectSolid(34.0f, 30.0f, 0.92f, 130.0f, 180.0f, C2D_Color32(255, 255, 255, 255));
-	C2D_DrawRectSolid(40.0f, 36.0f, 0.93f, 118.0f, 140.0f, C2D_Color32(198, 224, 178, 255));
+	C2D_DrawRectSolid(30.0f, 26.0f, 0.92f, 140.0f, 188.0f, C2D_Color32(255, 255, 255, 255));
+	C2D_DrawRectSolid(PHOTO_X, PHOTO_Y, 0.93f, PHOTO_W, PHOTO_H, C2D_Color32(198, 224, 178, 255));
 
 	Papas::Stereo::plane(0.35f);
 	CustomerRig &rig = CustomerRig::getInstance();
 	int segment = rig.segmentIndex(SaveManager::getInstance().data.customerSeals[fileSelected] > 0
 		? "overjoyed" : "stand");
+	float scale = (PHOTO_H - 10.0f) / RIG_H;
 	rig.draw(fileAtlas, fileSelected, rig.frameForTime(segment, 0.0f),
-		99.0f, 44.0f, 0.30f, 0.30f, 0.94f);
+		PHOTO_X + (PHOTO_W - RIG_W * scale) * 0.5f,
+		PHOTO_Y + (PHOTO_H - RIG_H * scale) * 0.5f,
+		scale, scale, 0.94f);
 
 	Papas::Stereo::plane(0.3f);
-	C2D_DrawText(&fileText[0], C2D_WithColor, 186.0f, 34.0f, 0.95f, 0.62f, 0.62f, colTitle);
-	C2D_DrawText(&fileText[1], C2D_WithColor, 186.0f, 72.0f, 0.95f, 0.38f, 0.38f, colInk);
+	C2D_DrawText(&fileText[0], C2D_WithColor, 186.0f, 30.0f, 0.95f, 0.76f, 0.76f, colTitle);
+	C2D_DrawText(&fileText[1], C2D_WithColor, 186.0f, 72.0f, 0.95f, 0.46f, 0.46f, colInk);
 	for (int i = 2; i < 5; i++)
-		C2D_DrawText(&fileText[i], C2D_WithColor, 186.0f, 106.0f + (i - 2) * 24.0f, 0.95f, 0.4f, 0.4f, colInk);
+		C2D_DrawText(&fileText[i], C2D_WithColor, 186.0f, 104.0f + (i - 2) * 26.0f, 0.95f, 0.5f, 0.5f, colInk);
 
-	renderStarRow(250.0f, 190.0f, SaveManager::getInstance().data.customerStars[fileSelected], 0, 0.95f);
+	renderStarRow(262.0f, 188.0f, SaveManager::getInstance().data.customerStars[fileSelected], 0, 0.95f);
 }
 
 void Papas::Game::renderFileBottom()
@@ -1827,7 +1883,7 @@ void Papas::Game::renderFileBottom()
 		C2D_Text text;
 		C2D_TextFontParse(&text, dokyo, uiTextBuf, label);
 		C2D_TextOptimize(&text);
-		drawTextCentered(&text, x + FILE_CELL_W * 0.5f - 1.0f, y + 5.0f, 0.94f, 0.4f, colInk);
+		drawTextCentered(&text, x + FILE_CELL_W * 0.5f - 1.0f, y + 3.0f, 0.94f, 0.52f, colInk);
 
 		// A pip in the corner for anyone who's earned a seal
 		if (met && sv.customerSeals[type] > 0)
@@ -1838,7 +1894,7 @@ void Papas::Game::renderFileBottom()
 	C2D_Text hint;
 	C2D_TextFontParse(&hint, dokyo, uiTextBuf, "Tap a customer    B Back");
 	C2D_TextOptimize(&hint);
-	drawTextCentered(&hint, SCREEN_WIDTH_BOTTOM * 0.5f, 216.0f, 0.94f, 0.42f,
+	drawTextCentered(&hint, SCREEN_WIDTH_BOTTOM * 0.5f, 214.0f, 0.94f, 0.46f,
 		C2D_Color32(120, 105, 90, 255));
 }
 
@@ -1867,15 +1923,16 @@ void Papas::Game::prepareEndDayText()
 	int cutting = cuttingToday / served;
 	int quality = (waiting + topping + baking + cutting) / 4;
 
+	// Labels and their numbers are drawn separately so the numbers can be coloured
 	char lines[13][64];
 	char money[16];
 	std::snprintf(lines[0], sizeof(lines[0]), "Day %d Done!", currentDay);
-	std::snprintf(lines[1], sizeof(lines[1]), "Customers  %d", customersToday);
-	std::snprintf(lines[2], sizeof(lines[2]), "Quality    %d%%", quality);
-	std::snprintf(lines[3], sizeof(lines[3]), "Waiting    %d%%", waiting);
-	std::snprintf(lines[4], sizeof(lines[4]), "Toppings   %d%%", topping);
-	std::snprintf(lines[5], sizeof(lines[5]), "Baking     %d%%", baking);
-	std::snprintf(lines[6], sizeof(lines[6]), "Cutting    %d%%", cutting);
+	std::snprintf(lines[1], sizeof(lines[1]), "Customers");
+	std::snprintf(lines[2], sizeof(lines[2]), "Quality");
+	std::snprintf(lines[3], sizeof(lines[3]), "Waiting");
+	std::snprintf(lines[4], sizeof(lines[4]), "Toppings");
+	std::snprintf(lines[5], sizeof(lines[5]), "Baking");
+	std::snprintf(lines[6], sizeof(lines[6]), "Cutting");
 	formatMoney(money, sizeof(money), tipsTodayCents);
 	std::snprintf(lines[7], sizeof(lines[7]), "Tips Today   %s", money);
 	formatMoney(money, sizeof(money), totalTipsCents);
@@ -1891,6 +1948,19 @@ void Papas::Game::prepareEndDayText()
 	{
 		C2D_TextFontParse(&endDayText[i], dokyo, endDayTextBuf, lines[i]);
 		C2D_TextOptimize(&endDayText[i]);
+	}
+
+	char values[6][16];
+	std::snprintf(values[0], sizeof(values[0]), "%d", customersToday);
+	std::snprintf(values[1], sizeof(values[1]), "%d%%", quality);
+	std::snprintf(values[2], sizeof(values[2]), "%d%%", waiting);
+	std::snprintf(values[3], sizeof(values[3]), "%d%%", topping);
+	std::snprintf(values[4], sizeof(values[4]), "%d%%", baking);
+	std::snprintf(values[5], sizeof(values[5]), "%d%%", cutting);
+	for (int i = 0; i < 6; i++)
+	{
+		C2D_TextFontParse(&endDayValue[i], dokyo, endDayTextBuf, values[i]);
+		C2D_TextOptimize(&endDayValue[i]);
 	}
 }
 
@@ -1925,28 +1995,41 @@ void Papas::Game::renderEndOfDayTop()
 	Papas::Stereo::plane(0.0f);
 	C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
 
+	// Board centred on the top screen, labels left of the middle and figures right
+	static const float BOARD_X = 62.0f, BOARD_W = 276.0f;
+	static const float BOARD_CX = BOARD_X + BOARD_W * 0.5f;
+	static const float LABEL_X = BOARD_X + 34.0f;
+	static const float VALUE_R = BOARD_X + BOARD_W - 34.0f;
 	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
 	const u32 colTitle = C2D_Color32(170, 63, 24, 255);
 	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+	const u32 colScore = C2D_Color32(36, 105, 4, 255);
 
 	Papas::Stereo::plane(-0.1f);
-	C2D_DrawRectSolid(24.0f, 24.0f, 0.90f, 246.0f, 190.0f, C2D_Color32(35, 42, 37, 245));
-	C2D_DrawRectSolid(29.0f, 29.0f, 0.91f, 236.0f, 180.0f, colPaper);
+	C2D_DrawRectSolid(BOARD_X - 5.0f, 15.0f, 0.90f, BOARD_W + 10.0f, 210.0f, C2D_Color32(35, 42, 37, 245));
+	C2D_DrawRectSolid(BOARD_X, 20.0f, 0.91f, BOARD_W, 200.0f, colPaper);
 
-	drawTextCentered(&endDayText[0], 147.0f, 36.0f, 0.94f, 0.66f, colTitle);
+	drawTextCentered(&endDayText[0], BOARD_CX, 28.0f, 0.94f, 0.78f, colTitle);
 	if (endDayPhase == EndDayBoard)
 	{
 		for (int i = 1; i <= 6; i++)
-			C2D_DrawText(&endDayText[i], C2D_WithColor, 52.0f, 72.0f + (i - 1) * 22.0f, 0.94f, 0.46f, 0.46f, colInk);
+		{
+			float y = 74.0f + (i - 1) * 24.0f;
+			C2D_DrawText(&endDayText[i], C2D_WithColor, LABEL_X, y, 0.94f, 0.54f, 0.54f, colInk);
+			// Right-align the figures so the column of numbers lines up
+			float width = 0.0f;
+			C2D_TextGetDimensions(&endDayValue[i - 1], 0.54f, 0.54f, &width, nullptr);
+			C2D_DrawText(&endDayValue[i - 1], C2D_WithColor, VALUE_R - width, y, 0.94f, 0.54f, 0.54f, colScore);
+		}
 	}
 	else
 	{
-		C2D_DrawText(&endDayText[7], C2D_WithColor, 52.0f, 76.0f, 0.94f, 0.5f, 0.5f, colInk);
-		C2D_DrawText(&endDayText[8], C2D_WithColor, 52.0f, 104.0f, 0.94f, 0.5f, 0.5f, colInk);
+		drawTextCentered(&endDayText[7], BOARD_CX, 74.0f, 0.94f, 0.58f, colInk);
+		drawTextCentered(&endDayText[8], BOARD_CX, 104.0f, 0.94f, 0.58f, colInk);
 		if (endDayPhase != EndDayTips)
 		{
-			drawTextCentered(&endDayText[9], 147.0f, 138.0f, 0.94f, 0.62f, colTitle);
-			drawTextCentered(&endDayText[10], 147.0f, 168.0f, 0.94f, 0.44f, colInk);
+			drawTextCentered(&endDayText[9], BOARD_CX, 144.0f, 0.94f, 0.72f, colTitle);
+			drawTextCentered(&endDayText[10], BOARD_CX, 178.0f, 0.94f, 0.52f, colInk);
 		}
 	}
 
@@ -1961,15 +2044,13 @@ void Papas::Game::renderEndOfDayBottom()
 	const u32 colInk = C2D_Color32(39, 42, 35, 255);
 	const u32 colSoft = C2D_Color32(120, 105, 90, 255);
 
-	C2D_DrawRectSolid(18.0f, 40.0f, 0.90f, 284.0f, 160.0f, C2D_Color32(35, 42, 37, 245));
-	C2D_DrawRectSolid(22.0f, 44.0f, 0.91f, 276.0f, 152.0f, colPaper);
+	C2D_DrawRectSolid(18.0f, 46.0f, 0.90f, 284.0f, 148.0f, C2D_Color32(35, 42, 37, 245));
+	C2D_DrawRectSolid(22.0f, 50.0f, 0.91f, 276.0f, 140.0f, colPaper);
 
+	// Running total up here, and how far off the next promotion once it's settled
+	drawCenteredText(endDayText[8], 70.0f, 0.62f, colInk);
 	if (endDayPhase == EndDayReady)
-		drawCenteredText(endDayText[11], 66.0f, 0.5f, colSoft);
-	else
-		drawCenteredText(endDayText[2], 66.0f, 0.5f, colInk);
-
-	drawCenteredText(endDayText[8], 104.0f, 0.52f, colInk);
+		drawCenteredText(endDayText[11], 104.0f, 0.52f, colSoft);
 
 	// Board waits for you to look it over, the rest of it plays itself out
 	if (endDayPhase == EndDayBoard || endDayPhase == EndDayReady)
@@ -2303,18 +2384,20 @@ PapasError Papas::Game::render_top()
 	// Overlays sit on top of everything, so they get first say
 	if (overlay != OverlayNone)
 	{
-		// Wallpaper behind them all, otherwise the panels float on the clear colour
-		Papas::Stereo::plane(1.0f);
-		drawBackdrop(to_wallpaper, 0, 0, 0);
+		// Wood fills the screen behind all of them; the wallpaper is only 270 wide
+		renderPauseWood();
 		if (overlay == OverlayFile)
 		{
 			renderFileTop();
 		}
-		else
+		else if (overlay == OverlayHelp)
 		{
 			Papas::Stereo::plane(-0.1f);
-			if (overlay == OverlayHelp) helpBook.renderTop();
-			else renderPauseTop();
+			helpBook.renderTop();
+		}
+		else
+		{
+			renderPauseTop();
 		}
 		return PAPAS_OK;
 	}
@@ -2921,6 +3004,7 @@ PapasError Papas::Game::terminate()
 	}
 	CustomerRig::getInstance().freeType(newCustomerAtlas);
 	CustomerRig::getInstance().freeType(fileAtlas);
+	freePauseSheet();
 	helpBook.terminate();
 	C2D_SpriteSheetFree(starsSheet);
 	C2D_TextBufDelete(endDayTextBuf);

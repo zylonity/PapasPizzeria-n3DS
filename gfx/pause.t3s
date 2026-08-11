@@ -1,0 +1,4 @@
+--atlas -f rgba -z auto --border edge
+
+./Pause/pause_wood.png
+./Pause/pause_board.png

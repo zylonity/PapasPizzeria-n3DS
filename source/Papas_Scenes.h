@@ -23,6 +23,8 @@ namespace Papas {
 		PapasError terminate() override;
 
 	private:
+		void freeIntroSheets();	// dropped early so Game can load without us in the way
+
 		Papas::SceneManager *p_sceneManager;
 		C2D_SpriteSheet sheet_bg;
 		C2D_Image skip_bg;
@@ -325,6 +327,13 @@ namespace Papas {
 		Overlay overlay;
 		int pauseIndex;
 		C2D_TextBuf uiTextBuf;		// scratch for menu labels rebuilt every frame
+		// The original's wood and napkin art, only resident while paused
+		C2D_SpriteSheet pauseSheet;
+		C2D_Image pauseWoodImg;
+		C2D_Image pauseBoardImg;
+		void loadPauseSheet();
+		void freePauseSheet();
+		void renderPauseWood();
 		void togglePause();
 		void leaveOverlay();		// back to the pause menu, or back to work
 		void updatePause(u32 kDown);
@@ -356,6 +365,7 @@ namespace Papas {
 		int tipsTodayCents;
 		C2D_TextBuf endDayTextBuf;
 		C2D_Text endDayText[13];
+		C2D_Text endDayValue[6];	// customers + the four scores + quality, drawn in colour
 		void beginEndOfDay();
 		void prepareEndDayText();
 		void updateEndOfDay();

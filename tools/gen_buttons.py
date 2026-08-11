@@ -64,6 +64,5 @@ def build(name, text, width):
 
 
 build("btn_save", "save", 96)
-build("btn_toss", "throw away", 128)
 
 print("wrote", sorted(n for n in os.listdir(out_dir) if n.startswith("btn_")))
