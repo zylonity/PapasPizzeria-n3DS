@@ -418,6 +418,7 @@ compile_commands.json
 
 # JPEXS decompile of the SWF (338MB) - regenerate locally from papaspizzeria_v2.swf.
 # Needed by tools/gen_rig.py and the customer*.t3s atlases at build time.
+papaspizzeria_v2.swf
 papas_extract/
 # Pre-downscaled limb art staged by tools/gen_rig.py from papas_extract (also
 # regenerated locally); the committed romfs/gfx/*.t3x are built from these.
