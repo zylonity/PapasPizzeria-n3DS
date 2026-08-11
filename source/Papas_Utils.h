@@ -145,6 +145,7 @@ namespace Papas {
 		C2D_TextBuf buf = nullptr;
 		C2D_Text title;
 		C2D_Text body[7];
+		bool opensSentence[7];	// false = wrapped from the line above, so it sits closer
 		C2D_Text contents[12];
 		C2D_Text hint;
 		int bodyLines = 0;

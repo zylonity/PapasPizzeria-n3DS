@@ -16,7 +16,8 @@ static const float OVEN_SCALE = 0.35f;
 static const float OVEN_TOUCH_RADIUS = 48.0f;
 static const float MS_PER_DEGREE = MS_PER_COOK_DEGREE;	// oven timer speed, 360 degrees = 3 minutes
 static const Papas::v2 OVEN_SLOTS[4] = {{105.0f, 72.0f}, {215.0f, 72.0f}, {105.0f, 178.0f}, {215.0f, 178.0f}};
-static const Papas::v2 TIMER_POS[4] = {{19.0f, 76.0f}, {301.5f, 76.0f}, {19.0f, 182.0f}, {301.0f, 182.0f}};
+// The oven's drawn in slight perspective, so the right pair of dials sits 3px higher
+static const Papas::v2 TIMER_POS[4] = {{19.0f, 76.0f}, {301.0f, 73.0f}, {19.0f, 182.0f}, {301.0f, 179.0f}};
 // Each topping has cooked-look variants in the sheet; base index + how many
 static const int LOOK_BASE[7] = {0, 4, 9, 14, 19, 24, 28};
 static const int LOOK_COUNT[7] = {4, 5, 5, 5, 5, 4, 5};

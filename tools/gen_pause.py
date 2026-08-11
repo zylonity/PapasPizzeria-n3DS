@@ -14,8 +14,10 @@ out_dir = os.path.join(root, "gfx", "Pause")
 os.makedirs(out_dir, exist_ok=True)
 
 TOP_W, TOP_H = 400, 240
-# The clip's own numbers: clean wood band, the napkin stack, and the buttons we drop
-WOOD_BAND = (0, 0, 455, 64)
+# The clip's own numbers: clean wood band, the napkin stack, and the buttons we drop.
+# The straw pokes in at row 52, so the band has to stop short of it or the tiling
+# repeats a slice of cup all the way down the screen.
+WOOD_BAND = (0, 0, 455, 48)
 BOARD_BOX = (16, 84, 430, 420)
 BUTTON_BOX = (193, 230, 362, 384)
 NAPKIN = (250, 247, 240, 255)

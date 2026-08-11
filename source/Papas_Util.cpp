@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <sstream>
 #include <cstdlib> // for rand() and srand()
+#include <cstring>
 #include <vector>
 
 // Pause bookkeeping: when we froze, and how much time we've swallowed so far
@@ -1003,6 +1004,12 @@ void Papas::HelpBook::setPage(int newPage)
 	bodyLines = 0;
 	for (int i = 0; i < 7 && current.lines[i] != nullptr; i++)
 	{
+		// A line only starts a new sentence if the one before it finished one
+		const char *previous = i > 0 ? current.lines[i - 1] : nullptr;
+		char last = previous != nullptr && previous[0] != '\0'
+			? previous[strlen(previous) - 1] : '.';
+		opensSentence[bodyLines] = last == '.' || last == '!' || last == '?';
+
 		C2D_TextFontParse(&body[bodyLines], *dokyo, buf, current.lines[i]);
 		C2D_TextOptimize(&body[bodyLines]);
 		bodyLines++;
@@ -1037,12 +1044,16 @@ void Papas::HelpBook::renderTop()
 	C2D_TextGetDimensions(&title, 0.72f, 0.72f, &width, nullptr);
 	C2D_DrawText(&title, C2D_WithColor, (SCREEN_WIDTH_TOP - width) * 0.5f, 22.0f, 0.94f, 0.72f, 0.72f, colTitle);
 
-	// Centred with tight leading, so a wrapped sentence still reads as one
+	// Wrapped lines hug the one above; a fresh sentence gets room to breathe
+	static const float WRAP_STEP = 19.0f;
+	static const float SENTENCE_STEP = 28.0f;
+	float y = 60.0f;
 	for (int i = 0; i < bodyLines; i++)
 	{
+		if (i > 0) y += opensSentence[i] ? SENTENCE_STEP : WRAP_STEP;
 		C2D_TextGetDimensions(&body[i], 0.52f, 0.52f, &width, nullptr);
-		C2D_DrawText(&body[i], C2D_WithColor, (SCREEN_WIDTH_TOP - width) * 0.5f,
-			62.0f + i * 22.0f, 0.94f, 0.52f, 0.52f, colInk);
+		C2D_DrawText(&body[i], C2D_WithColor, (SCREEN_WIDTH_TOP - width) * 0.5f, y,
+			0.94f, 0.52f, 0.52f, colInk);
 	}
 }
 
