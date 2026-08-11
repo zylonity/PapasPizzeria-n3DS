@@ -27,12 +27,16 @@ namespace Papas {
 		enum Location {
 			SlidingIn,
 			OnCounter,
+			SlidingToSaved,		// parked off the counter for later
+			Saved,
 			SlidingOutToOven,
 			InOven,
 			SlidingOutOfOven,
 			WaitingToCut,
 			SlidingToBoard,
 			OnBoard,
+			SlidingToBin,		// binned at the cutting station
+			Discarded,
 			Served
 		};
 
@@ -94,7 +98,9 @@ namespace Papas {
 
 		Button makePizzaBtn;
 		Button ovenBtn;
+		Button saveBtn;
 		Button serveBtn;
+		Button tossBtn;
 
 		std::vector<Pizza> v_pizzas;
 		std::vector<int> cuttingQueue;		// pizza ids, first out of the oven cuts first

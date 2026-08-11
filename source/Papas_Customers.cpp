@@ -42,12 +42,20 @@
 
 #define TIME_PER_DAY        90.0f	// seconds; spawnSpeed = day / (customers - 1)
 
+// OrderScreen.forceCustomerTime: how long an empty order line is allowed to sulk
+#define IDLE_LINE_NUDGE_MS  9000
+
 // Customer
 
 void Papas::Customer::spawnCustomer(int typeId, int num, int lineIndex)
 {
 	type = typeId;
 	number = num;
+	enteredAt = Papas::Clock::now();
+
+	// Take our own copy of the notch so the last customer's can be shortened
+	std::unordered_map<int, CustomerData>::const_iterator order = map_customers.find(type);
+	cookTime = order != map_customers.end() ? order->second.time : 1;
 
 	// Lobby customers hold only their lobby-sized limb atlas.
 	Papas::CustomerRig::getInstance().loadType(type, atlasLine, "_line");
@@ -72,12 +80,12 @@ void Papas::Customer::despawnCustomer()
 void Papas::Customer::startSegment(const char* name)
 {
 	currentSeg = Papas::CustomerRig::getInstance().segmentIndex(name);
-	segStart = std::chrono::steady_clock::now();
+	segStart = Papas::Clock::now();
 }
 
 float Papas::Customer::animSeconds() const
 {
-	return std::chrono::duration<float>(std::chrono::steady_clock::now() - segStart).count();
+	return (float)(Papas::Clock::now() - segStart) / 1000.0f;
 }
 
 void Papas::Customer::update(float deltaSeconds)
@@ -189,7 +197,7 @@ void Papas::Customer::renderOrdering(float depth)
 	int segment = presentationSeg;
 	float seconds;
 	if (segment >= 0)
-		seconds = std::chrono::duration<float>(std::chrono::steady_clock::now() - presentationStart).count();
+		seconds = (float)(Papas::Clock::now() - presentationStart) / 1000.0f;
 	else
 	{
 		segment = Papas::CustomerRig::getInstance().segmentIndex("stand");
@@ -204,21 +212,23 @@ void Papas::Customer::renderOrdering(float depth)
 void Papas::Customer::playPresentation(const char* segment)
 {
 	presentationSeg = Papas::CustomerRig::getInstance().segmentIndex(segment);
-	presentationStart = std::chrono::steady_clock::now();
+	presentationStart = Papas::Clock::now();
 }
 
 // CustomerManager
 
-void Papas::CustomerManager::initManager(int rank)
+void Papas::CustomerManager::initManager(int rank, int day)
 {
 	Papas::CustomerRig::getInstance().load();
 
 	totalCustomers = 0;
+	today = day;
 	decideLineup(rank);
 
 	// setupSpawn(): first customer right away, the rest spread over the day
 	spawnSpeed = TIME_PER_DAY / (customerLineup.size() - 1);
-	lastUpdate = std::chrono::steady_clock::now();
+	lastUpdate = Papas::Clock::now();
+	emptyLineSince = 0;
 	spawnNext();
 }
 
@@ -298,26 +308,60 @@ void Papas::CustomerManager::spawnNext()
 	if (totalCustomers >= (int)customerLineup.size())
 		return;
 
+	int type = customerLineup[totalCustomers];
+	// startCustomerEntering(): first visit stamps the day on their file
+	SaveData &sv = SaveManager::getInstance().data;
+	if (type > 0 && type < (int)(sizeof(sv.customerFirstDay) / sizeof(sv.customerFirstDay[0]))
+		&& sv.customerFirstDay[type] == 0)
+		sv.customerFirstDay[type] = (u16)today;
+
 	Customer* c = new Customer();
-	c->spawnCustomer(customerLineup[totalCustomers], totalCustomers + 1, orderline.size());
+	c->spawnCustomer(type, totalCustomers + 1, orderline.size());
 	totalCustomers++;
+	// Last one through the door orders something quick so the day can end
+	if (totalCustomers == (int)customerLineup.size())
+		c->shortenWaitTime();
 	v_customers.push_back(c);
 	orderline.push_back(c);
-	lastSpawnTime = std::chrono::steady_clock::now();
+	lastSpawnTime = Papas::Clock::now();
+	emptyLineSince = 0;
+}
+
+// Skip the wait when the counter's been dead for a while, like the original did
+void Papas::CustomerManager::nudgeIdleLine()
+{
+	if (totalCustomers >= (int)customerLineup.size())
+		return;
+
+	u64 now = Papas::Clock::now();
+	if (!orderline.empty())
+	{
+		emptyLineSince = 0;
+		return;
+	}
+	if (emptyLineSince == 0)
+	{
+		emptyLineSince = now;
+		return;
+	}
+	// Only worth it if the next scheduled spawn is still ages away
+	if (now - emptyLineSince >= IDLE_LINE_NUDGE_MS && now - lastSpawnTime >= IDLE_LINE_NUDGE_MS)
+		spawnNext();
 }
 
 void Papas::CustomerManager::update()
 {
-	auto now = std::chrono::steady_clock::now();
-	float deltaSeconds = std::chrono::duration<float>(now - lastUpdate).count();
+	u64 now = Papas::Clock::now();
+	float deltaSeconds = (float)(now - lastUpdate) / 1000.0f;
 	lastUpdate = now;
 
 	// spawn timer
 	if (totalCustomers < (int)customerLineup.size() &&
-		std::chrono::duration<float>(now - lastSpawnTime).count() >= spawnSpeed)
+		(float)(now - lastSpawnTime) / 1000.0f >= spawnSpeed)
 	{
 		spawnNext();
 	}
+	nudgeIdleLine();
 
 	for (size_t i = 0; i < v_customers.size(); i++)
 	{
@@ -439,12 +483,12 @@ std::unordered_map<int, Papas::CustomerData> Papas::map_customers = {
 	{18, {"Mitch", {{{1, 1, 0, 0}, Pepperoni, 4}, {{1, 0, 0, 0}, Olive, 2}, {{1, 1, 0, 0}, Anochovie, 4}}, 2, 4}},
 	{19, {"Prudence", {{{1, 0, 0, 0}, Mushroom, 5}, {{0, 1, 0, 0}, Onion, 3}}, 2, 6}},
 	{20, {"James", {{{1, 1, 0, 0}, Meat, 4}, {{0, 1, 1, 0}, Olive, 8}}, 2, 4}},
-	{21, {"Cecilia", {{{1, 1, 1, 6}, Mushroom, 4}, {{0, 1, 1, 1}, Pepper, 3}, {{1, 1, 0, 1}, Onion, 3}}, 2, 8}},
+	{21, {"Cecilia", {{{1, 1, 1, 0}, Mushroom, 6}, {{0, 1, 1, 1}, Pepper, 3}, {{1, 1, 0, 1}, Onion, 3}}, 2, 8}},
 	{22, {"Mandi", {{{1, 1, 0, 0}, Pepperoni, 4}, {{1, 0, 1, 1}, Mushroom, 6}}, 4, 8}},
 	{23, {"Sasha", {{{0, 1, 0, 0}, Pepper, 4}, {{1, 1, 1, 1}, Olive, 8}}, 4, 8}},
 	{24, {"Olga", {{{1, 1, 1, 0}, Meat, 6}, {{0, 0, 1, 0}, Mushroom, 4}, {{0, 0, 1, 0}, Pepper, 2}}, 6, 4}},
 	{25, {"Franco", {{{1, 1, 1, 1}, Pepperoni, 8}, {{1, 0, 1, 1}, Olive, 3}}, 4, 8}},
-	{26, {"Tohru", {{{0, 0, 1, 1}, Mushroom, 6}, {{1, 1, 1, 1}, Anochovie, 8}}, 2, 8}},
+	{26, {"Tohru", {{{0, 0, 1, 1}, Mushroom, 6}, {{1, 0, 0, 0}, Pepper, 2}, {{1, 1, 1, 1}, Anochovie, 8}}, 2, 8}},
 	{27, {"Clair", {{{1, 1, 1, 1}, Pepperoni, 4}, {{0, 0, 1, 1}, Mushroom, 6}, {{0, 1, 0, 0}, Pepper, 4}}, 4, 4}},
 	{28, {"Clover", {{{1, 1, 1, 1}, Pepperoni, 8}}, 4, 8}},
 	{29, {"Hugo", {{{1, 1, 0, 0}, Meat, 4}, {{0, 1, 0, 0}, Pepper, 4}}, 4, 6}},
@@ -462,4 +506,44 @@ std::unordered_map<int, Papas::CustomerData> Papas::map_customers = {
 						  {{1, 0, 0, 0}, Onion, 2},
 						  {{0, 1, 0, 0}, Olive, 2},
 						  {{0, 0, 1, 0}, Anochovie, 2}}, 4, 4}}
+};
+
+// What each customer is known for, printed on their file card
+std::unordered_map<int, std::string> Papas::map_customerToppings = {
+	{1, "Pepperoni"},
+	{2, "Anchovies"},
+	{3, "Mushrooms"},
+	{4, "Olives"},
+	{5, "Pepperoni"},
+	{6, "Peppers"},
+	{7, "Sausage and Onions"},
+	{8, "Sausage and Mushrooms"},
+	{9, "Peppers and Olives"},
+	{10, "Peppers and Onions"},
+	{11, "Pepperoni and Mushrooms"},
+	{12, "Pepperoni and Sausage"},
+	{13, "Mushroom and Anchovies"},
+	{14, "Pepperoni and Sausage"},
+	{15, "Pepperoni and Mushrooms"},
+	{16, "Mushroom and Peppers"},
+	{17, "Pepperoni"},
+	{18, "Pepperoni, Olive, Anchovies"},
+	{19, "Mushroom and Onions"},
+	{20, "Sausage and Olives"},
+	{21, "Mushroom, Peppers, Onions"},
+	{22, "Pepperoni and Mushrooms"},
+	{23, "Peppers and Olives"},
+	{24, "Sausage, Mushroom, Onions"},
+	{25, "Pepperoni and Olives"},
+	{26, "Mushroom, Peppers, Anchovies"},
+	{27, "Pepperoni, Mushroom, Peppers"},
+	{28, "Pepperoni"},
+	{29, "Sausage and Peppers"},
+	{30, "Onions and Olives"},
+	{31, "Sausage, Mushrooms, Peppers"},
+	{32, "Onion, Olives, Anchovies"},
+	{33, "Pepperoni, Onions, Olives"},
+	{34, "Pepperoni, Sausage, Olives"},
+	{35, "Onions Only!"},
+	{36, "The Works!"}
 };

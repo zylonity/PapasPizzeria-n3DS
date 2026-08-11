@@ -30,8 +30,13 @@ namespace Papas
 		PapasError stopSfxChannel(int channel);
 		PapasError stopMusic();
 		PapasError pauseMusic();
+		PapasError resumeMusic();
 		int randomNumber(int small, int big);
 		PapasError switchMusic(const char *name);
+
+		// Sound toggle off the pause menu; silences music and sfx together
+		void toggleMute();
+		bool isMuted() const { return muted; }
 
 		// Shared instance.
 		static ResourceManager& getInstance()
@@ -48,6 +53,7 @@ namespace Papas
 
 		typedef std::mt19937 rng_type;
 		rng_type rng;
+		bool muted = false;
 
 		// Don't allow extra instances.
 		ResourceManager()

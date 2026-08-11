@@ -17,6 +17,9 @@ namespace Papas {
 		u8  customerSeals[40] = {};	// 0..3 gold STAR CUSTOMER! seals
 		// Tracks each NEW CUSTOMER! splash; the six starters begin as seen.
 		u8  customerMet[40] = {0, 1, 1, 1, 1, 1, 1};
+		// What the customer file prints under each photo.
+		u16 customerFirstDay[40] = {};	// day they first walked in, 0 = never have
+		u16 customerServed[40] = {};	// orders we've taken off them
 	};
 
 	class SaveManager

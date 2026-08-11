@@ -98,6 +98,49 @@ namespace Papas {
 		touchPosition touch;
 	};
 
+	// How to play, off the main menu; the pause overlay draws the same book
+	class HelpScreen : public Scene
+	{
+	public:
+		PapasError init(Papas::SceneManager *sceneManager) override;
+		PapasError update() override;
+		PapasError render_top() override;
+		PapasError render_bottom() override;
+		PapasError terminate() override;
+
+	private:
+		Papas::SceneManager *p_sceneManager;
+		C2D_SpriteSheet sheet_bg;
+		C2D_Image top_bg;
+		C2D_Image bottom_bg;
+		C2D_Font dokyo;
+		HelpBook book;
+		touchPosition touch;
+	};
+
+	// Who made the thing, off the main menu
+	class CreditsScreen : public Scene
+	{
+	public:
+		PapasError init(Papas::SceneManager *sceneManager) override;
+		PapasError update() override;
+		PapasError render_top() override;
+		PapasError render_bottom() override;
+		PapasError terminate() override;
+
+	private:
+		Papas::SceneManager *p_sceneManager;
+		C2D_SpriteSheet sheet_bg;
+		C2D_Image top_bg;
+		C2D_Image bottom_bg;
+		C2D_Image logo;
+		C2D_Font dokyo;
+		C2D_TextBuf textBuf;
+		C2D_Text lines[10];
+		int lineCount;
+		C2D_Text hintText;
+	};
+
 	// The actual game: all four stations, customers, pizzas, the whole day
 	class Game : public Scene
 	{
@@ -276,6 +319,48 @@ namespace Papas {
 		void renderStarRow(float centerX, float y, int stars, int seals, float depth);
 		void renderResultStars();
 		void renderTakeOrderStars(int customerType);
+
+		// Everything the pause button can put on top of the game
+		enum Overlay { OverlayNone, OverlayPause, OverlayFile, OverlayHelp };
+		Overlay overlay;
+		int pauseIndex;
+		C2D_TextBuf uiTextBuf;		// scratch for menu labels rebuilt every frame
+		void togglePause();
+		void leaveOverlay();		// back to the pause menu, or back to work
+		void updatePause(u32 kDown);
+		void renderPauseTop();
+		void renderPauseBottom();
+
+		// Customer file: a grid of everyone we've met plus the selected profile
+		int fileSelected;			// customer type on the card, 0 = nobody yet
+		RigTypeAtlas fileAtlas;		// portrait art, only for whoever's showing
+		C2D_TextBuf fileTextBuf;
+		C2D_Text fileText[5];
+		void openFile();
+		void closeFile();
+		void selectFileCustomer(int type);
+		void renderFileTop();
+		void renderFileBottom();
+
+		// The same help book the main menu shows
+		HelpBook helpBook;
+
+		// End-of-day wrap-up: board, tips, rank, then off to bed
+		bool showingEndOfDay;
+		enum EndDayPhase { EndDayBoard, EndDayTips, EndDayRank, EndDayReady };
+		EndDayPhase endDayPhase;
+		u64 endDayPhaseStarted;
+		bool endDayRankUp;			// decided when the tips land, applied at the rank step
+		int customersToday;
+		int waitingToday, toppingToday, bakingToday, cuttingToday;
+		int tipsTodayCents;
+		C2D_TextBuf endDayTextBuf;
+		C2D_Text endDayText[13];
+		void beginEndOfDay();
+		void prepareEndDayText();
+		void updateEndOfDay();
+		void renderEndOfDayTop();
+		void renderEndOfDayBottom();
 
 		void completeServedPizza(Pizza &pizza);
 		void prepareResultText();

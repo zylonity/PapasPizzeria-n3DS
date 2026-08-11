@@ -14,7 +14,7 @@ static const float GRAB_RADIUS = 16.0f;			// grab area of a topping already on t
 static const float SLIDE_STEPS = 3.0f;			// pizzas ease in/out by 1/3 of the distance per frame
 static const float OVEN_SCALE = 0.35f;
 static const float OVEN_TOUCH_RADIUS = 48.0f;
-static const float MS_PER_DEGREE = 500.0f;		// oven timer speed, 360 degrees = 3 minutes
+static const float MS_PER_DEGREE = MS_PER_COOK_DEGREE;	// oven timer speed, 360 degrees = 3 minutes
 static const Papas::v2 OVEN_SLOTS[4] = {{105.0f, 72.0f}, {215.0f, 72.0f}, {105.0f, 178.0f}, {215.0f, 178.0f}};
 static const Papas::v2 TIMER_POS[4] = {{19.0f, 76.0f}, {301.5f, 76.0f}, {19.0f, 182.0f}, {301.0f, 182.0f}};
 // Each topping has cooked-look variants in the sheet; base index + how many
@@ -50,9 +50,12 @@ void Papas::PizzaManager::initManager()
 	dottedLineImg = C2D_SpriteSheetGetImage(sheet, 34);
 	cutLineImg = C2D_SpriteSheetGetImage(sheet, 35);
 
+	// Oven/save and serve/toss sit side by side, so they're spread off centre
 	makePizzaBtn.createButton(sheet, 36, 36, 37, {102, 208});
-	ovenBtn.createButton(sheet, 38, 38, 39, {112, 208});
-	serveBtn.createButton(sheet, 40, 40, 41, {122, 207});
+	ovenBtn.createButton(sheet, 38, 38, 39, {56, 208});
+	saveBtn.createButton(sheet, 42, 42, 43, {168, 208});
+	serveBtn.createButton(sheet, 40, 40, 41, {40, 207});
+	tossBtn.createButton(sheet, 44, 44, 45, {152, 207});
 
 	ResourceManager::getInstance().loadSfx("grabtopping", "romfs:/sfx/grabtopping.wav");
 	ResourceManager::getInstance().loadSfx("droptopping", "romfs:/sfx/droptopping.wav");
@@ -80,11 +83,12 @@ void Papas::PizzaManager::initManager()
 	movingBack = false;
 }
 
-// Every pizza belongs to a receipt; served ones don't count anymore
+// Every pizza belongs to a receipt; served and binned ones don't count anymore
 Papas::Pizza *Papas::PizzaManager::pizzaForTicket(Receipt *ticket)
 {
 	for (size_t i = 0; i < v_pizzas.size(); i++)
-		if (v_pizzas[i].ticket == ticket && v_pizzas[i].loc != Pizza::Served) return &v_pizzas[i];
+		if (v_pizzas[i].ticket == ticket && v_pizzas[i].loc != Pizza::Served &&
+			v_pizzas[i].loc != Pizza::Discarded && v_pizzas[i].loc != Pizza::SlidingToBin) return &v_pizzas[i];
 	return nullptr;
 }
 
@@ -99,7 +103,8 @@ Papas::Pizza *Papas::PizzaManager::pizzaById(int id)
 Papas::Pizza *Papas::PizzaManager::activePizza(Receipt *ticket)
 {
 	Pizza *p = ticket == nullptr ? nullptr : pizzaForTicket(ticket);
-	return p != nullptr && (p->loc == Pizza::SlidingIn || p->loc == Pizza::OnCounter || p->loc == Pizza::SlidingOutToOven) ? p : nullptr;
+	return p != nullptr && (p->loc == Pizza::SlidingIn || p->loc == Pizza::OnCounter ||
+		p->loc == Pizza::SlidingOutToOven || p->loc == Pizza::SlidingToSaved) ? p : nullptr;
 }
 
 // Front of the cutting queue, cut pizzas in the order they left the oven
@@ -130,7 +135,7 @@ void Papas::PizzaManager::movePizzas()
 			else p.pos.x += dx;
 		} else if (p.loc == Pizza::SlidingOutToOven) {
 			float dx = (SCREEN_WIDTH_BOTTOM + 150.0f - p.pos.x) / SLIDE_STEPS;
-			if (std::abs(dx) < 1.0f) { p.loc = Pizza::InOven; p.ovenStartedAt = osGetTime(); }
+			if (std::abs(dx) < 1.0f) { p.loc = Pizza::InOven; p.ovenStartedAt = Papas::Clock::now(); }
 			else p.pos.x += dx;
 		} else if (p.loc == Pizza::SlidingOutOfOven) {
 			float target = (p.ovenSlot == 0 || p.ovenSlot == 2) ? -150.0f : SCREEN_WIDTH_BOTTOM + 150.0f;
@@ -145,6 +150,11 @@ void Papas::PizzaManager::movePizzas()
 			float dx = (BOARD_POS.x - p.pos.x) / SLIDE_STEPS;
 			if (std::abs(dx) < 1.0f) { p.pos = BOARD_POS; p.loc = Pizza::OnBoard; }
 			else p.pos.x += dx;
+		} else if (p.loc == Pizza::SlidingToSaved || p.loc == Pizza::SlidingToBin) {
+			// Both just trundle off the left edge, they only differ in where they end up
+			float dx = (-150.0f - p.pos.x) / SLIDE_STEPS;
+			if (std::abs(dx) < 1.0f) p.loc = p.loc == Pizza::SlidingToSaved ? Pizza::Saved : Pizza::Discarded;
+			else p.pos.x += dx;
 		}
 	}
 }
@@ -153,7 +163,7 @@ void Papas::PizzaManager::movePizzas()
 void Papas::PizzaManager::updateTimers()
 {
 	movePizzas();
-	u64 now = osGetTime();
+	u64 now = Papas::Clock::now();
 	for (size_t i = 0; i < v_pizzas.size(); i++) {
 		Pizza &p = v_pizzas[i];
 		if (p.loc != Pizza::InOven || p.ovenStartedAt == 0) continue;
@@ -238,8 +248,9 @@ void Papas::PizzaManager::updateCutting(touchPosition &touch)
 	bool touching = touchDown(touch);
 	if (p != nullptr && p->loc == Pizza::OnBoard) {
 		v2 at = {(float)touch.px, (float)touch.py};
-		bool onServeButton = at.x >= 122.0f && at.x <= 218.0f && at.y >= 207.0f && at.y <= 235.0f;
-		if (touching && !cuttingWasTouching && !onServeButton) {
+		// The whole button row is off limits, otherwise a tap starts a stray cut
+		bool onButtonRow = at.y >= 205.0f && ((at.x >= 40.0f && at.x <= 136.0f) || (at.x >= 152.0f && at.x <= 280.0f));
+		if (touching && !cuttingWasTouching && !onButtonRow) {
 			cuttingDrag = true; cutStart = at; cutEnd = at;
 			dottedLineChannel = ResourceManager::getInstance().playSfxLoop("dottedline");
 		} else if (touching && cuttingDrag) cutEnd = at;
@@ -261,7 +272,7 @@ void Papas::PizzaManager::updateCutting(touchPosition &touch)
 					PizzaCut cut;
 					cut.start = {(cutStart.x + d.x * t1 - BOARD_POS.x) / PIZZA_SCALE, (cutStart.y + d.y * t1 - BOARD_POS.y) / PIZZA_SCALE};
 					cut.end = {(cutStart.x + d.x * t2 - BOARD_POS.x) / PIZZA_SCALE, (cutStart.y + d.y * t2 - BOARD_POS.y) / PIZZA_SCALE};
-					cut.startedAt = osGetTime(); p->cuts.push_back(cut); ResourceManager::getInstance().playSfx("cut");
+					cut.startedAt = Papas::Clock::now(); p->cuts.push_back(cut); ResourceManager::getInstance().playSfx("cut");
 				}
 			}
 			cuttingDrag = false;
@@ -355,11 +366,15 @@ void Papas::PizzaManager::renderBaking()
 
 void Papas::PizzaManager::renderCutting(touchPosition &touch)
 {
+	// Keep drawing whatever's on its way to the bin so it doesn't just blink out
+	for (size_t i = 0; i < v_pizzas.size(); i++)
+		if (v_pizzas[i].loc == Pizza::SlidingToBin) drawPizza(v_pizzas[i], v_pizzas[i].pos, PIZZA_SCALE, 0.02f);
+
 	Pizza *p = boardPizza();
 	if (p == nullptr) return;
 	if (p->loc == Pizza::SlidingToBoard || p->loc == Pizza::OnBoard) drawPizza(*p, p->pos, PIZZA_SCALE, 0.02f);
 	if (p->loc != Pizza::OnBoard) return;
-	u64 now = osGetTime();
+	u64 now = Papas::Clock::now();
 	for (size_t i = 0; i < p->cuts.size(); i++) {
 		v2 start = {BOARD_POS.x + p->cuts[i].start.x * PIZZA_SCALE, BOARD_POS.y + p->cuts[i].start.y * PIZZA_SCALE};
 		v2 finish = {BOARD_POS.x + p->cuts[i].end.x * PIZZA_SCALE, BOARD_POS.y + p->cuts[i].end.y * PIZZA_SCALE};
@@ -368,10 +383,19 @@ void Papas::PizzaManager::renderCutting(touchPosition &touch)
 		drawLineImage(cutLineImg, start, end, 1.0f, 0.85f);
 	}
 	if (cuttingDrag) drawLineImage(dottedLineImg, cutStart, cutEnd, 1.0f, 0.9f);
-	// Serve hands this pizza over for scoring and pulls in the next one
-	if (!cuttingDrag && serveBtn.showButton(touch)) {
-		p->loc = Pizza::Served; servedPizzaId = p->id;
-		cuttingQueue.erase(cuttingQueue.begin()); startNextCuttingPizza();
+	// Serve hands this pizza over for scoring, throw away just bins the poor thing
+	if (!cuttingDrag) {
+		bool serve = serveBtn.showButton(touch);
+		bool toss = tossBtn.showButton(touch);
+		if (serve) {
+			p->loc = Pizza::Served; servedPizzaId = p->id;
+			cuttingQueue.erase(cuttingQueue.begin()); startNextCuttingPizza();
+		} else if (toss) {
+			// Ticket stays put, so you can start the order over from the topping station
+			p->loc = Pizza::SlidingToBin;
+			cuttingQueue.erase(cuttingQueue.begin()); startNextCuttingPizza();
+			ResourceManager::getInstance().playSfx("pizzaslide");
+		}
 	}
 }
 
@@ -383,12 +407,27 @@ void Papas::PizzaManager::renderBottom(touchPosition &touch, Receipt *ticket)
 	if (dragging || movingBack) drawTopping(dragged.type, 0, dragPos, dragged.rotDegrees, PIZZA_SCALE, 0.9f);
 	if (ticket != nullptr && !dragging && !movingBack && !droppedThisFrame) {
 		Pizza *existing = pizzaForTicket(ticket);
-		if (existing == nullptr && makePizzaBtn.showButton(touch)) {
-			Pizza p = {}; p.id = nextPizzaId++; p.ticket = ticket; p.loc = Pizza::SlidingIn; p.pos = {-150.0f, COUNTER_POS.y}; p.ovenSlot = -1;
-			v_pizzas.push_back(p); ResourceManager::getInstance().playSfx("pizzaslide");
-		} else if (active != nullptr && active->loc == Pizza::OnCounter && ovenBtn.showButton(touch)) {
-			int slot = freeOvenSlot();
-			if (slot != -1) { active->ovenSlot = slot; active->loc = Pizza::SlidingOutToOven; ResourceManager::getInstance().playSfx("pizzaslide"); }
+		if (existing == nullptr) {
+			if (makePizzaBtn.showButton(touch)) {
+				Pizza p = {}; p.id = nextPizzaId++; p.ticket = ticket; p.loc = Pizza::SlidingIn; p.pos = {-150.0f, COUNTER_POS.y}; p.ovenSlot = -1;
+				v_pizzas.push_back(p); ResourceManager::getInstance().playSfx("pizzaslide");
+			}
+		} else if (existing->loc == Pizza::Saved) {
+			// retopPizza(): drag the parked one back out instead of starting fresh
+			if (makePizzaBtn.showButton(touch)) {
+				existing->loc = Pizza::SlidingIn; existing->pos = {-150.0f, COUNTER_POS.y};
+				ResourceManager::getInstance().playSfx("pizzaslide");
+			}
+		} else if (active != nullptr && active->loc == Pizza::OnCounter) {
+			// Both draw every frame, so ask them both before acting on either
+			bool toOven = ovenBtn.showButton(touch);
+			bool park = saveBtn.showButton(touch);
+			if (toOven) {
+				int slot = freeOvenSlot();
+				if (slot != -1) { active->ovenSlot = slot; active->loc = Pizza::SlidingOutToOven; ResourceManager::getInstance().playSfx("pizzaslide"); }
+			} else if (park) {
+				active->loc = Pizza::SlidingToSaved; ResourceManager::getInstance().playSfx("pizzaslide");
+			}
 		}
 	}
 }

@@ -41,6 +41,7 @@ PapasError Papas::MainMenu::init(Papas::SceneManager *sceneManager)
 
 	// Load the buttons
 	sheet_buttons = C2D_SpriteSheetLoad("romfs:/gfx/buttons.t3x");
+	Papas::ResourceManager::getInstance().loadSfx("buttonclick", "romfs:/sfx/buttonclick.wav");
 
 	// Start button
 	Papas::Button b_start(sheet_buttons, 0, 1, 2);
@@ -147,9 +148,18 @@ PapasError Papas::MainMenu::render_bottom()
 		// Detect when button is pressed either through keys or touchscreen
 		if (v_buttons[i].showButton(touch, i == buttonIndex, &aPressed))
 		{
+			Papas::ResourceManager::getInstance().playSfx("buttonclick");
 			if(i == 0){
 				// Keep menu music through the picker; it stops when the game starts.
 				p_sceneManager->changeScene(new Papas::SaveSelect());
+				return PAPAS_OK; // changeScene deleted us; touch nothing else
+			}
+			if(i == 1){
+				p_sceneManager->changeScene(new Papas::HelpScreen());
+				return PAPAS_OK; // changeScene deleted us; touch nothing else
+			}
+			if(i == 2){
+				p_sceneManager->changeScene(new Papas::CreditsScreen());
 				return PAPAS_OK; // changeScene deleted us; touch nothing else
 			}
 
@@ -449,6 +459,174 @@ PapasError Papas::SaveSelect::terminate()
 	{
 		C2D_SpriteSheetFree(sheet_receipt);
 		sheet_receipt = nullptr;
+	}
+	if (textBuf)
+	{
+		C2D_TextBufDelete(textBuf);
+		textBuf = nullptr;
+	}
+	if (dokyo)
+	{
+		C2D_FontFree(dokyo);
+		dokyo = nullptr;
+	}
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::HelpScreen::init(Papas::SceneManager *sceneManager)
+{
+	p_sceneManager = sceneManager;
+
+	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
+	top_bg = C2D_SpriteSheetGetImage(sheet_bg, 1);
+	bottom_bg = C2D_SpriteSheetGetImage(sheet_bg, 0);
+
+	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
+	book.init(&dokyo);
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::HelpScreen::update()
+{
+	hidScanInput();
+	hidTouchRead(&touch);
+	u32 kDown = hidKeysDown();
+
+	if (kDown & (KEY_B | KEY_START | KEY_SELECT))
+	{
+		p_sceneManager->changeScene(new Papas::MainMenu());
+		return PAPAS_OK; // changeScene deleted us; touch nothing else
+	}
+
+	if (kDown & (KEY_R | KEY_DRIGHT | KEY_A)) book.turnPage(1);
+	if (kDown & (KEY_L | KEY_DLEFT)) book.turnPage(-1);
+	if (kDown & KEY_TOUCH)
+	{
+		int row = HelpBook::rowAt(touch);
+		if (row >= 0) book.setPage(row);
+	}
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::HelpScreen::render_top()
+{
+	Papas::Stereo::plane(0.8f);
+	C2D_DrawImageAt(top_bg, 0, 0, 0, NULL, 1, 1);
+	Papas::Stereo::plane(-0.1f);
+	book.renderTop();
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::HelpScreen::render_bottom()
+{
+	C2D_DrawImageAt(bottom_bg, 0, 0, 0, NULL, 1, 1);
+	book.renderBottom();
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::HelpScreen::terminate()
+{
+	book.terminate();
+	if (sheet_bg)
+	{
+		C2D_SpriteSheetFree(sheet_bg);
+		sheet_bg = nullptr;
+	}
+	if (dokyo)
+	{
+		C2D_FontFree(dokyo);
+		dokyo = nullptr;
+	}
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::CreditsScreen::init(Papas::SceneManager *sceneManager)
+{
+	p_sceneManager = sceneManager;
+
+	sheet_bg = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
+	top_bg = C2D_SpriteSheetGetImage(sheet_bg, 1);
+	bottom_bg = C2D_SpriteSheetGetImage(sheet_bg, 0);
+	logo = C2D_SpriteSheetGetImage(sheet_bg, 2);
+
+	dokyo = C2D_FontLoad("romfs:/fonts/Dokyo.bcfnt");
+	textBuf = C2D_TextBufNew(512);
+
+	static const char *CREDITS[] = {
+		"Papa's Pizzeria",
+		"originally by Flipline Studios",
+		"",
+		"3DS port by Khaleel Brewesh Mora",
+		"made for my wife, and for anyone",
+		"else who fancies a slice",
+		"",
+		"art and audio remain Flipline's",
+	};
+	lineCount = (int)(sizeof(CREDITS) / sizeof(CREDITS[0]));
+	for (int i = 0; i < lineCount; i++)
+	{
+		C2D_TextFontParse(&lines[i], dokyo, textBuf, CREDITS[i]);
+		C2D_TextOptimize(&lines[i]);
+	}
+	C2D_TextFontParse(&hintText, dokyo, textBuf, "B Back");
+	C2D_TextOptimize(&hintText);
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::CreditsScreen::update()
+{
+	hidScanInput();
+	u32 kDown = hidKeysDown();
+
+	if (kDown & (KEY_A | KEY_B | KEY_START | KEY_SELECT | KEY_TOUCH))
+	{
+		p_sceneManager->changeScene(new Papas::MainMenu());
+		return PAPAS_OK; // changeScene deleted us; touch nothing else
+	}
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::CreditsScreen::render_top()
+{
+	Papas::Stereo::plane(0.8f);
+	C2D_DrawImageAt(top_bg, 0, 0, 0, NULL, 1, 1);
+
+	Papas::Stereo::plane(0.3f);
+	float scaling = 0.45f;
+	C2D_DrawImageAt(logo, (SCREEN_WIDTH_TOP / 2) - ((logo.subtex->width * scaling) / 2), 6.0f,
+		0.2f, NULL, scaling, scaling);
+
+	Papas::Stereo::plane(-0.1f);
+	const u32 colInk = C2D_Color32(244, 239, 218, 255);
+	for (int i = 0; i < lineCount; i++)
+		drawTextCentered(&lines[i], SCREEN_WIDTH_TOP * 0.5f, 88.0f + i * 18.0f, 0.5f, 0.45f, colInk);
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::CreditsScreen::render_bottom()
+{
+	C2D_DrawImageAt(bottom_bg, 0, 0, 0, NULL, 1, 1);
+	drawTextCentered(&hintText, SCREEN_WIDTH_BOTTOM * 0.5f, 210.0f, 0.5f, 0.45f,
+		C2D_Color32(120, 105, 90, 255));
+
+	return PAPAS_OK;
+}
+
+PapasError Papas::CreditsScreen::terminate()
+{
+	if (sheet_bg)
+	{
+		C2D_SpriteSheetFree(sheet_bg);
+		sheet_bg = nullptr;
 	}
 	if (textBuf)
 	{
@@ -793,6 +971,27 @@ PapasError Papas::Game::init(Papas::SceneManager *sceneManager)
 	newCustomerNameScale = 1.0f;
 	newCustomerTextBuf = C2D_TextBufNew(32);
 	Papas::ResourceManager::getInstance().loadSfx("endofday", "romfs:/sfx/endofday.wav");
+	Papas::ResourceManager::getInstance().loadSfx("buttonclick", "romfs:/sfx/buttonclick.wav");
+	Papas::ResourceManager::getInstance().loadSfx("grabticket", "romfs:/sfx/grabticket.wav");
+	Papas::ResourceManager::getInstance().loadSfx("dropticket", "romfs:/sfx/dropticket.wav");
+	Papas::ResourceManager::getInstance().loadSfx("cash", "romfs:/sfx/cash.wav");
+	Papas::ResourceManager::getInstance().loadSong("takeorder_music", "romfs:/music/takeorder_music.ogg");
+	Papas::ResourceManager::getInstance().loadSong("justguitar_music", "romfs:/music/justguitar_music.ogg");
+
+	// Pause overlays, the customer file, and the day's running tally
+	overlay = OverlayNone;
+	pauseIndex = 0;
+	fileSelected = 0;
+	uiTextBuf = C2D_TextBufNew(512);
+	fileTextBuf = C2D_TextBufNew(512);
+	helpBook.init(&dokyo);
+	showingEndOfDay = false;
+	endDayPhase = EndDayBoard;
+	endDayRankUp = false;
+	endDayTextBuf = C2D_TextBufNew(768);
+	customersToday = 0;
+	waitingToday = toppingToday = bakingToday = cuttingToday = 0;
+	tipsTodayCents = 0;
 
 	beginDayOrNewCustomer();
 
@@ -816,20 +1015,32 @@ Papas::Receipt *Papas::Game::dockedReceipt()
 	return docked;
 }
 
-// Dock 0.3% per late second, with bake time plus 30 seconds as the target.
+// Dock 0.3% per second for a late order, and again for every second they queued too long.
 int Papas::Game::scoreWaiting(const Pizza &pizza, const CustomerData &order) const
 {
+	(void)order;	// the notch lives on the ticket now, since the last customer's gets cut
 	if (pizza.ticket == nullptr || pizza.ticket->orderStartedAt == 0) return 100;
-	float elapsedMs = (float)(osGetTime() - pizza.ticket->orderStartedAt);
-	float expectedMs = order.time * 45.0f * 500.0f + 30000.0f;
-	float lateSeconds = std::max(0.0f, elapsedMs - expectedMs) / 1000.0f;
-	return std::max(0, (int)std::floor(100.0f - lateSeconds * 0.3f));
+	const Receipt &ticket = *pizza.ticket;
+
+	// Fair turnaround: the bake itself, our prep window, plus slack per pickup already queued
+	float bakeMs = ticket.cookNotch * 45.0f * MS_PER_COOK_DEGREE;
+	float queueMs = ticket.ordersAheadOfMe * (COOK_TIME_MS * 0.5f) / 4.0f;
+	float expectedMs = bakeMs + PREP_TIME_PER_ORDER_MS + queueMs;
+
+	float elapsedMs = (float)(Papas::Clock::now() - ticket.orderStartedAt);
+	float latePercent = std::max(0.0f, elapsedMs - expectedMs) / 1000.0f * 0.3f;
+	// Standing in the queue counts against us too, once past the ideal wait
+	float linePercent = std::max(0.0f, (float)ticket.lineWaitMs - IDEAL_LINE_WAIT_MS) / 1000.0f * 0.3f;
+
+	return std::max(0, (int)std::floor(100.0f - latePercent - linePercent));
 }
 
 // How close the dial got to the ticket's notch, 90 degrees off = 0
 int Papas::Game::scoreBaking(const Pizza &pizza, const CustomerData &order) const
 {
-	float difference = std::abs(order.time * 45.0f - pizza.cookDegrees);
+	(void)order;
+	int notch = pizza.ticket != nullptr ? pizza.ticket->cookNotch : order.time;
+	float difference = std::abs(notch * 45.0f - pizza.cookDegrees);
 	return std::max(0, (int)std::floor(100.0f - difference / 90.0f * 100.0f));
 }
 
@@ -992,7 +1203,7 @@ void Papas::Game::renderDayIntro()
 	Papas::Stereo::plane(0.0f);
 	C2D_DrawRectSolid(0.0f, 0.0f, 0.0f, 400.0f, 240.0f, SOD_BLACK);
 	Papas::Stereo::plane(SOD_PLANE_SCENE);
-	s64 elapsed = (s64)(osGetTime() - dayIntroStartedAt);
+	s64 elapsed = (s64)(Papas::Clock::now() - dayIntroStartedAt);
 	if (elapsed < 0) elapsed = 0;
 	float srcFrame = 1.0f + (float)elapsed * STARTOFDAY_FPS / 1000.0f;
 	if (srcFrame > (float)STARTOFDAY_SRC_FRAMES) srcFrame = (float)STARTOFDAY_SRC_FRAMES;
@@ -1044,7 +1255,7 @@ void Papas::Game::beginDayIntro()
 			dayDigits[i] = C2D_SpriteSheetGetImage(dayNumberSheet, i);
 	}
 	showingDayIntro = true;
-	dayIntroStartedAt = osGetTime();
+	dayIntroStartedAt = Papas::Clock::now();
 	dayIntroPick = 0;
 	Papas::ResourceManager::getInstance().playSfx("startofday");
 }
@@ -1064,7 +1275,7 @@ void Papas::Game::endDayIntro()
 	}
 	Papas::ResourceManager::getInstance().switchMusic("orders_music");
 	// Spawn today's customers (loads the rig + per-type atlases on demand)
-	c_manager.initManager(myRank);
+	c_manager.initManager(myRank, currentDay);
 }
 
 // NEW CUSTOMER! splash, using the art and tracks from gen_newcustomer.py.
@@ -1117,13 +1328,13 @@ bool Papas::Game::beginNewCustomer()
 	Papas::ResourceManager::getInstance().playSfx(
 		newCustomerNoPapa ? "endofday" : "customer_overjoyed");
 	showingNewCustomer = true;
-	newCustomerStartedAt = osGetTime();
+	newCustomerStartedAt = Papas::Clock::now();
 	return true;
 }
 
 void Papas::Game::renderNewCustomer()
 {
-	s64 elapsed = (s64)(osGetTime() - newCustomerStartedAt);
+	s64 elapsed = (s64)(Papas::Clock::now() - newCustomerStartedAt);
 	if (elapsed < 0) elapsed = 0;
 	float srcFrame = 1.0f + (float)elapsed * NEWCUSTOMER_FPS / 1000.0f;
 
@@ -1215,14 +1426,12 @@ void Papas::Game::beginDayOrNewCustomer()
 
 void Papas::Game::startNextDay()
 {
-	// EndDayScreen.as: one rank per day when total tips pass the next limit
-	int nextLimit = lastRankLimit + (myRank + 1) * 500;
-	if (totalTipsCents > nextLimit)
-	{
-		myRank++;
-		lastRankLimit += myRank * 500;
-	}
+	// The promotion already happened on the end-of-day board, so just turn the page
+	showingEndOfDay = false;
 	currentDay++;
+	customersToday = 0;
+	waitingToday = toppingToday = bakingToday = cuttingToday = 0;
+	tipsTodayCents = 0;
 
 	// End of day is the save checkpoint, same as the original games
 	SaveManager &saveManager = SaveManager::getInstance();
@@ -1274,7 +1483,7 @@ void Papas::Game::renderGiveOrderRoy()
 	static const float SLIDE_FROM_Y = 42.0f;
 	static const float SLIDE_END_FRAME = 18.0f;
 	// Guard wall-clock rollback so unsigned timing can't jump to the last frame.
-	s64 elapsed = (s64)(osGetTime() - resultStartedAt);
+	s64 elapsed = (s64)(Papas::Clock::now() - resultStartedAt);
 	if (elapsed < 0) elapsed = 0;
 	float srcFrame = 1.0f + (float)elapsed * GIVEORDER_FPS / 1000.0f;
 	if (srcFrame > (float)GIVEORDER_SRC_FRAMES) srcFrame = (float)GIVEORDER_SRC_FRAMES;
@@ -1295,6 +1504,480 @@ void Papas::Game::renderGiveOrderRoy()
 	const GiveOrderFrame &frame = GIVEORDER_FRAMES[giveOrderPick];
 	C2D_Image img = C2D_SpriteSheetGetImage(giveOrderSheets[frame.sheet], frame.index);
 	C2D_DrawImageAt(img, ROY_X + frame.ox, ROY_Y + frame.oy, 0.70f);
+}
+
+// Both live further down with the result screen they were written for
+static void drawCenteredText(const C2D_Text &text, float y, float scale, u32 color);
+static void drawBackdrop(C2D_Image img, float x, float y, float depth);
+
+// Pause menu rows and the customer-file grid, shared by their draw and touch code
+static const float PAUSE_MENU_Y = 60.0f;
+static const float PAUSE_ROW_H = 30.0f;
+static const float FILE_GRID_X = 26.0f;
+static const float FILE_GRID_Y = 22.0f;
+static const float FILE_CELL_W = 45.0f;
+static const float FILE_CELL_H = 30.0f;
+
+// Rank ladder from GameData.as; anything past the end just stays Better Than Papa
+static const char *RANK_TITLES[] = {
+	"!", "Newbie", "Trainee", "Cashier", "Delivery Boy", "Part-Time Cook", "Line Cook",
+	"Pizza Topper", "Head Cook", "Chef Trainee", "Assistant Chef", "Sous Chef", "Pizza Chef",
+	"Head Chef", "Master Chef", "Pizza Master", "Pepperoni Lover", "Sausage Specialist",
+	"Mushroom Master", "Pepper Pro", "Onion Wrangler", "Olive Expert", "Anchovy Flinger",
+	"Dough Tosser", "Cheese Grater", "Oven Expert", "Slicer and Dicer", "Pizzeria Manager",
+	"Pizza Commander", "Master of Pizzas", "Ultimate Chef", "Better Than Papa!"
+};
+
+static const char *rankTitle(int rank)
+{
+	static const int count = (int)(sizeof(RANK_TITLES) / sizeof(RANK_TITLES[0]));
+	if (rank < 0) rank = 0;
+	return RANK_TITLES[rank < count ? rank : count - 1];
+}
+
+// Cents to "$1.23", because everybody wants their tips written out properly
+static void formatMoney(char *out, size_t size, int cents)
+{
+	if (cents < 0) cents = 0;
+	std::snprintf(out, size, "$%d.%02d", cents / 100, cents % 100);
+}
+
+// The pause menu and the two screens it can open
+
+void Papas::Game::togglePause()
+{
+	if (overlay == OverlayNone)
+	{
+		overlay = OverlayPause;
+		pauseIndex = 0;
+		Papas::Clock::pause();
+		Papas::ResourceManager::getInstance().pauseMusic();
+	}
+	else
+	{
+		// Whatever's on top, unpausing drops you straight back to work
+		if (overlay == OverlayFile) closeFile();
+		overlay = OverlayNone;
+		Papas::Clock::resume();
+		Papas::ResourceManager::getInstance().resumeMusic();
+	}
+}
+
+// Back out of a sub-screen to the menu that opened it
+void Papas::Game::leaveOverlay()
+{
+	if (overlay == OverlayFile) closeFile();
+	overlay = OverlayPause;
+}
+
+void Papas::Game::updatePause(u32 kDown)
+{
+	ResourceManager &audio = ResourceManager::getInstance();
+
+	if (overlay == OverlayHelp)
+	{
+		if (kDown & (KEY_B | KEY_START)) leaveOverlay();
+		if (kDown & (KEY_R | KEY_DRIGHT | KEY_A)) helpBook.turnPage(1);
+		if (kDown & (KEY_L | KEY_DLEFT)) helpBook.turnPage(-1);
+		if (kDown & KEY_TOUCH)
+		{
+			int row = HelpBook::rowAt(touch);
+			if (row >= 0) helpBook.setPage(row);
+		}
+		return;
+	}
+
+	if (overlay == OverlayFile)
+	{
+		if (kDown & (KEY_B | KEY_START)) { leaveOverlay(); return; }
+		if (kDown & KEY_TOUCH)
+		{
+			// Six by six grid of everybody, tap a face to pull their card
+			int col = (touch.px - FILE_GRID_X) / FILE_CELL_W;
+			int row = (touch.py - FILE_GRID_Y) / FILE_CELL_H;
+			if (touch.px >= FILE_GRID_X && touch.py >= FILE_GRID_Y && col >= 0 && col < 6 && row >= 0 && row < 6)
+			{
+				int type = row * 6 + col + 1;
+				const SaveData &sv = SaveManager::getInstance().data;
+				if (type <= 36 && sv.customerFirstDay[type] != 0)
+				{
+					audio.playSfx("buttonclick");
+					selectFileCustomer(type);
+				}
+			}
+		}
+		return;
+	}
+
+	// The pause menu itself
+	static const int ENTRY_COUNT = 5;
+	if (kDown & KEY_DDOWN) pauseIndex = (pauseIndex + 1) % ENTRY_COUNT;
+	if (kDown & KEY_DUP) pauseIndex = (pauseIndex + ENTRY_COUNT - 1) % ENTRY_COUNT;
+	if (kDown & KEY_B) { togglePause(); return; }
+
+	bool picked = (kDown & KEY_A) != 0;
+	if (kDown & KEY_TOUCH)
+	{
+		int row = (touch.py - PAUSE_MENU_Y) / PAUSE_ROW_H;
+		if (touch.px >= 60 && touch.px <= 260 && touch.py >= PAUSE_MENU_Y && row >= 0 && row < ENTRY_COUNT)
+		{
+			pauseIndex = row;
+			picked = true;
+		}
+	}
+	if (!picked) return;
+
+	audio.playSfx("buttonclick");
+	switch (pauseIndex)
+	{
+	case 0:
+		togglePause();
+		break;
+	case 1:
+		openFile();
+		break;
+	case 2:
+		overlay = OverlayHelp;
+		break;
+	case 3:
+		audio.toggleMute();
+		break;
+	case 4:
+		// Save what we've got and hand back to the menu, same as quitGame()
+		SaveManager::getInstance().save();
+		Papas::Clock::resume();
+		audio.stopMusic();
+		p_sceneManager->changeScene(new Papas::MainMenu());
+		break;
+	}
+}
+
+void Papas::Game::renderPauseTop()
+{
+	const u32 colBoard = C2D_Color32(35, 42, 37, 245);
+	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
+	const u32 colTitle = C2D_Color32(170, 63, 24, 255);
+	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+
+	C2D_DrawRectSolid(90.0f, 50.0f, 0.90f, 220.0f, 140.0f, colBoard);
+	C2D_DrawRectSolid(95.0f, 55.0f, 0.91f, 210.0f, 130.0f, colPaper);
+
+	C2D_TextBufClear(uiTextBuf);
+	char line[48];
+	C2D_Text text;
+
+	C2D_TextFontParse(&text, dokyo, uiTextBuf, "Paused");
+	C2D_TextOptimize(&text);
+	drawTextCentered(&text, 200.0f, 64.0f, 0.94f, 0.72f, colTitle);
+
+	std::snprintf(line, sizeof(line), "Day %d", currentDay);
+	C2D_TextFontParse(&text, dokyo, uiTextBuf, line);
+	C2D_TextOptimize(&text);
+	drawTextCentered(&text, 200.0f, 100.0f, 0.94f, 0.5f, colInk);
+
+	std::snprintf(line, sizeof(line), "Rank %d - %s", myRank, rankTitle(myRank));
+	C2D_TextFontParse(&text, dokyo, uiTextBuf, line);
+	C2D_TextOptimize(&text);
+	drawTextCentered(&text, 200.0f, 126.0f, 0.94f, 0.42f, colInk);
+
+	formatMoney(line, sizeof(line), totalTipsCents);
+	char tips[64];
+	std::snprintf(tips, sizeof(tips), "Tips %s", line);
+	C2D_TextFontParse(&text, dokyo, uiTextBuf, tips);
+	C2D_TextOptimize(&text);
+	drawTextCentered(&text, 200.0f, 152.0f, 0.94f, 0.42f, colInk);
+}
+
+void Papas::Game::renderPauseBottom()
+{
+	static const char *ENTRIES[] = {"Resume", "Customer File", "How to Play", "Sound", "Quit to Menu"};
+	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
+	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+	const u32 colPick = C2D_Color32(236, 121, 42, 255);
+
+	C2D_DrawRectSolid(50.0f, 30.0f, 0.90f, 220.0f, 176.0f, C2D_Color32(35, 42, 37, 245));
+	C2D_DrawRectSolid(55.0f, 35.0f, 0.91f, 210.0f, 166.0f, colPaper);
+
+	C2D_TextBufClear(uiTextBuf);
+	for (int i = 0; i < 5; i++)
+	{
+		char label[32];
+		if (i == 3)
+			std::snprintf(label, sizeof(label), "Sound: %s",
+				ResourceManager::getInstance().isMuted() ? "Off" : "On");
+		else
+			std::snprintf(label, sizeof(label), "%s", ENTRIES[i]);
+
+		C2D_Text text;
+		C2D_TextFontParse(&text, dokyo, uiTextBuf, label);
+		C2D_TextOptimize(&text);
+		drawTextCentered(&text, SCREEN_WIDTH_BOTTOM * 0.5f, PAUSE_MENU_Y + i * PAUSE_ROW_H + 4.0f,
+			0.94f, 0.5f, i == pauseIndex ? colPick : colInk);
+	}
+}
+
+// Customer file: everyone we've met, and a card for whoever's picked
+
+void Papas::Game::openFile()
+{
+	overlay = OverlayFile;
+	// Pausing during the day intro gets here before the lobby has loaded the rig
+	CustomerRig::getInstance().load();
+	if (fileSelected == 0)
+	{
+		// Open on the first person we've actually served
+		const SaveData &sv = SaveManager::getInstance().data;
+		for (int type = 1; type <= 36; type++)
+			if (sv.customerFirstDay[type] != 0) { selectFileCustomer(type); break; }
+	}
+}
+
+void Papas::Game::closeFile()
+{
+	CustomerRig::getInstance().freeType(fileAtlas);
+	fileSelected = 0;
+}
+
+void Papas::Game::selectFileCustomer(int type)
+{
+	CustomerRig::getInstance().freeType(fileAtlas);
+	fileSelected = type;
+	CustomerRig::getInstance().loadType(type, fileAtlas);
+
+	const SaveData &sv = SaveManager::getInstance().data;
+	C2D_TextBufClear(fileTextBuf);
+	char lines[5][64];
+
+	std::unordered_map<int, CustomerData>::const_iterator entry = map_customers.find(type);
+	std::snprintf(lines[0], sizeof(lines[0]), "%s",
+		entry != map_customers.end() ? entry->second.name.c_str() : "");
+
+	std::unordered_map<int, std::string>::const_iterator fave = map_customerToppings.find(type);
+	std::snprintf(lines[1], sizeof(lines[1]), "%s",
+		fave != map_customerToppings.end() ? fave->second.c_str() : "");
+
+	std::snprintf(lines[2], sizeof(lines[2]), "First came on day %d", (int)sv.customerFirstDay[type]);
+	std::snprintf(lines[3], sizeof(lines[3]), "Pizzas ordered: %d", (int)sv.customerServed[type]);
+	std::snprintf(lines[4], sizeof(lines[4]), "Gold seals: %d of 3", (int)sv.customerSeals[type]);
+
+	for (int i = 0; i < 5; i++)
+	{
+		C2D_TextFontParse(&fileText[i], dokyo, fileTextBuf, lines[i]);
+		C2D_TextOptimize(&fileText[i]);
+	}
+}
+
+void Papas::Game::renderFileTop()
+{
+	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
+	const u32 colTitle = C2D_Color32(170, 63, 24, 255);
+	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+
+	Papas::Stereo::plane(0.6f);
+	C2D_DrawRectSolid(14.0f, 10.0f, 0.90f, 372.0f, 220.0f, C2D_Color32(35, 42, 37, 245));
+	C2D_DrawRectSolid(19.0f, 15.0f, 0.91f, 362.0f, 210.0f, colPaper);
+
+	if (fileSelected == 0) return;
+
+	// Polaroid on the left, their details on the right
+	C2D_DrawRectSolid(34.0f, 30.0f, 0.92f, 130.0f, 180.0f, C2D_Color32(255, 255, 255, 255));
+	C2D_DrawRectSolid(40.0f, 36.0f, 0.93f, 118.0f, 140.0f, C2D_Color32(198, 224, 178, 255));
+
+	Papas::Stereo::plane(0.35f);
+	CustomerRig &rig = CustomerRig::getInstance();
+	int segment = rig.segmentIndex(SaveManager::getInstance().data.customerSeals[fileSelected] > 0
+		? "overjoyed" : "stand");
+	rig.draw(fileAtlas, fileSelected, rig.frameForTime(segment, 0.0f),
+		99.0f, 44.0f, 0.30f, 0.30f, 0.94f);
+
+	Papas::Stereo::plane(0.3f);
+	C2D_DrawText(&fileText[0], C2D_WithColor, 186.0f, 34.0f, 0.95f, 0.62f, 0.62f, colTitle);
+	C2D_DrawText(&fileText[1], C2D_WithColor, 186.0f, 72.0f, 0.95f, 0.38f, 0.38f, colInk);
+	for (int i = 2; i < 5; i++)
+		C2D_DrawText(&fileText[i], C2D_WithColor, 186.0f, 106.0f + (i - 2) * 24.0f, 0.95f, 0.4f, 0.4f, colInk);
+
+	renderStarRow(250.0f, 190.0f, SaveManager::getInstance().data.customerStars[fileSelected], 0, 0.95f);
+}
+
+void Papas::Game::renderFileBottom()
+{
+	const SaveData &sv = SaveManager::getInstance().data;
+	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
+	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+	const u32 colSoft = C2D_Color32(178, 170, 150, 255);
+	const u32 colPick = C2D_Color32(236, 121, 42, 255);
+
+	C2D_DrawRectSolid(10.0f, 6.0f, 0.90f, 300.0f, 206.0f, C2D_Color32(35, 42, 37, 245));
+	C2D_DrawRectSolid(14.0f, 10.0f, 0.91f, 292.0f, 198.0f, colPaper);
+
+	C2D_TextBufClear(uiTextBuf);
+	for (int type = 1; type <= 36; type++)
+	{
+		int col = (type - 1) % 6;
+		int row = (type - 1) / 6;
+		float x = FILE_GRID_X + col * FILE_CELL_W;
+		float y = FILE_GRID_Y + row * FILE_CELL_H;
+		bool met = sv.customerFirstDay[type] != 0;
+
+		C2D_DrawRectSolid(x + 2.0f, y + 2.0f, 0.92f, FILE_CELL_W - 5.0f, FILE_CELL_H - 5.0f,
+			type == fileSelected ? colPick : (met ? C2D_Color32(214, 205, 178, 255) : colSoft));
+
+		char label[8];
+		std::snprintf(label, sizeof(label), met ? "%d" : "?", type);
+		C2D_Text text;
+		C2D_TextFontParse(&text, dokyo, uiTextBuf, label);
+		C2D_TextOptimize(&text);
+		drawTextCentered(&text, x + FILE_CELL_W * 0.5f - 1.0f, y + 5.0f, 0.94f, 0.4f, colInk);
+
+		// A pip in the corner for anyone who's earned a seal
+		if (met && sv.customerSeals[type] > 0)
+			C2D_DrawRectSolid(x + FILE_CELL_W - 9.0f, y + 4.0f, 0.95f, 4.0f, 4.0f,
+				C2D_Color32(232, 186, 48, 255));
+	}
+
+	C2D_Text hint;
+	C2D_TextFontParse(&hint, dokyo, uiTextBuf, "Tap a customer    B Back");
+	C2D_TextOptimize(&hint);
+	drawTextCentered(&hint, SCREEN_WIDTH_BOTTOM * 0.5f, 216.0f, 0.94f, 0.42f,
+		C2D_Color32(120, 105, 90, 255));
+}
+
+// End of day: how we did, what we made, and whether it earned a promotion
+
+void Papas::Game::beginEndOfDay()
+{
+	showingEndOfDay = true;
+	endDayPhase = EndDayBoard;
+	endDayPhaseStarted = Papas::Clock::now();
+	// showTips(): work out the promotion now, hand it over at the rank step
+	endDayRankUp = totalTipsCents > lastRankLimit + (myRank + 1) * 500;
+	prepareEndDayText();
+	Papas::ResourceManager::getInstance().stopMusic();
+	Papas::ResourceManager::getInstance().playSfx("endofday");
+	Papas::ResourceManager::getInstance().switchMusic("justguitar_music");
+}
+
+void Papas::Game::prepareEndDayText()
+{
+	C2D_TextBufClear(endDayTextBuf);
+	int served = std::max(1, customersToday);
+	int waiting = waitingToday / served;
+	int topping = toppingToday / served;
+	int baking = bakingToday / served;
+	int cutting = cuttingToday / served;
+	int quality = (waiting + topping + baking + cutting) / 4;
+
+	char lines[13][64];
+	char money[16];
+	std::snprintf(lines[0], sizeof(lines[0]), "Day %d Done!", currentDay);
+	std::snprintf(lines[1], sizeof(lines[1]), "Customers  %d", customersToday);
+	std::snprintf(lines[2], sizeof(lines[2]), "Quality    %d%%", quality);
+	std::snprintf(lines[3], sizeof(lines[3]), "Waiting    %d%%", waiting);
+	std::snprintf(lines[4], sizeof(lines[4]), "Toppings   %d%%", topping);
+	std::snprintf(lines[5], sizeof(lines[5]), "Baking     %d%%", baking);
+	std::snprintf(lines[6], sizeof(lines[6]), "Cutting    %d%%", cutting);
+	formatMoney(money, sizeof(money), tipsTodayCents);
+	std::snprintf(lines[7], sizeof(lines[7]), "Tips Today   %s", money);
+	formatMoney(money, sizeof(money), totalTipsCents);
+	std::snprintf(lines[8], sizeof(lines[8]), "Tips Total   %s", money);
+	// Rank line reads whatever myRank is now, so this gets rebuilt after a promotion
+	std::snprintf(lines[9], sizeof(lines[9]), "Rank %d", myRank);
+	std::snprintf(lines[10], sizeof(lines[10]), "%s", rankTitle(myRank));
+	formatMoney(money, sizeof(money), std::max(0, lastRankLimit + (myRank + 1) * 500 - totalTipsCents));
+	std::snprintf(lines[11], sizeof(lines[11]), "Next rank in %s", money);
+	std::snprintf(lines[12], sizeof(lines[12]), "Continue");
+
+	for (int i = 0; i < 13; i++)
+	{
+		C2D_TextFontParse(&endDayText[i], dokyo, endDayTextBuf, lines[i]);
+		C2D_TextOptimize(&endDayText[i]);
+	}
+}
+
+void Papas::Game::updateEndOfDay()
+{
+	u64 elapsed = Papas::Clock::now() - endDayPhaseStarted;
+	if (endDayPhase == EndDayTips && elapsed >= 2600)
+	{
+		// determineUpgrade(): the promotion lands here, with a cheer to match
+		if (endDayRankUp)
+		{
+			myRank++;
+			lastRankLimit += myRank * 500;
+			Papas::ResourceManager::getInstance().playSfx("customer_overjoyed");
+		}
+		prepareEndDayText();
+		endDayPhase = EndDayRank;
+		endDayPhaseStarted = Papas::Clock::now();
+	}
+	else if (endDayPhase == EndDayRank && elapsed >= 1800)
+	{
+		endDayPhase = EndDayReady;
+		endDayPhaseStarted = Papas::Clock::now();
+	}
+}
+
+void Papas::Game::renderEndOfDayTop()
+{
+	// Same counter the results use, with the day's takings still sitting on it
+	Papas::Stereo::plane(1.0f);
+	drawBackdrop(to_wallpaper, 0, 0, 0);
+	Papas::Stereo::plane(0.0f);
+	C2D_DrawImageAt(to_counter, 0, 0, 0.65f);
+
+	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
+	const u32 colTitle = C2D_Color32(170, 63, 24, 255);
+	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+
+	Papas::Stereo::plane(-0.1f);
+	C2D_DrawRectSolid(24.0f, 24.0f, 0.90f, 246.0f, 190.0f, C2D_Color32(35, 42, 37, 245));
+	C2D_DrawRectSolid(29.0f, 29.0f, 0.91f, 236.0f, 180.0f, colPaper);
+
+	drawTextCentered(&endDayText[0], 147.0f, 36.0f, 0.94f, 0.66f, colTitle);
+	if (endDayPhase == EndDayBoard)
+	{
+		for (int i = 1; i <= 6; i++)
+			C2D_DrawText(&endDayText[i], C2D_WithColor, 52.0f, 72.0f + (i - 1) * 22.0f, 0.94f, 0.46f, 0.46f, colInk);
+	}
+	else
+	{
+		C2D_DrawText(&endDayText[7], C2D_WithColor, 52.0f, 76.0f, 0.94f, 0.5f, 0.5f, colInk);
+		C2D_DrawText(&endDayText[8], C2D_WithColor, 52.0f, 104.0f, 0.94f, 0.5f, 0.5f, colInk);
+		if (endDayPhase != EndDayTips)
+		{
+			drawTextCentered(&endDayText[9], 147.0f, 138.0f, 0.94f, 0.62f, colTitle);
+			drawTextCentered(&endDayText[10], 147.0f, 168.0f, 0.94f, 0.44f, colInk);
+		}
+	}
+
+	// Jar keeps the day's tips on show through the whole wrap-up
+	Papas::Stereo::plane(-0.08f);
+	renderTipJar();
+}
+
+void Papas::Game::renderEndOfDayBottom()
+{
+	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
+	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+	const u32 colSoft = C2D_Color32(120, 105, 90, 255);
+
+	C2D_DrawRectSolid(18.0f, 40.0f, 0.90f, 284.0f, 160.0f, C2D_Color32(35, 42, 37, 245));
+	C2D_DrawRectSolid(22.0f, 44.0f, 0.91f, 276.0f, 152.0f, colPaper);
+
+	if (endDayPhase == EndDayReady)
+		drawCenteredText(endDayText[11], 66.0f, 0.5f, colSoft);
+	else
+		drawCenteredText(endDayText[2], 66.0f, 0.5f, colInk);
+
+	drawCenteredText(endDayText[8], 104.0f, 0.52f, colInk);
+
+	// Board waits for you to look it over, the rest of it plays itself out
+	if (endDayPhase == EndDayBoard || endDayPhase == EndDayReady)
+	{
+		C2D_DrawRectSolid(100.0f, 148.0f, 0.92f, 120.0f, 30.0f, C2D_Color32(36, 105, 4, 255));
+		C2D_DrawRectSolid(103.0f, 151.0f, 0.93f, 114.0f, 24.0f, C2D_Color32(76, 190, 16, 255));
+		drawCenteredText(endDayText[12], 154.0f, 0.50f, C2D_Color32(11, 33, 0, 255));
+	}
 }
 
 // A pizza got served: score it, pick the reaction, kick off the result screen
@@ -1351,6 +2034,14 @@ void Papas::Game::completeServedPizza(Pizza &pizza)
 			sv.customerStars[resultCustomerType] = 0;
 	}
 
+	// Day tally the end-of-day board averages out
+	customersToday++;
+	waitingToday += result.waiting;
+	toppingToday += result.topping;
+	bakingToday += result.baking;
+	cuttingToday += result.cutting;
+	tipsTodayCents += result.tipCents;
+
 	result.customerName = order.name;
 	if (result.overall >= 90) resultReaction = "overjoyed";
 	else if (result.overall >= 80) resultReaction = "happy";
@@ -1372,8 +2063,8 @@ void Papas::Game::completeServedPizza(Pizza &pizza)
 	loadGiveOrderSheets();
 	giveOrderPick = 0;
 	resultPhase = ResultDrumroll;
-	resultPhaseStarted = osGetTime();
-	resultStartedAt = osGetTime();
+	resultPhaseStarted = Papas::Clock::now();
+	resultStartedAt = Papas::Clock::now();
 	Papas::ResourceManager::getInstance().playSfx("giveorder_drumroll");
 	showingResult = true;
 }
@@ -1381,13 +2072,13 @@ void Papas::Game::completeServedPizza(Pizza &pizza)
 // Run the original result timing, including reactions and tip sounds.
 void Papas::Game::updateResult()
 {
-	u64 elapsed = osGetTime() - resultPhaseStarted;
+	u64 elapsed = Papas::Clock::now() - resultPhaseStarted;
 	Customer *customer = c_manager.getCustomer(resultCustomerNumber);
 	if (resultPhase == ResultDrumroll && elapsed >= 1980)
 	{
 		if (customer != nullptr) customer->playPresentation("look");
 		resultPhase = ResultLook;
-		resultPhaseStarted = osGetTime();
+		resultPhaseStarted = Papas::Clock::now();
 	}
 	else if (resultPhase == ResultLook && elapsed >= 1485)
 	{
@@ -1399,7 +2090,7 @@ void Papas::Game::updateResult()
 		else if (resultReaction == "upset") Papas::ResourceManager::getInstance().playSfx("customer_upset");
 		else Papas::ResourceManager::getInstance().playSfx("customer_pissed");
 		resultPhase = ResultReaction;
-		resultPhaseStarted = osGetTime();
+		resultPhaseStarted = Papas::Clock::now();
 	}
 	else if (resultPhase == ResultReaction && elapsed >= 1300)
 	{
@@ -1409,17 +2100,17 @@ void Papas::Game::updateResult()
 			else Papas::ResourceManager::getInstance().playSfx("multicoin");
 		}
 		resultPhase = ResultTip;
-		resultPhaseStarted = osGetTime();
+		resultPhaseStarted = Papas::Clock::now();
 	}
 	else if (resultPhase == ResultTip && elapsed >= 3300)
 	{
 		resultPhase = ResultReady;
-		resultPhaseStarted = osGetTime();
+		resultPhaseStarted = Papas::Clock::now();
 	}
 
 	// Light the earned star partway through the tip phase.
 	if (resultPhase == ResultTip && resultStarEarned > 0 && !resultStarSfxPlayed
-	    && osGetTime() - resultPhaseStarted >= 700)
+	    && Papas::Clock::now() - resultPhaseStarted >= 700)
 	{
 		Papas::ResourceManager::getInstance().playSfx("getstar");
 		resultStarSfxPlayed = true;
@@ -1476,7 +2167,7 @@ void Papas::Game::renderTipJar()
 	const float jarX = 304.0f;
 	const float jarY = 137.0f;
 	int shownTips = totalTipsCents;
-	if (resultPhase < ResultTip || (resultPhase == ResultTip && osGetTime() - resultPhaseStarted < 900))
+	if (resultPhase < ResultTip || (resultPhase == ResultTip && Papas::Clock::now() - resultPhaseStarted < 900))
 		shownTips -= result.tipCents;
 	int jarFrame = 1;
 	if (shownTips > 0)
@@ -1488,7 +2179,7 @@ void Papas::Game::renderTipJar()
 	C2D_DrawImageAt(resultJar, jarX, jarY, 0.84f);
 	if (resultPhase == ResultTip && result.tipCents > 0)
 	{
-		float elapsed = (float)(osGetTime() - resultPhaseStarted);
+		float elapsed = (float)(Papas::Clock::now() - resultPhaseStarted);
 		float progress = std::min(1.0f, elapsed / 950.0f);
 		int frame = ((int)(elapsed / 70.0f)) % 6;
 		C2D_Image coin = resultCoinSpin[frame];
@@ -1519,7 +2210,7 @@ void Papas::Game::renderResultStars()
 	static const float ROW_CX = 170.0f;
 	static const float ROW_Y = 204.0f;
 	static const float STAR_SCALE = 0.45f;
-	u64 sincePhase = osGetTime() - resultPhaseStarted;
+	u64 sincePhase = Papas::Clock::now() - resultPhaseStarted;
 	bool revealed = resultPhase == ResultReady ||
 		(resultPhase == ResultTip && sincePhase >= 700);
 
@@ -1609,6 +2300,31 @@ static const float LOBBY_POPUP_DEPTH    = 0.003f;
 
 PapasError Papas::Game::render_top()
 {
+	// Overlays sit on top of everything, so they get first say
+	if (overlay != OverlayNone)
+	{
+		// Wallpaper behind them all, otherwise the panels float on the clear colour
+		Papas::Stereo::plane(1.0f);
+		drawBackdrop(to_wallpaper, 0, 0, 0);
+		if (overlay == OverlayFile)
+		{
+			renderFileTop();
+		}
+		else
+		{
+			Papas::Stereo::plane(-0.1f);
+			if (overlay == OverlayHelp) helpBook.renderTop();
+			else renderPauseTop();
+		}
+		return PAPAS_OK;
+	}
+
+	if (showingEndOfDay)
+	{
+		renderEndOfDayTop();
+		return PAPAS_OK;
+	}
+
 	if (showingNewCustomer)
 	{
 		renderNewCustomer();
@@ -1713,7 +2429,7 @@ void Papas::Game::renderOrderBubble()
 	if (to_bubbleKind == BubbleOpening)
 	{
 		// Bounce the balloon open, overshoot a little then settle
-		float progress = std::min(1.0f, (float)(osGetTime() - to_orderStartedAt) / 700.0f);
+		float progress = std::min(1.0f, (float)(Papas::Clock::now() - to_orderStartedAt) / 700.0f);
 		float bounce = progress < 0.7f ? progress / 0.7f * 1.08f : 1.08f - (progress - 0.7f) / 0.3f * 0.08f;
 		float scale = BUBBLE_SCALE * bounce;
 		drawOrderBubbleImage(orderBubbleBase,
@@ -1781,9 +2497,14 @@ void Papas::Game::TakeOrder(Customer* customer)
 		r_manager.getDockedReceipt(&to_tempReceipt);
 		to_tempReceipt->customerType = customerNum;
 		to_tempReceipt->customerNumber = customer->getNumber();
-		to_orderStartedAt = osGetTime();
+		to_orderStartedAt = Papas::Clock::now();
 		to_bubbleKind = BubbleOpening;
 		customer->playPresentation("stand");
+
+		// drawCustomerOrdering(): another one on their tally for the file
+		SaveData &sv = SaveManager::getInstance().data;
+		if (customerNum > 0 && customerNum < (int)(sizeof(sv.customerServed) / sizeof(sv.customerServed[0])))
+			sv.customerServed[customerNum]++;
 
 		// Their name gets printed on the counter next to the star row
 		C2D_TextBufClear(nameTextBuf);
@@ -1793,7 +2514,7 @@ void Papas::Game::TakeOrder(Customer* customer)
 		to_firstRun = true;
 	}
 
-	if (to_bubbleKind == BubbleOpening && osGetTime() - to_orderStartedAt < 700)
+	if (to_bubbleKind == BubbleOpening && Papas::Clock::now() - to_orderStartedAt < 700)
 	{
 		Papas::Stereo::plane(0.0f);
 		C2D_DrawImageAt(to_counter, 0, 0, TO_COUNTER_DEPTH);
@@ -1832,9 +2553,11 @@ void Papas::Game::TakeOrder(Customer* customer)
 		{
 			Papas::ResourceManager::getInstance().playSfx("writepencil");
 			Papas::ResourceManager::getInstance().playSfx("talkbubble");
+			// Read the notch off the customer; the day's last one wants it quick
 			to_bubbleKind = BubbleTime;
-			to_bubbleTime = map_customers[customerNum].time;
-			to_tempReceipt->addTime(map_customers[customerNum].time);
+			to_bubbleTime = customer->getCookTime();
+			to_tempReceipt->cookNotch = to_bubbleTime;
+			to_tempReceipt->addTime(to_bubbleTime);
 		}
 
 		if (to_currentAction == to_n_actions + 1)
@@ -1850,13 +2573,17 @@ void Papas::Game::TakeOrder(Customer* customer)
 		{
 			to_bubbleKind = BubbleHidden;
 			customer->playPresentation("stand");
-			to_tempReceipt->orderStartedAt = osGetTime();
+			// finishTakingOrder(): the clock and the queue snapshot both start here
+			to_tempReceipt->orderStartedAt = Papas::Clock::now();
+			to_tempReceipt->lineWaitMs = Papas::Clock::now() - customer->getEnteredAt();
+			to_tempReceipt->ordersAheadOfMe = c_manager.ordersAhead();
 			to_firstRun = false;
 			to_currentAction = 0;
 			to_n_actions = 0;
 			to_tempReceipt = nullptr;
 			Roy2.resetAnim();
 			takingOrder = false;
+			Papas::ResourceManager::getInstance().switchMusic("orders_music");
 			// Order's on the ticket: customer walks off to the wait line
 			c_manager.orderTaken();
 		}
@@ -1886,7 +2613,7 @@ PapasError Papas::Game::render_bottom()
 		// Slow the source twinkle into a gentler whole-bed glow.
 		static const float COAL_PERIOD_MS = 1600.0f;
 
-		float phase = (float)(osGetTime() % (u64)COAL_PERIOD_MS) / COAL_PERIOD_MS;
+		float phase = (float)(Papas::Clock::now() % (u64)COAL_PERIOD_MS) / COAL_PERIOD_MS;
 		C2D_ImageTint glow;
 		C2D_AlphaImageTint(&glow, 0.5f - 0.5f * cosf(2.0f * M_PI * phase));
 		for (int i = 0; i < 4; i++)
@@ -1896,6 +2623,29 @@ PapasError Papas::Game::render_bottom()
 		}
 	}
 	C2D_DrawImageAt(currentStationImg, 0, 0, 0.01f);
+
+	// Same running order as up top: overlays first, then the day's set pieces
+	if (overlay == OverlayHelp)
+	{
+		helpBook.renderBottom();
+		return PAPAS_OK;
+	}
+	if (overlay == OverlayFile)
+	{
+		renderFileBottom();
+		return PAPAS_OK;
+	}
+	if (overlay == OverlayPause)
+	{
+		renderPauseBottom();
+		return PAPAS_OK;
+	}
+
+	if (showingEndOfDay)
+	{
+		renderEndOfDayBottom();
+		return PAPAS_OK;
+	}
 	if (showingDayIntro || showingNewCustomer)
 	{
 		// Station art only; no buttons while the intro plays
@@ -1922,6 +2672,8 @@ PapasError Papas::Game::render_bottom()
 	{
 		if(createReceipt.showButton(touch)){
 			takingOrder = true;
+			// Its own little theme while they reel the order off
+			Papas::ResourceManager::getInstance().switchMusic("takeorder_music");
 			r_manager.createReceipt();
 		}
 	}
@@ -1955,18 +2707,56 @@ PapasError Papas::Game::update()
 
 	hidScanInput();
 	hidTouchRead(&touch);
-	pz_manager.updateTimers();
 
 	// Respond to user input
 	u32 kDown = hidKeysDown();
 	u32 kHeld = hidKeysHeld();
 
-	if (kDown & (KEY_START | KEY_SELECT))
+	// Paused means paused: no timers, no walking, nothing but the menu
+	if (overlay != OverlayNone)
+	{
+		updatePause(kDown);
+		return PAPAS_OK; // updatePause may have changed scene; touch nothing else
+	}
+
+	pz_manager.updateTimers();
+
+	if (kDown & KEY_START)
+	{
+		togglePause();
+		return PAPAS_OK;
+	}
+	if (kDown & KEY_SELECT)
 		return PAPAS_EXIT_REQUESTED;
+
+	if (showingEndOfDay)
+	{
+		updateEndOfDay();
+		bool touching = touch.px != 0 || touch.py != 0;
+		bool onContinue = touch.px >= 100 && touch.px <= 220 && touch.py >= 148 && touch.py <= 182;
+		bool ready = endDayPhase == EndDayBoard || endDayPhase == EndDayReady;
+		if (ready && touching && onContinue) resultTouchHeld = true;
+		if (ready && ((!touching && resultTouchHeld) || (kDown & KEY_A)))
+		{
+			resultTouchHeld = false;
+			if (endDayPhase == EndDayBoard)
+			{
+				// moveScreen(): board's been read, now show what it earned
+				endDayPhase = EndDayTips;
+				endDayPhaseStarted = Papas::Clock::now();
+				Papas::ResourceManager::getInstance().playSfx("cash");
+			}
+			else
+			{
+				startNextDay();
+			}
+		}
+		return PAPAS_OK;
+	}
 
 	if (showingNewCustomer)
 	{
-		u64 elapsed = osGetTime() - newCustomerStartedAt;
+		u64 elapsed = Papas::Clock::now() - newCustomerStartedAt;
 		int frames = newCustomerNoPapa ? NEWCUSTOMER_NOPAPA_SRC_FRAMES : NEWCUSTOMER_SRC_FRAMES;
 		u64 duration = (u64)((float)frames * 1000.0f / NEWCUSTOMER_FPS);
 		bool skip = elapsed > 400 && ((kDown & KEY_A) || touch.px != 0 || touch.py != 0);
@@ -1977,7 +2767,7 @@ PapasError Papas::Game::update()
 
 	if (showingDayIntro)
 	{
-		u64 elapsed = osGetTime() - dayIntroStartedAt;
+		u64 elapsed = Papas::Clock::now() - dayIntroStartedAt;
 		u64 duration = (u64)((float)STARTOFDAY_SRC_FRAMES * 1000.0f / STARTOFDAY_FPS) + 400;
 		bool skip = elapsed > 400 && ((kDown & KEY_A) || touch.px != 0 || touch.py != 0);
 		if (elapsed >= duration || skip)
@@ -2001,7 +2791,7 @@ PapasError Papas::Game::update()
 			freeGiveOrderSheets();
 			// Finish the day before switching stations so its music stays gated.
 			if (c_manager.dayIsOver())
-				startNextDay();
+				beginEndOfDay();
 			SwitchStation(TicketStation);
 		}
 		return PAPAS_OK;
@@ -2068,8 +2858,8 @@ void Papas::Game::SwitchStation(Stations station)
 	switch (station)
 	{
 	case TicketStation:
-		// During the day intro the music starts when the intro ends
-		if (!showingDayIntro && !showingNewCustomer)
+		// During the day intro or the wrap-up the music is somebody else's problem
+		if (!showingDayIntro && !showingNewCustomer && !showingEndOfDay)
 			Papas::ResourceManager::getInstance().switchMusic("orders_music");
 		currentStationImg = C2D_SpriteSheetGetImage(s_stations, 0);
 		currentPopupImg = C2D_SpriteSheetGetImage(s_stations, 1);
@@ -2130,7 +2920,12 @@ PapasError Papas::Game::terminate()
 		newCustomerSheet = nullptr;
 	}
 	CustomerRig::getInstance().freeType(newCustomerAtlas);
+	CustomerRig::getInstance().freeType(fileAtlas);
+	helpBook.terminate();
 	C2D_SpriteSheetFree(starsSheet);
+	C2D_TextBufDelete(endDayTextBuf);
+	C2D_TextBufDelete(fileTextBuf);
+	C2D_TextBufDelete(uiTextBuf);
 	C2D_TextBufDelete(nameTextBuf);
 	C2D_TextBufDelete(newCustomerTextBuf);
 	C2D_TextBufDelete(orderBubbleTextBuf);

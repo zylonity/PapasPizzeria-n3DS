@@ -22,6 +22,9 @@ namespace Papas {
 	// Index -> order data for all 36 customer types (defined in Papas_Customers.cpp)
 	extern std::unordered_map<int, CustomerData> map_customers;
 
+	// The blurb the customer file prints under their photo (GameData.blankcustomerdata)
+	extern std::unordered_map<int, std::string> map_customerToppings;
+
 	// A lobby customer; the manager owns it and moves it between lines.
 	class Customer
 	{
@@ -48,10 +51,15 @@ namespace Papas {
 		void shiftOrderLine(int lineIndex);    // someone ahead left; new target
 		void shiftWaitLine(int lineIndex);
 
+		// The day's last customer wants their pizza barely cooked so we can shut up shop
+		void shortenWaitTime() { cookTime = 1; }
+
 		State getState() const { return state; }
 		int   getType() const { return type; }
 		int   getNumber() const { return number; }
 		bool  isWalking() const { return walking; }
+		int   getCookTime() const { return cookTime; }
+		u64   getEnteredAt() const { return enteredAt; }
 
 	private:
 		void startSegment(const char* name);
@@ -61,6 +69,8 @@ namespace Papas {
 		RigTypeAtlas atlasOrder;  // take-order-sized art, held only while ordering
 		int type = 1;
 		int number = 0;
+		int cookTime = 0;         // this customer's notch, copied so it can be shortened
+		u64 enteredAt = 0;        // walked in at, for the line half of the waiting score
 
 		State state = EnteringOrderLine;
 		float x = 0;
@@ -71,20 +81,23 @@ namespace Papas {
 		bool  flipped = false;   // leaving customers face right (negative scaleX)
 
 		int currentSeg = -1;     // rig segment being played
-		std::chrono::steady_clock::time_point segStart;
+		u64 segStart = 0;
 		int presentationSeg = -1;
-		std::chrono::steady_clock::time_point presentationStart;
+		u64 presentationStart = 0;
 	};
 
 	// Spawns the day's lineup and runs the order/wait lines (CustomerManager.as)
 	class CustomerManager
 	{
 	public:
-		void initManager(int rank);
+		void initManager(int rank, int day);
 		void terminateManager();
 
 		void update();               // spawn timer + walking
 		void renderLines(float depth); // lobby customers on the top screen
+		// OrderScreen.forceNewCustomer(): nobody waiting for 9s, so shove the next one out
+		void nudgeIdleLine();
+		int  ordersAhead() const { return (int)waitline.size(); }
 
 		// Take-order flow: the customer at the front of the order line.
 		Customer* getOrderingCustomer();     // nullptr if none has arrived yet
@@ -109,6 +122,7 @@ namespace Papas {
 	private:
 		void decideLineup(int rank);
 		void spawnNext();
+		u64  emptyLineSince = 0;      // when the order line last went empty, 0 = it isn't
 
 		std::vector<int> customerLineup;      // types, in spawn order
 		std::vector<Customer*> v_customers;   // owns every spawned customer
@@ -116,8 +130,9 @@ namespace Papas {
 		std::vector<Customer*> waitline;
 
 		int totalCustomers = 0;
+		int today = 1;                        // stamped on a customer's file the first time they visit
 		float spawnSpeed = 0;                 // seconds between spawns
-		std::chrono::steady_clock::time_point lastSpawnTime;
-		std::chrono::steady_clock::time_point lastUpdate;
+		u64 lastSpawnTime = 0;
+		u64 lastUpdate = 0;
 	};
 }

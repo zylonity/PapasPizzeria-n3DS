@@ -8,6 +8,14 @@
 
 namespace Papas {
 
+	// Wall clock that stands still while paused, so no timer can cheat its way forward
+	namespace Clock {
+		u64  now();		// milliseconds, frozen for as long as we're paused
+		void pause();
+		void resume();
+		bool isPaused();
+	}
+
 	// Basic 2d vector for positions and scales
 	struct v2 {
 		float x;
@@ -119,6 +127,30 @@ namespace Papas {
 		int currentPauses = 0;
 	};
 
+	// Paged how-to-play book; the main menu and the pause overlay both draw one
+	class HelpBook {
+	public:
+		void init(C2D_Font *font);
+		void terminate();
+		void setPage(int newPage);		// wraps both ways
+		void turnPage(int by);
+		int  getPage() const { return page; }
+		static int count();
+		static int rowAt(const touchPosition &touch);	// contents row under a touch, -1 for none
+		void renderTop();				// the page itself
+		void renderBottom();			// contents list with the current page marked
+
+	private:
+		C2D_Font *dokyo = nullptr;
+		C2D_TextBuf buf = nullptr;
+		C2D_Text title;
+		C2D_Text body[7];
+		C2D_Text contents[12];
+		C2D_Text hint;
+		int bodyLines = 0;
+		int page = 0;
+	};
+
 	// Same order as the original's chooseTopping(1..7)
 	enum Toppings{
 		Pepperoni,
@@ -187,6 +219,9 @@ namespace Papas {
 		int customerType = 0;
 		int customerNumber = 0;
 		u64 orderStartedAt = 0;		// for the waiting score
+		u64 lineWaitMs = 0;			// how long they queued before we served them
+		int ordersAheadOfMe = 0;	// pickups already waiting when the order was taken
+		int cookNotch = 1;			// the customer's own notch, last-of-day gets shortened
 		//Position and scales to dock the ticket screens
 		const v2 snapPosTop = {277.6f, 0.0f};
 		const v2 bigScaleTop = {0.95f, 0.95f};

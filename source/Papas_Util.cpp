@@ -1,4 +1,5 @@
 #include "Papas_Utils.h"
+#include "Papas_ResourceManager.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +8,37 @@
 #include <sstream>
 #include <cstdlib> // for rand() and srand()
 #include <vector>
+
+// Pause bookkeeping: when we froze, and how much time we've swallowed so far
+static u64 clockPausedAt = 0;
+static u64 clockLostMs = 0;
+
+u64 Papas::Clock::now()
+{
+	if (clockPausedAt != 0)
+		return clockPausedAt - clockLostMs;
+	return osGetTime() - clockLostMs;
+}
+
+void Papas::Clock::pause()
+{
+	if (clockPausedAt == 0)
+		clockPausedAt = osGetTime();
+}
+
+void Papas::Clock::resume()
+{
+	if (clockPausedAt != 0)
+	{
+		clockLostMs += osGetTime() - clockPausedAt;
+		clockPausedAt = 0;
+	}
+}
+
+bool Papas::Clock::isPaused()
+{
+	return clockPausedAt != 0;
+}
 
 Papas::Button::Button(C2D_SpriteSheet& spriteSheet, int unpressed, int selected, int pressed, v2 position) {
 
@@ -110,7 +142,7 @@ void Papas::AnimatedSprite::createAnim(const char *spriteSheet, float time, v2 p
 		
 		each_sprite.push_back(spr);
 	}
-	start = osGetTime();
+	start = Papas::Clock::now();
 	currentSprite = 0;
 }
 
@@ -118,7 +150,7 @@ void Papas::AnimatedSprite::createAnim(const char *spriteSheet, float time, v2 p
 void Papas::AnimatedSprite::renderAnim(bool loop)
 {
 
-	end = osGetTime();
+	end = Papas::Clock::now();
 
 	if (end - start >= animTime)
 	{
@@ -136,7 +168,7 @@ void Papas::AnimatedSprite::renderAnim(bool loop)
 			
 		}
 
-		start = osGetTime();
+		start = Papas::Clock::now();
 	}
 
 	if (!finished)
@@ -162,7 +194,7 @@ void Papas::AnimatedSprite::destroyAnim()
 
 void Papas::RoyPeeking::renderAnim(bool loop)
 {
-	end = osGetTime();
+	end = Papas::Clock::now();
 
 	if (end - start >= animTime)
 	{
@@ -200,7 +232,7 @@ void Papas::RoyPeeking::renderAnim(bool loop)
 		}
 		
 
-		start = osGetTime();
+		start = Papas::Clock::now();
 	}
 
 	if (!finished)
@@ -220,7 +252,7 @@ void Papas::RoyPeeking::renderAnimBackwards(bool loop)
 	}
 
 
-	end = osGetTime();
+	end = Papas::Clock::now();
 
 	if (end - start >= animTime)
 	{
@@ -234,7 +266,7 @@ void Papas::RoyPeeking::renderAnimBackwards(bool loop)
 			finished = true;
 		}
 
-		start = osGetTime();
+		start = Papas::Clock::now();
 	}
 
 	if (finished == false)
@@ -252,7 +284,7 @@ void Papas::RoyPeeking::resetAnim()
 // Loop the scribble with pauses and report when a new order line starts.
 bool Papas::RoyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
 {
-	end = osGetTime();
+	end = Papas::Clock::now();
 	pauseTriggered = false;
 
 	if (paused == false && end - start >= animTime)
@@ -278,7 +310,7 @@ bool Papas::RoyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
 			}
 		}
 
-		start = osGetTime();
+		start = Papas::Clock::now();
 	}
 
 	if (!finished && !paused)
@@ -295,7 +327,7 @@ bool Papas::RoyTakingOrder::renderAnimWithPauses(int pauses, float pauseTime)
 			
 			paused = false;
 			currentPauses++;
-			start = osGetTime();
+			start = Papas::Clock::now();
 		}
 	}
 
@@ -575,6 +607,7 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 			if (!isDragging)
 			{
 				// Set the grabbed state right away so the receipt doesn't jump.
+				Papas::ResourceManager::getInstance().playSfx("grabticket");
 				bottom.setScaleReceipt(smallScaleBottom);
 
 				if (bottom.pinnedTop)
@@ -598,6 +631,7 @@ void Papas::Receipt::detectMovement(touchPosition &touch)
 	}
 	else if (isDragging)
 	{
+		Papas::ResourceManager::getInstance().playSfx("dropticket");
 		if (bottom.pos.y < 30.0f)
 		{
 			dockInUse = false;
@@ -829,4 +863,199 @@ void Papas::ReceiptManager::terminateManager()
 		v_receipts[j] = nullptr;
 	}
 	v_receipts.clear();
+}
+
+// The help book, adapted from the original's 13 board pages to our controls.
+namespace {
+	struct HelpPage
+	{
+		const char *title;
+		const char *lines[7];
+	};
+
+	const HelpPage HELP_PAGES[] = {
+		{"Welcome to Papa's!", {
+			"Roy has left you in charge of the",
+			"pizzeria while he's away.",
+			"Take orders, top the pizzas, bake",
+			"them and slice them up.",
+			"The happier they are, the fatter",
+			"your tips and the faster you rank up.",
+			nullptr}},
+		{"The Stations", {
+			"L and R shuffle between the four",
+			"stations at the bottom of the screen.",
+			"Orders, Topping, Baking, Cutting.",
+			"Ovens keep cooking while you're",
+			"somewhere else, so keep an eye on",
+			"the timers.",
+			nullptr}},
+		{"Taking Orders", {
+			"Wait for a customer to reach the",
+			"counter at the Orders station.",
+			"Tap TAKE ORDER and Roy writes down",
+			"whatever they rattle off.",
+			"The balloon over their head shows",
+			"each line as it lands on the ticket.",
+			nullptr}},
+		{"Reading Tickets", {
+			"Each row is one topping: the icon,",
+			"how many, and where they go.",
+			"The pie chart marks which quarters",
+			"of the pizza get covered.",
+			"The clock is the bake notch, and the",
+			"knife shows how many slices.",
+			nullptr}},
+		{"Moving Tickets", {
+			"The ticket sitting in the dock is the",
+			"order every station works from.",
+			"Drag it up to the rail to park it, and",
+			"drag another one down to swap.",
+			"Only the docked ticket can make a",
+			"pizza, so pick before you top.",
+			nullptr}},
+		{"Topping", {
+			"Drag toppings out of the cups onto",
+			"the pizza. Watch the quarters!",
+			"Drag one back to its cup to bin it,",
+			"or drag it around to nudge it.",
+			"TO OVEN sends it off to bake, SAVE",
+			"parks it so you can top another.",
+			nullptr}},
+		{"Baking", {
+			"Four ovens, four timers. The needle",
+			"sweeps round as the pizza cooks.",
+			"Match the notch the customer asked",
+			"for on the ticket's clock.",
+			"Tap a pizza to pull it out. Overdone",
+			"is just as bad as underdone.",
+			nullptr}},
+		{"Cutting", {
+			"Drag a line clean across the pizza to",
+			"slice it. Short cuts don't count.",
+			"4 slices needs 2 cuts, 6 needs 3,",
+			"and 8 needs 4, spaced evenly.",
+			"THROW AWAY bins a ruined one so you",
+			"can start that order over.",
+			nullptr}},
+		{"Serving Up", {
+			"SERVE hands the pizza over and Roy",
+			"scores you on four things:",
+			"waiting, toppings, baking, cutting.",
+			"The average decides their reaction",
+			"and the tip that follows.",
+			"Keep them quick and they tip better.",
+			nullptr}},
+		{"Stars and Seals", {
+			"Score 80% or more and that customer",
+			"gives you a star. Five makes a seal.",
+			"Drop under 60% and you lose the lot,",
+			"so don't get sloppy.",
+			"Every seal bumps their maximum tip.",
+			"Three on everyone unlocks Papa.",
+			nullptr}},
+	};
+
+	const int HELP_PAGE_COUNT = (int)(sizeof(HELP_PAGES) / sizeof(HELP_PAGES[0]));
+}
+
+int Papas::HelpBook::count()
+{
+	return HELP_PAGE_COUNT;
+}
+
+// Rows are drawn from y=16 in 19px steps, so work backwards from the touch
+int Papas::HelpBook::rowAt(const touchPosition &touch)
+{
+	if (touch.px < 14 || touch.px > 306 || touch.py < 16) return -1;
+	int row = (touch.py - 16) / 19;
+	return row >= 0 && row < HELP_PAGE_COUNT && row < 12 ? row : -1;
+}
+
+void Papas::HelpBook::init(C2D_Font *font)
+{
+	dokyo = font;
+	buf = C2D_TextBufNew(2048);
+	// The contents list never changes, but it shares the page buffer, so
+	// setPage rebuilds the lot each time it's called.
+	setPage(0);
+}
+
+void Papas::HelpBook::terminate()
+{
+	if (buf != nullptr)
+	{
+		C2D_TextBufDelete(buf);
+		buf = nullptr;
+	}
+}
+
+void Papas::HelpBook::setPage(int newPage)
+{
+	page = ((newPage % HELP_PAGE_COUNT) + HELP_PAGE_COUNT) % HELP_PAGE_COUNT;
+
+	C2D_TextBufClear(buf);
+	const HelpPage &current = HELP_PAGES[page];
+
+	C2D_TextFontParse(&title, *dokyo, buf, current.title);
+	C2D_TextOptimize(&title);
+
+	bodyLines = 0;
+	for (int i = 0; i < 7 && current.lines[i] != nullptr; i++)
+	{
+		C2D_TextFontParse(&body[bodyLines], *dokyo, buf, current.lines[i]);
+		C2D_TextOptimize(&body[bodyLines]);
+		bodyLines++;
+	}
+
+	for (int i = 0; i < HELP_PAGE_COUNT && i < 12; i++)
+	{
+		C2D_TextFontParse(&contents[i], *dokyo, buf, HELP_PAGES[i].title);
+		C2D_TextOptimize(&contents[i]);
+	}
+
+	C2D_TextFontParse(&hint, *dokyo, buf, "L/R or D-Pad turns pages    B Back");
+	C2D_TextOptimize(&hint);
+}
+
+void Papas::HelpBook::turnPage(int by)
+{
+	setPage(page + by);
+}
+
+void Papas::HelpBook::renderTop()
+{
+	const u32 colBoard = C2D_Color32(35, 42, 37, 245);
+	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
+	const u32 colTitle = C2D_Color32(170, 63, 24, 255);
+	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+
+	C2D_DrawRectSolid(14.0f, 10.0f, 0.90f, 372.0f, 220.0f, colBoard);
+	C2D_DrawRectSolid(19.0f, 15.0f, 0.91f, 362.0f, 210.0f, colPaper);
+
+	float width = 0.0f;
+	C2D_TextGetDimensions(&title, 0.7f, 0.7f, &width, nullptr);
+	C2D_DrawText(&title, C2D_WithColor, (SCREEN_WIDTH_TOP - width) * 0.5f, 22.0f, 0.94f, 0.7f, 0.7f, colTitle);
+
+	for (int i = 0; i < bodyLines; i++)
+		C2D_DrawText(&body[i], C2D_WithColor, 34.0f, 58.0f + i * 26.0f, 0.94f, 0.5f, 0.5f, colInk);
+}
+
+void Papas::HelpBook::renderBottom()
+{
+	const u32 colPaper = C2D_Color32(244, 239, 218, 255);
+	const u32 colInk = C2D_Color32(39, 42, 35, 255);
+	const u32 colSoft = C2D_Color32(120, 105, 90, 255);
+	const u32 colPick = C2D_Color32(236, 121, 42, 255);
+
+	C2D_DrawRectSolid(10.0f, 6.0f, 0.90f, 300.0f, 206.0f, C2D_Color32(35, 42, 37, 245));
+	C2D_DrawRectSolid(14.0f, 10.0f, 0.91f, 292.0f, 198.0f, colPaper);
+
+	for (int i = 0; i < HELP_PAGE_COUNT && i < 12; i++)
+		C2D_DrawText(&contents[i], C2D_WithColor, 26.0f, 16.0f + i * 19.0f, 0.94f, 0.44f, 0.44f,
+			i == page ? colPick : colInk);
+
+	float width = 0.0f;
+	C2D_TextGetDimensions(&hint, 0.42f, 0.42f, &width, nullptr);
+	C2D_DrawText(&hint, C2D_WithColor, (SCREEN_WIDTH_BOTTOM - width) * 0.5f, 218.0f, 0.94f, 0.42f, 0.42f, colSoft);
 }

@@ -106,6 +106,20 @@ PapasError Papas::ResourceManager::pauseMusic()
     return PAPAS_OK;
 }
 
+PapasError Papas::ResourceManager::resumeMusic()
+{
+    Mix_ResumeMusic();
+    return PAPAS_OK;
+}
+
+// Flip everything to silence and back; -1 means every sfx channel
+void Papas::ResourceManager::toggleMute()
+{
+    muted = !muted;
+    Mix_VolumeMusic(muted ? 0 : MIX_MAX_VOLUME);
+    Mix_Volume(-1, muted ? 0 : MIX_MAX_VOLUME);
+}
+
 
 PapasError Papas::ResourceManager::stopMusic()
 {

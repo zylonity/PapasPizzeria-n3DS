@@ -6,7 +6,7 @@
 namespace {
 	// "PPZS" little-endian; rejects garbage files that happen to be the right size
 	const u32 SAVE_MAGIC   = 0x535A5050;
-	const u32 SAVE_VERSION = 3;	// v3: added customerMet (v2: stars + seals split)
+	const u32 SAVE_VERSION = 4;	// v4: customer file stats (v3: customerMet, v2: stars + seals)
 	const u32 SAVE_OLDEST  = 2;	// versions below this are unreadable
 	const char *SAVE_DIR   = "sdmc:/3ds/PapasPizzeria";
 

@@ -29,3 +29,9 @@ typedef int PapasError;
 
 #define SCREEN_WIDTH_BOTTOM  320
 #define SCREEN_HEIGHT_BOTTOM 240
+
+// Original timings, straight off GameData.as and BakingScreen.as
+#define COOK_TIME_MS            180000.0f           // a full 360 degree bake, 3 minutes
+#define MS_PER_COOK_DEGREE      (COOK_TIME_MS / 360.0f)
+#define PREP_TIME_PER_ORDER_MS  45000.0f            // prepTimePerOrder
+#define IDEAL_LINE_WAIT_MS      25000.0f            // Customer.idealLineWait
