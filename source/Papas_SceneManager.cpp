@@ -42,19 +42,19 @@ PapasError Papas::SceneManager::render_bottom() {
 PapasError Papas::SceneManager::changeScene(Papas::Scene* scene) {
 	PapasError ret;
 
-	//Gotta initiate the scene first or 3ds will shit itself
-	if (scene) {
-		scene->init(this);
-	}
-
+	//Bin the old scene's art first, both lots at once is more than an o3DS's VRAM has
 	if (currentScene) {
 		currentScene->terminate();
 		delete currentScene;
 		currentScene = nullptr; // Ensure no dangling pointer
 	}
+
+	if (scene) {
+		scene->init(this);
+	}
 	currentScene = scene;
 
-	
+
 
 	return PAPAS_OK;
 }

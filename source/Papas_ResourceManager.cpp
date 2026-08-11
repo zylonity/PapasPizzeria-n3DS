@@ -31,8 +31,12 @@ int Papas::ResourceManager::randomNumber(int small, int big)
 
 PapasError Papas::ResourceManager::initMusicPlayer()
 {
+    // Every scene asks for this, but opening twice just stacks SDL's refcount
+    if (musicPlayerOpen)
+        return PAPAS_OK;
 
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+    musicPlayerOpen = true;
     return PAPAS_OK;
 }
 
@@ -59,6 +63,7 @@ PapasError Papas::ResourceManager::endMusicPlayer()
 {
 
     Mix_CloseAudio();
+    musicPlayerOpen = false;
     return PAPAS_OK;
 }
 

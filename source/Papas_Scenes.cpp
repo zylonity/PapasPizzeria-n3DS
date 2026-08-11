@@ -562,7 +562,8 @@ PapasError Papas::CreditsScreen::init(Papas::SceneManager *sceneManager)
 		"Papa's Pizzeria",
 		"originally by Flipline Studios",
 		"",
-		"3DS port by zylonity",
+		"3DS port made by zylonity",
+		"for my beautiful gorgeous wife",
 		"",
 		"art and audio remain Flipline's",
 	};
@@ -614,8 +615,16 @@ PapasError Papas::CreditsScreen::render_bottom()
 	C2D_DrawRectSolid(18.0f, 44.0f, 0.90f, 284.0f, 150.0f, C2D_Color32(35, 42, 37, 245));
 	C2D_DrawRectSolid(22.0f, 48.0f, 0.91f, 276.0f, 142.0f, C2D_Color32(244, 239, 218, 255));
 
+	// Centre the block in the napkin so adding a line doesn't push it off the bottom
+	static const float PANEL_TOP = 48.0f;
+	static const float PANEL_HEIGHT = 142.0f;
+	static const float LINE_STEP = 19.0f;
+	static const float LINE_HEIGHT = 15.0f;
+	float blockHeight = (lineCount - 1) * LINE_STEP + LINE_HEIGHT;
+	float firstLineY = PANEL_TOP + (PANEL_HEIGHT - blockHeight) * 0.5f;
+
 	for (int i = 0; i < lineCount; i++)
-		drawTextCentered(&lines[i], SCREEN_WIDTH_BOTTOM * 0.5f, 60.0f + i * 22.0f, 0.94f, 0.5f, colInk);
+		drawTextCentered(&lines[i], SCREEN_WIDTH_BOTTOM * 0.5f, firstLineY + i * LINE_STEP, 0.94f, 0.5f, colInk);
 
 	drawTextCentered(&hintText, SCREEN_WIDTH_BOTTOM * 0.5f, 210.0f, 0.5f, 0.45f,
 		C2D_Color32(120, 105, 90, 255));
@@ -689,9 +698,6 @@ PapasError Papas::IntroCutscene::update()
 	// Handle skipping here because render_top runs once per eye.
 	if ((kDown & KEY_B) || elapsed >= duration)
 	{
-		// changeScene inits Game before terminating us, and both lots of art at
-		// once is more than an o3DS has. Drop the intro atlases first.
-		freeIntroSheets();
 		p_sceneManager->changeScene(new Papas::Game());
 		return PAPAS_OK; // changeScene deleted us; touch nothing else
 	}
@@ -850,11 +856,10 @@ void Papas::IntroCutscene::freeIntroSheets()
 PapasError Papas::IntroCutscene::terminate()
 {
 	C2D_SetTintMode(C2D_TintSolid);
+	// Just hush it; shutting the mixer now would bin the chunks Game::init wants
 	Papas::ResourceManager::getInstance().stopMusic();
-	// Symmetric with the old video scene: Game::init reopens the mixer
-	Papas::ResourceManager::getInstance().endMusicPlayer();
 
-	freeIntroSheets();	// no-op if update already dropped them on the way out
+	freeIntroSheets();
 	if (sheet_bg)
 	{
 		C2D_SpriteSheetFree(sheet_bg);

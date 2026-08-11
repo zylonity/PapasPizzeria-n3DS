@@ -54,6 +54,7 @@ namespace Papas
 		typedef std::mt19937 rng_type;
 		rng_type rng;
 		bool muted = false;
+		bool musicPlayerOpen = false;
 
 		// Don't allow extra instances.
 		ResourceManager()
